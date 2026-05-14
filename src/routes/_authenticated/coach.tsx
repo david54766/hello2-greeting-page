@@ -172,9 +172,22 @@ function Coach() {
                   <Sparkles className="size-3" /> Elite Circle response
                 </div>
               ) : <span />}
-              <Button variant="ghost" size="sm" onClick={copyPlan}>
-                <Copy className="size-3 mr-2" /> Copy plan
-              </Button>
+              <div className="flex items-center gap-2">
+                {ttsEnabled && (
+                  speaking ? (
+                    <Button variant="ghost" size="sm" onClick={stopAudio}>
+                      <Square className="size-3 mr-2" /> Stop
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" onClick={() => speak(response)}>
+                      <Volume2 className="size-3 mr-2" /> Speak
+                    </Button>
+                  )
+                )}
+                <Button variant="ghost" size="sm" onClick={copyPlan}>
+                  <Copy className="size-3 mr-2" /> Copy plan
+                </Button>
+              </div>
             </div>
             <Section label="Insight">{response.insight}</Section>
             <Section label="Recommendation">{response.recommendation}</Section>
