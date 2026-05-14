@@ -1,9 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  listAllUsers,
+  setUserTier,
+  listEliteRequests,
+  updateEliteRequestStatus,
+  deleteRagDocument,
+} from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — Prima Donna AI™" }] }),
@@ -17,7 +27,17 @@ function Admin() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const loadAll = async () => {
+  const usersFn = useServerFn(listAllUsers);
+  const tierFn = useServerFn(setUserTier);
+  const eliteFn = useServerFn(listEliteRequests);
+  const eliteUpdateFn = useServerFn(updateEliteRequestStatus);
+  const deleteDocFn = useServerFn(deleteRagDocument);
+  const qc = useQueryClient();
+
+  const users = useQuery({ queryKey: ["admin-users"], queryFn: () => usersFn() });
+  const eliteReqs = useQuery({ queryKey: ["admin-elite-requests"], queryFn: () => eliteFn() });
+
+  const loadStats = async () => {
     const [s, sessions, d] = await Promise.all([
       supabase.from("subscriptions").select("tier"),
       supabase.from("coaching_sessions").select("id", { count: "exact", head: true }),
@@ -30,7 +50,7 @@ function Admin() {
     setDocs((d.data ?? []) as any);
   };
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { loadStats(); }, []);
 
   const upload = async () => {
     if (!file || !title) return;
@@ -44,7 +64,26 @@ function Admin() {
     if (error) return toast.error(error.message);
     toast.success("Document uploaded.");
     setTitle(""); setFile(null);
-    loadAll();
+    loadStats();
+  };
+
+  const removeDoc = async (id: string) => {
+    const r = await deleteDocFn({ data: { id } });
+    if (r.ok) { toast.success(r.message); loadStats(); } else toast.error(r.message);
+  };
+
+  const changeTier = async (uid: string, tier: "essentials" | "pro" | "elite") => {
+    const r = await tierFn({ data: { targetUserId: uid, tier } });
+    if (r.ok) {
+      toast.success("Tier updated.");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      loadStats();
+    } else toast.error(r.message);
+  };
+
+  const setReqStatus = async (id: string, status: "pending" | "scheduled" | "completed" | "declined") => {
+    await eliteUpdateFn({ data: { id, status } });
+    qc.invalidateQueries({ queryKey: ["admin-elite-requests"] });
   };
 
   return (
@@ -57,6 +96,80 @@ function Admin() {
         <Stat label="Pro" value={counts.pro} />
         <Stat label="Elite" value={counts.elite} />
         <Stat label="Total sessions" value={counts.sessions} />
+      </section>
+
+      <div className="gold-divider mt-12" />
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl">Members</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Promote members to Pro or Elite to unlock gated content.</p>
+        <div className="mt-6 overflow-x-auto rounded-xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr className="text-left">
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Center</th>
+                <th className="px-4 py-3 font-medium">Tier</th>
+                <th className="px-4 py-3 font-medium">Joined</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {users.isLoading && <tr><td className="px-4 py-3" colSpan={5}>Loading…</td></tr>}
+              {users.data?.users?.map((u: any) => (
+                <tr key={u.id}>
+                  <td className="px-4 py-3">{u.full_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                  <td className="px-4 py-3">{u.business_name ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={u.tier}
+                      onChange={(e) => changeTier(u.id, e.target.value as any)}
+                      className="rounded-md border border-border bg-background px-2 py-1 text-sm capitalize"
+                    >
+                      <option value="essentials">Essentials</option>
+                      <option value="pro">Pro</option>
+                      <option value="elite">Elite</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div className="gold-divider mt-12" />
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl">Elite session requests</h2>
+        <div className="mt-6 space-y-3">
+          {eliteReqs.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {eliteReqs.data?.requests?.length === 0 && <p className="text-sm text-muted-foreground">No requests yet.</p>}
+          {eliteReqs.data?.requests?.map((r: any) => (
+            <div key={r.id} className="rounded-xl border border-border/60 bg-card p-5">
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-primary">{r.full_name ?? "Member"} · {r.business_name ?? ""}</div>
+                  <p className="mt-2">{r.topic}</p>
+                  {r.preferred_times && <p className="text-xs text-muted-foreground mt-1">Preferred: {r.preferred_times}</p>}
+                  <p className="text-[11px] text-muted-foreground mt-2">{new Date(r.created_at).toLocaleString()}</p>
+                </div>
+                <select
+                  value={r.status}
+                  onChange={(e) => setReqStatus(r.id, e.target.value as any)}
+                  className="rounded-md border border-border bg-background px-2 py-1 text-sm capitalize"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="completed">Completed</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <div className="gold-divider mt-12" />
@@ -80,7 +193,12 @@ function Admin() {
               {docs.map((d) => (
                 <li key={d.id} className="px-4 py-3 flex items-center justify-between">
                   <span>{d.title}</span>
-                  <span className="text-xs uppercase text-muted-foreground">{d.status}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs uppercase text-muted-foreground">{d.status}</span>
+                    <Button variant="ghost" size="sm" onClick={() => removeDoc(d.id)}>
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

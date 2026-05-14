@@ -2,10 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { hasAnyAdmin, claimFirstAdmin } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Crown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Settings — Prima Donna AI™" }] }),
@@ -13,9 +17,18 @@ export const Route = createFileRoute("/_authenticated/settings")({
 });
 
 function Settings() {
-  const { user, tier, refresh } = useAuth();
+  const { user, tier, isAdmin, refresh } = useAuth();
   const [form, setForm] = useState({ full_name: "", business_name: "", state: "", enrollment_size: "", tuition_range: "", staff_count: "" });
   const [saving, setSaving] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+
+  const checkAdminFn = useServerFn(hasAnyAdmin);
+  const claimFn = useServerFn(claimFirstAdmin);
+  const adminCheck = useQuery({
+    queryKey: ["has-any-admin"],
+    queryFn: () => checkAdminFn(),
+    enabled: !!user && !isAdmin,
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +62,21 @@ function Settings() {
     await refresh();
   };
 
+  const claim = async () => {
+    setClaiming(true);
+    const r = await claimFn();
+    setClaiming(false);
+    if (r.ok) {
+      toast.success(r.message);
+      await refresh();
+      window.location.reload();
+    } else {
+      toast.error(r.message);
+    }
+  };
+
+  const showClaim = !isAdmin && adminCheck.data && adminCheck.data.exists === false;
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <p className="text-xs uppercase tracking-[0.25em] text-primary">Settings</p>
@@ -75,9 +103,27 @@ function Settings() {
           Current tier: <span className="capitalize text-primary font-medium">{tier}</span>
         </p>
         <p className="mt-4 text-sm text-muted-foreground">
-          Stripe billing wires up next. Tier changes are managed by the platform owner during launch.
+          Tier upgrades are managed by the platform owner during launch. Stripe self-serve billing wires up next.
         </p>
       </section>
+
+      {showClaim && (
+        <>
+          <div className="gold-divider mt-12" />
+          <section className="mt-10 rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/10 to-transparent p-8">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-elite-foreground">
+              <Crown className="size-3 text-elite" /> Founding admin
+            </div>
+            <h2 className="mt-2 font-display text-2xl">Claim platform admin</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              No admin exists yet. As the platform owner, claim the admin role to unlock the Admin portal, manage members, and upload knowledge documents.
+            </p>
+            <Button onClick={claim} disabled={claiming} className="mt-5 rounded-full">
+              {claiming ? "Claiming…" : "Claim admin access"}
+            </Button>
+          </section>
+        </>
+      )}
     </div>
   );
 }
