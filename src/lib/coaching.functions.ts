@@ -2,6 +2,20 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export const getCoachingHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("coaching_sessions")
+      .select("id, mode, prompt, response, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) return { sessions: [], error: error.message };
+    return { sessions: data ?? [], error: null as string | null };
+  });
+
 const MODE_PROMPTS: Record<string, string> = {
   ceo: "You are a CEO-level strategic advisor for childcare center owners. Focus on vision, leadership decisions, time allocation, and high-leverage moves.",
   revenue: "You are a revenue strategist for childcare centers. Focus on pricing, enrollment funnels, retention, ancillary revenue, and unit economics.",
