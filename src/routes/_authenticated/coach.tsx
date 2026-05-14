@@ -33,9 +33,54 @@ function Coach() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<Resp | null>(null);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const run = useServerFn(runCoaching);
+  const tts = useServerFn(synthesizeSpeech);
   const historyFn = useServerFn(getCoachingHistory);
   const qc = useQueryClient();
+
+  // Persist toggle
+  useEffect(() => {
+    const saved = localStorage.getItem("pd_tts_enabled");
+    if (saved === "1") setTtsEnabled(true);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("pd_tts_enabled", ttsEnabled ? "1" : "0");
+    if (!ttsEnabled) stopAudio();
+  }, [ttsEnabled]);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    setSpeaking(false);
+  };
+
+  const speak = async (r: Resp) => {
+    stopAudio();
+    const text = `Insight. ${r.insight} Recommendation. ${r.recommendation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
+    setSpeaking(true);
+    try {
+      const result = await tts({ data: { text } });
+      if (result.error || !result.audio) {
+        toast.error(result.error || "Voice unavailable");
+        setSpeaking(false);
+        return;
+      }
+      const audio = new Audio(`data:audio/mpeg;base64,${result.audio}`);
+      audioRef.current = audio;
+      audio.onended = () => setSpeaking(false);
+      audio.onerror = () => setSpeaking(false);
+      await audio.play();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Voice unavailable");
+      setSpeaking(false);
+    }
+  };
 
   const history = useQuery({
     queryKey: ["coaching-history", user?.id],
@@ -47,12 +92,14 @@ function Coach() {
     if (prompt.trim().length < 3) return;
     setLoading(true);
     setResponse(null);
+    stopAudio();
     try {
       const result = await run({ data: { mode, prompt } });
       if (result.error) toast.error(result.error);
       else {
         setResponse(result.response);
         qc.invalidateQueries({ queryKey: ["coaching-history", user?.id] });
+        if (ttsEnabled) speak(result.response);
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Strategist unavailable");
