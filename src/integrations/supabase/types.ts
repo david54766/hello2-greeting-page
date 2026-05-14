@@ -14,16 +14,228 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      coaching_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          mode: Database["public"]["Enums"]["coaching_mode"]
+          prompt: string
+          response: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mode: Database["public"]["Enums"]["coaching_mode"]
+          prompt: string
+          response: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["coaching_mode"]
+          prompt?: string
+          response?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          enrollment_size: number | null
+          full_name: string | null
+          id: string
+          staff_count: number | null
+          state: string | null
+          tuition_range: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          enrollment_size?: number | null
+          full_name?: string | null
+          id: string
+          staff_count?: number | null
+          state?: string | null
+          tuition_range?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          enrollment_size?: number | null
+          full_name?: string | null
+          id?: string
+          staff_count?: number | null
+          state?: string | null
+          tuition_range?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rag_documents: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          storage_path: string
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          storage_path: string
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          storage_path?: string
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          category: Database["public"]["Enums"]["template_category"]
+          created_at: string
+          description: string | null
+          id: string
+          is_elite: boolean
+          storage_path: string
+          tier_required: Database["public"]["Enums"]["subscription_tier"]
+          title: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_elite?: boolean
+          storage_path: string
+          tier_required?: Database["public"]["Enums"]["subscription_tier"]
+          title: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["template_category"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_elite?: boolean
+          storage_path?: string
+          tier_required?: Database["public"]["Enums"]["subscription_tier"]
+          title?: string
+        }
+        Relationships: []
+      }
+      usage_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      coaching_mode: "ceo" | "revenue" | "marketing" | "compliance" | "systems"
+      subscription_tier: "essentials" | "pro" | "elite"
+      template_category: "hiring" | "enrollment" | "operations"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +362,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      coaching_mode: ["ceo", "revenue", "marketing", "compliance", "systems"],
+      subscription_tier: ["essentials", "pro", "elite"],
+      template_category: ["hiring", "enrollment", "operations"],
+    },
   },
 } as const
