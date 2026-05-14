@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// "Raven" — using ElevenLabs voice ID. Replace if user has a custom Raven voice.
-const RAVEN_VOICE_ID = "kPtEHAvRnjUJFv7SK9WI"; // Glitch fallback; override below if Raven exists in account
+// "Raven" voice. If you have a custom Raven voice cloned in your ElevenLabs
+// account, replace this ID. Default falls back to "Brian" — deep, grounded.
+const RAVEN_VOICE_ID = process.env.ELEVENLABS_RAVEN_VOICE_ID || "nPczCjzI2devNBz1zQrb";
 
 const Schema = z.object({
   text: z.string().min(1).max(5000),
