@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      elite_requests: {
+        Row: {
+          created_at: string
+          id: string
+          preferred_times: string | null
+          status: string
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preferred_times?: string | null
+          status?: string
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preferred_times?: string | null
+          status?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           business_name: string | null
@@ -223,6 +253,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_first_admin: { Args: never; Returns: boolean }
+      has_any_admin: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
