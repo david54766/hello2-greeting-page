@@ -1,94 +1,71 @@
-## Prima Donna AI™ — Build Plan
 
-A premium AI executive-coaching SaaS for childcare center owners. Full v1 scope as requested.
+## Goal
+Lock in end-to-end functionality across auth, AI coaching, billing, vault, and admin so a brand-new signup can: sign up → set business profile → run a real AI coaching session → upgrade tier via Stripe → access gated content. No more placeholders in the core flow.
 
-### Tech foundation
-- TanStack Start (existing) + Lovable Cloud (Supabase: DB, auth, storage)
-- Lovable AI Gateway (`google/gemini-2.5-pro` for coaching, `gemini-3-flash-preview` fallback)
-- Stripe via Lovable's built-in seamless payments (3 subscription products)
-- Modular AI layer: server functions per coaching mode, swappable model
+## Current state (verified)
+- ✅ Auth (email/password), `_authenticated` + `_admin` route guards, profile auto-provisioned on signup.
+- ✅ AI coach server function `runCoaching` (5 modes, tool-calling for structured output) + `getDailyRecommendation`. `LOVABLE_API_KEY` is set.
+- ✅ Dashboard snapshot, Settings (business profile), Templates vault (signed downloads), Admin (RAG upload + counts), Elite gating.
+- ❌ No way to promote the first admin user.
+- ❌ No coaching session history (sessions are saved but never shown back).
+- ❌ Stripe billing not wired — tiers are static, "Upgrade" buttons go nowhere.
+- ❌ Elite "Request a session" and Circle Vault are placeholders.
+- ❌ `_authenticated` `beforeLoad` calls `getSession()` once on SSR; on hard refresh of an authed page, the session may not be hydrated and could redirect to /login.
 
-### Design system
-- Palette: rose/crimson — `#D90429` primary CTA, `#D9719B` accent, `#D98FAE` soft, ivory/charcoal neutrals (oklch tokens in `src/styles.css`)
-- Typography: Instrument Serif headings + Work Sans body (per selection; Playfair noted as alternate)
-- Aesthetic: editorial, generous whitespace, gold-thin dividers, CEO-grade not chatty
+## Plan
 
-### Routes
-```
-/                       Landing (marketing + pricing)
-/login, /signup, /reset-password
-/_authenticated/
-  dashboard             Command Center (primary)
-  coach                 AI coaching (5 modes)
-  templates             Template Vault (Pro+)
-  elite                 Elite Circle (live coaching + vault)
-  settings              Profile + business memory + billing
-/_authenticated/_admin/
-  admin                 Users, tiers, usage, document upload (RAG)
-/api/public/stripe-webhook
-```
+### 1. Bootstrap admin access
+- Add a one-time server function `claimFirstAdmin()` that grants `admin` role to the calling user **only if** `user_roles` has zero admins. Surface a "Claim admin" button on `/settings` when no admin exists yet.
+- Migration: index on `user_roles(role)` for the lookup.
 
-### Database (Supabase)
-- `profiles` — id, full_name, business_name, state, enrollment_size, tuition_range, staff_count
-- `user_roles` — (user_id, role enum: admin|user) with `has_role()` security definer
-- `subscriptions` — user_id, stripe_customer_id, tier (essentials|pro|elite), status, current_period_end
-- `coaching_sessions` — user_id, mode, prompt, response (jsonb: insight/recommendation/action_steps), created_at
-- `templates` — title, category (hiring|enrollment|operations), tier_required, storage_path
-- `rag_documents` — admin-uploaded docs metadata, storage_path, embedding status
-- `usage_events` — user_id, event_type, tokens, created_at
-- Storage buckets: `templates` (private, signed URLs), `rag-docs` (private, admin-only)
-- RLS on every table; tier checks via subscription lookup
+### 2. AI coach — verify + complete
+- Smoke-test `runCoaching` end-to-end via `invoke-server-function` against the preview URL after sign-in (token-bearing call).
+- Fix the auth race in `src/routes/_authenticated.tsx`: replace `getSession()` with `supabase.auth.getUser()` so the loader awaits session restore (per `tanstack-supabase-integration` guidance).
+- Add **Session History** to `/coach`: left rail listing the user's last 20 `coaching_sessions` (mode + first line of insight + timestamp), click to re-render the structured response. Pulls from `coaching_sessions` via RLS.
+- Add a "Copy action plan" button on each response.
 
-### Auth
-- Email + password (Lovable Cloud), session via Supabase
-- `_authenticated` layout guard; `_admin` nested guard checks `has_role`
-- Auto-create profile + default subscription row on signup (trigger)
+### 3. Stripe billing (3 tiers)
+- Use Lovable's built-in Stripe payments. Run `payments--recommend_payment_provider` then `payments--enable_stripe_payments`.
+- Server functions:
+  - `createCheckoutSession({ tier })` → returns Stripe Checkout URL for Essentials $97 / Pro $197 / Elite $497 monthly.
+  - `createCustomerPortalSession()` → manage/cancel.
+- Stripe webhook at `src/routes/api/public/stripe-webhook.ts`: verify signature, on `checkout.session.completed` / `customer.subscription.updated` / `deleted` upsert `subscriptions` row (tier, status, stripe_customer_id, stripe_subscription_id, current_period_end) using `supabaseAdmin`. Add `STRIPE_WEBHOOK_SECRET` secret.
+- `/settings` membership block: show current tier + 3 plan cards with "Upgrade" → checkout, and "Manage billing" if already subscribed.
+- `/elite` gate uses live `tier` (already does); upgrade CTA now actually checks out.
 
-### Stripe (seamless payments)
-- 3 products: Essentials $97, Pro $197, Elite $497 (monthly)
-- Checkout server functions; webhook updates `subscriptions` table
-- `useTier()` hook gates Pro/Elite features client-side; server functions re-validate
+### 4. Vault polish
+- Seed a small set of starter templates per tier (admin can add more later) so the page isn't empty for new users.
+- Replace "Upgrade" link on locked vault banner to call the Pro checkout directly.
 
-### AI coaching engine
-- Server function `runCoaching({ mode, prompt })` calls AI Gateway
-- 5 mode-specific system prompts (CEO, Revenue, Marketing, Compliance, Systems)
-- Injects user's business memory (name, state, enrollment, tuition, staff) into context
-- Forces structured JSON output via tool calling: `{ insight, recommendation, action_steps[] }`
-- Persists to `coaching_sessions`; Elite users get gold-accent response styling
-- RAG: stub interface ready (documents table + storage); retrieval to be wired in follow-up
+### 5. Elite Circle — minimal real functionality
+- Replace "Request a session" placeholder with a form that inserts into a new `elite_requests` table (fields: user_id, topic, preferred_times, status). Admin sees pending requests in `/admin`.
+- Migration: `elite_requests` table + RLS (user inserts/views own; admin all).
 
-### Command Center dashboard
-- Personalized greeting using profile
-- Snapshot cards: enrollment, revenue estimate (tuition × enrollment), staffing — mock-derived from profile
-- "Today's Strategic Recommendation" — server function generates one daily insight (cached per user/day)
-- Quick actions: Ask AI / Templates / Growth Plan
+### 6. Admin enhancements
+- New tab/section listing recent users (id, email via `auth.users` joined through profile, tier, created_at) — uses `supabaseAdmin` in a server function.
+- New section: pending Elite requests with "Mark handled" action.
+- Show RAG document count + ability to delete a doc (removes storage object + row).
 
-### Template Vault
-- Grid by category, tier badges, signed download URLs
-- Locked cards with upgrade CTA for Essentials users
+### 7. SEO + meta
+- Add per-route `<title>` + meta description on `/`, `/login`, `/signup` (others already have titles). Single H1 per page (verify dashboard/coach/etc.). Add `public/llms.txt`.
 
-### Elite Circle
-- Live coaching placeholder (calendar embed slot + "Book session" CTA)
-- Premium vault list (separate templates marked elite)
-- Distinct visual treatment (gold border, serif emphasis)
+### 8. Verification
+After each chunk:
+- Build runs clean.
+- Manually invoke server functions to confirm:
+  - `runCoaching` returns structured JSON.
+  - `getDailyRecommendation` returns text.
+  - `createCheckoutSession` returns a URL.
+- Walk the flow in the preview: signup → profile → coach session → checkout (test mode) → tier reflects in header.
 
-### Admin
-- Users table with tier, last active
-- Subscription overview (counts per tier)
-- Usage metrics (sessions/day, tokens)
-- Document upload UI → `rag-docs` bucket + `rag_documents` row
+## Technical notes
+- Stripe price IDs created via the enable tool; store IDs in env (`STRIPE_PRICE_ESSENTIALS`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_ELITE`).
+- All server-side Stripe calls go through `createServerFn` — no edge functions.
+- Webhook lives at `/api/public/stripe-webhook` (bypasses auth, signature-verified).
+- `subscriptions.user_id` is unique → use upsert on `user_id` from webhook.
+- Coaching session history query: `select id, mode, response, created_at from coaching_sessions where user_id = auth.uid() order by created_at desc limit 20`.
 
-### Build sequence
-1. Enable Lovable Cloud + design tokens + landing page
-2. Auth (login/signup/reset) + profiles + roles + `_authenticated` guard
-3. Command Center dashboard with mock snapshot
-4. AI coaching engine (5 modes, structured output, memory injection, history)
-5. Stripe seamless payments enable + 3 products + webhook + tier gating
-6. Template Vault + Elite Circle
-7. Admin dashboard + RAG document upload
-8. Polish, SEO meta per route, error boundaries
-
-### Notes
-- Stripe enable runs after eligibility check; requires Pro plan on Lovable
-- RAG retrieval (embeddings + vector search) wired as follow-up — schema/upload ready in v1
-- Mobile rebuild (React Native) preserved by keeping all logic in server functions; UI is pure presentation
+## Out of scope (call out, don't build now)
+- RAG retrieval (embeddings + vector search) — uploads work, retrieval ships in a follow-up.
+- Live calendar booking (Calendly/Cal.com integration).
+- React Native rebuild.
