@@ -74,6 +74,11 @@ function Dashboard() {
         <p className="mt-4 font-display text-2xl md:text-3xl leading-snug">
           {daily.isLoading ? "Drawing today's move…" : daily.data?.recommendation ?? "—"}
         </p>
+        {daily.data?.created_at && (
+          <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Generated {new Date(daily.data.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · refreshes daily at 3 AM your time
+          </p>
+        )}
       </section>
 
       {/* Quick actions */}
