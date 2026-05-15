@@ -10,10 +10,15 @@ import {
   updateEliteRequestStatus,
   deleteRagDocument,
 } from "@/lib/admin.functions";
+import {
+  listEliteApplications,
+  decideEliteApplication,
+} from "@/lib/elite-application.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — Prima Donna AI™" }] }),
