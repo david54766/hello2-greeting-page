@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, ArrowRight } from "lucide-react";
+import ravenPortrait from "@/assets/raven.jpeg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,6 +48,14 @@ function Landing() {
       <section className="relative px-6 py-24 md:py-36 overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-rose-soft/20 via-background to-background" />
         <div className="mx-auto max-w-5xl text-center">
+          <div className="mx-auto mb-10 size-40 md:size-48 overflow-hidden rounded-full border-4 border-primary/30 shadow-xl ring-1 ring-primary/20">
+            <img
+              src={ravenPortrait}
+              alt="Founder of Prima Donna AI™"
+              className="size-full object-cover"
+              loading="eager"
+            />
+          </div>
           <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-muted-foreground">
             <Sparkles className="size-3 text-primary" />
             For childcare center owners
