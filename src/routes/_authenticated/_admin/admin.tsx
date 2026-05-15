@@ -165,6 +165,24 @@ function Admin() {
       <div className="gold-divider mt-12" />
 
       <section className="mt-10">
+        <h2 className="font-display text-2xl">Elite Circle applications</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Review and approve applicants. Approval triggers a confirmation email with final registration steps.
+        </p>
+        <div className="mt-6 space-y-3">
+          {eliteApps.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {eliteApps.data?.applications?.length === 0 && (
+            <p className="text-sm text-muted-foreground">No applications yet.</p>
+          )}
+          {eliteApps.data?.applications?.map((a: any) => (
+            <ApplicationCard key={a.id} app={a} onDecide={decideApp} />
+          ))}
+        </div>
+      </section>
+
+      <div className="gold-divider mt-12" />
+
+      <section className="mt-10">
         <h2 className="font-display text-2xl">Elite session requests</h2>
         <div className="mt-6 space-y-3">
           {eliteReqs.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
