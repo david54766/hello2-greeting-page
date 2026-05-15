@@ -48,11 +48,11 @@ function Landing() {
       <section className="relative px-6 py-24 md:py-36 overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-rose-soft/20 via-background to-background" />
         <div className="mx-auto max-w-5xl text-center">
-          <div className="mx-auto mb-10 size-40 md:size-48 overflow-hidden rounded-full border-4 border-primary/30 shadow-xl ring-1 ring-primary/20">
+          <div className="mx-auto mb-10 w-56 md:w-64 aspect-[3/4] overflow-hidden rounded-2xl border-2 border-primary/30 shadow-xl ring-1 ring-primary/20">
             <img
               src={ravenPortrait}
               alt="Founder of Prima Donna AI™"
-              className="size-full object-cover"
+              className="size-full object-contain bg-rose-soft/20"
               loading="eager"
             />
           </div>
