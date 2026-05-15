@@ -78,8 +78,7 @@ export const Route = createFileRoute("/api/public/hooks/generate-daily-recommend
           }
         }
 
-        // suppress unused var
-        void profiles; void error;
+
 
         return new Response(JSON.stringify({ ok: true, eligible: eligible.length, generated, skipped }), {
           headers: { "Content-Type": "application/json" },
