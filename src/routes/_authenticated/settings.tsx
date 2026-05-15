@@ -40,6 +40,7 @@ function Settings() {
         enrollment_size: data.enrollment_size?.toString() ?? "",
         tuition_range: data.tuition_range ?? "",
         staff_count: data.staff_count?.toString() ?? "",
+        timezone: (data as any).timezone ?? "America/New_York",
       });
     });
   }, [user]);
@@ -55,6 +56,7 @@ function Settings() {
       enrollment_size: form.enrollment_size ? parseInt(form.enrollment_size) : null,
       tuition_range: form.tuition_range,
       staff_count: form.staff_count ? parseInt(form.staff_count) : null,
+      timezone: form.timezone,
     }).eq("id", user.id);
     setSaving(false);
     if (error) return toast.error(error.message);
