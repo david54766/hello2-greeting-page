@@ -94,6 +94,20 @@ function Admin() {
     qc.invalidateQueries({ queryKey: ["admin-elite-requests"] });
   };
 
+  const decideApp = async (id: string, decision: "approved" | "declined", admin_notes?: string) => {
+    const r = await decideAppFn({ data: { id, decision, admin_notes } });
+    if (r.ok) {
+      toast.success(r.message);
+      qc.invalidateQueries({ queryKey: ["admin-elite-applications"] });
+      // Approved applicants will need their tier upgraded — surface a hint.
+      if (decision === "approved") {
+        toast.message("Set the member's tier to Elite once they complete checkout.");
+      }
+    } else {
+      toast.error(r.message);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <p className="text-xs uppercase tracking-[0.25em] text-primary">Admin</p>
