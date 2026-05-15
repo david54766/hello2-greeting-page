@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { getDailyRecommendation } from "@/lib/coaching.functions";
+import { getTodayRecommendation } from "@/lib/coaching.functions";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, FileText, TrendingUp, Sparkles } from "lucide-react";
