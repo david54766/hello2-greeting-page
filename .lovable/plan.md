@@ -1,52 +1,81 @@
 ## Goal
-Replace the on-load AI fetch with a persisted **Daily Strategic Recommendation** for every user (all tiers), regenerated automatically by a 3 AM cron job.
 
-Note: 3 AM "local" isn't possible in pg_cron (it runs in a single timezone, UTC). I'll run the cron hourly and only generate for users whose local time is 3 AM, using the timezone stored on each user's profile. This gives true 3 AM local per user.
+Turn "Apply to Elite Circle" into a real gated application + approval workflow:
+
+1. Non-Elite user submits a structured application form
+2. Admin sees it in the admin panel and approves or declines
+3. On approval, applicant gets an email with confirmation + final steps to upgrade to Elite
+4. On decline, applicant optionally gets a polite decline email
+
+The existing `elite_requests` table is for *current Elite members requesting 1-1 sessions* — we keep that untouched and add a separate `elite_applications` table for the new approval flow.
 
 ## Steps
 
-### 1. Schema (migration)
-- Add `timezone TEXT` to `profiles` (default `'America/New_York'`, editable in Settings).
-- New table `daily_recommendations`:
-  - `user_id uuid`, `for_date date`, `recommendation text`, `created_at timestamptz`
-  - Unique `(user_id, for_date)` so we never double-generate.
-  - RLS: users can SELECT their own row only. Service role writes via cron.
+### 1. Database (`elite_applications` table)
+New table with columns:
+- `user_id` (uuid, FK to auth.users via RLS, the applicant)
+- `full_name`, `email`, `business_name`, `state`, `role` (text)
+- `centers_count` (int), `annual_revenue` (text bracket: <250k / 250k–1M / 1M+ / 5M+)
+- `goals` (text, why Elite — required)
+- `referral` (text, how they heard, optional)
+- `status` (text, default `pending`: `pending` | `approved` | `declined`)
+- `admin_notes` (text, internal)
+- `decided_by` (uuid, admin user), `decided_at` (timestamptz)
+- standard `created_at`, `updated_at`
 
-### 2. Server function — `getTodayRecommendation`
-- Auth-protected serverFn.
-- Reads today's row (in user's timezone) from `daily_recommendations`.
-- If missing (new user, first login before cron has run, or timezone edge case), generates one on-the-fly using existing AI logic, persists it, returns it.
-- This guarantees every user — Essentials, Pro, Elite — always sees something on the dashboard.
+RLS:
+- Users can `INSERT` and `SELECT` their own application
+- Admins can `SELECT` all and `UPDATE` (to set status / notes)
+- Unique partial index: one *pending* or *approved* application per user (allow re-apply after decline)
 
-### 3. Cron endpoint — `/api/public/hooks/generate-daily-recommendations`
-- POST handler, verifies `apikey` header against publishable key.
-- Uses `supabaseAdmin` to:
-  1. Find every user whose local time (profile.timezone) is currently between 3:00–3:59 AM and who doesn't yet have a row for today.
-  2. For each, build the same portfolio-aware prompt as today's `getDailyRecommendation` and call Lovable AI Gateway (`gemini-3-flash-preview`).
-  3. Insert into `daily_recommendations`.
-- Batched, with rate-limit handling (429/402 → skip + log).
+### 2. Application form (`src/routes/_authenticated/elite.tsx`)
+Replace the current "Request a Session" CTA for non-Elite users with a multi-field application form (Zod-validated). Show one of three states:
+- No application → form
+- `pending` → "Application under review" status card with submitted date
+- `declined` → decline reason + "Apply again" button
+- `approved` → success card with "Confirm & Upgrade" button (links to `/settings` upgrade flow)
 
-### 4. pg_cron schedule
-- Enable `pg_cron` + `pg_net` (already standard).
-- Schedule: `0 * * * *` (every hour at :00) calling the route. The route itself filters to "users whose local 3 AM is now."
+Existing Elite members keep their session-request UI as-is.
 
-### 5. Dashboard wiring
-- `dashboard.tsx`: swap `getDailyRecommendation` → `getTodayRecommendation`.
-- Add tiny "Generated at HH:MM" timestamp below the card.
-- Remove the per-page-load AI cost path.
+### 3. Server functions (`src/lib/elite-application.functions.ts`)
+- `submitEliteApplication` — auth-protected, inserts row, blocks if pending/approved exists
+- `getMyEliteApplication` — auth-protected, returns user's latest
+- `listEliteApplications` (admin only) — returns all with applicant profile
+- `decideEliteApplication` (admin only) — updates status + admin_notes, sets `decided_by/at`, **triggers email**
 
-### 6. Settings
-- Add a Timezone select in `settings.tsx` so users can pick their local TZ (defaults to America/New_York). Required for the 3 AM cadence to be meaningful.
+### 4. Admin UI (`src/routes/_authenticated/_admin/admin.tsx`)
+Add an "Elite Applications" card alongside the existing Elite Requests card:
+- Pending applications list with full details
+- Approve / Decline buttons (decline opens a small modal for reason)
+- Filter tabs: Pending / Approved / Declined / All
 
-## Out of scope
-- No email delivery (you chose dashboard only).
-- No tier-gating — recommendation is universal across Essentials/Pro/Elite.
-- No "regenerate" button (one per day; deterministic).
+### 5. Email delivery
+The project does not yet have email infrastructure. Recommended path: **Lovable Emails** (built-in, branded auth + transactional, no third-party signup).
 
-## Files touched
-- `supabase/migrations/...` (new table + profiles.timezone)
-- `src/lib/coaching.functions.ts` (add `getTodayRecommendation`, keep old fn deprecated or remove)
-- `src/routes/api/public/hooks/generate-daily-recommendations.ts` (new)
-- `src/routes/_authenticated/dashboard.tsx` (swap fn)
-- `src/routes/_authenticated/settings.tsx` (timezone field)
-- pg_cron schedule via `supabase--insert`
+To send the approval/decline notification we need:
+- A verified sender domain (workspace-level setup)
+- Email infra scaffolded once, then a transactional template `elite-approved` and `elite-declined`
+
+If Lovable Emails is acceptable, the flow becomes: admin clicks Approve → server fn updates row → enqueues a transactional email via the scaffolded `process-email-queue` → applicant gets a branded "You're in" email with a CTA back to `/settings` to complete upgrade.
+
+If you prefer a third-party (Resend / Brevo / Mailgun), I can wire that instead — Resend is the simplest.
+
+### 6. Out of scope (this turn)
+- No automatic Stripe upgrade — the email links to `/settings` where existing upgrade flow lives
+- No public (logged-out) application form — applicant must have a free Essentials account first; the email-on-approval acts as the "final steps to register/upgrade" message
+- If you want a fully public application (no signup required), say so and I'll add a public route + magic-link flow instead
+
+## Files
+
+- `supabase/migrations/...` — `elite_applications` table + RLS
+- `src/lib/elite-application.functions.ts` — new
+- `src/routes/_authenticated/elite.tsx` — application form for non-Elite users
+- `src/routes/_authenticated/_admin/admin.tsx` — admin review card
+- `src/lib/admin.functions.ts` — add `listEliteApplications` + `decideEliteApplication`
+- Email scaffolding files (only after you confirm provider choice)
+
+## Question before I implement
+
+**Email provider**: Lovable Emails (built-in, recommended) or Resend / Brevo / Mailgun?
+
+**Applicant scope**: Must the applicant already be a logged-in Essentials user (current plan), or do you want a fully public application form where anyone can apply without an account?
