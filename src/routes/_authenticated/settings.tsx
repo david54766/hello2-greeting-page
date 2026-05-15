@@ -92,6 +92,21 @@ function Settings() {
         <Field label="Enrollment count"><Input type="number" value={form.enrollment_size} onChange={(e) => setForm({ ...form, enrollment_size: e.target.value })} /></Field>
         <Field label="Tuition range"><Input value={form.tuition_range} onChange={(e) => setForm({ ...form, tuition_range: e.target.value })} placeholder="e.g. $1200-1800/mo" /></Field>
         <Field label="Staff count"><Input type="number" value={form.staff_count} onChange={(e) => setForm({ ...form, staff_count: e.target.value })} /></Field>
+        <Field label="Timezone (for daily AI brief)">
+          <select
+            value={form.timezone}
+            onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm h-10"
+          >
+            <option value="America/New_York">Eastern (New York)</option>
+            <option value="America/Chicago">Central (Chicago)</option>
+            <option value="America/Denver">Mountain (Denver)</option>
+            <option value="America/Phoenix">Mountain — no DST (Phoenix)</option>
+            <option value="America/Los_Angeles">Pacific (Los Angeles)</option>
+            <option value="America/Anchorage">Alaska (Anchorage)</option>
+            <option value="Pacific/Honolulu">Hawaii (Honolulu)</option>
+          </select>
+        </Field>
         <div className="sm:col-span-2">
           <Button type="submit" className="rounded-full" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
         </div>
