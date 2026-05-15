@@ -17,11 +17,11 @@ export const Route = createFileRoute("/_authenticated/coach")({
 });
 
 const MODES = [
-  { id: "ceo" as const, label: "CEO" },
-  { id: "revenue" as const, label: "Revenue" },
-  { id: "marketing" as const, label: "Marketing" },
-  { id: "compliance" as const, label: "Compliance" },
-  { id: "systems" as const, label: "Systems" },
+  { id: "ceo" as const, label: "CEO", tag: "Vision · Leadership · Decisions" },
+  { id: "revenue" as const, label: "Revenue", tag: "Pricing · Enrollment · Retention" },
+  { id: "marketing" as const, label: "Marketing", tag: "Brand · Funnels · Conversion" },
+  { id: "compliance" as const, label: "Compliance", tag: "Licensing · Ratios · Policy (per state)" },
+  { id: "systems" as const, label: "Systems", tag: "SOPs · Hiring · Operations" },
 ];
 
 type Mode = (typeof MODES)[number]["id"];
