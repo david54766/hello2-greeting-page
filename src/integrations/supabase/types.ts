@@ -89,6 +89,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_recommendations: {
+        Row: {
+          created_at: string
+          for_date: string
+          id: string
+          recommendation: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          for_date: string
+          id?: string
+          recommendation: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          for_date?: string
+          id?: string
+          recommendation?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       elite_requests: {
         Row: {
           created_at: string
@@ -128,6 +152,7 @@ export type Database = {
           id: string
           staff_count: number | null
           state: string | null
+          timezone: string
           tuition_range: string | null
           updated_at: string
         }
@@ -139,6 +164,7 @@ export type Database = {
           id: string
           staff_count?: number | null
           state?: string | null
+          timezone?: string
           tuition_range?: string | null
           updated_at?: string
         }
@@ -150,6 +176,7 @@ export type Database = {
           id?: string
           staff_count?: number | null
           state?: string | null
+          timezone?: string
           tuition_range?: string | null
           updated_at?: string
         }

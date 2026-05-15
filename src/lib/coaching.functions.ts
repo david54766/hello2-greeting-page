@@ -124,37 +124,69 @@ export const runCoaching = createServerFn({ method: "POST" })
     return { error: null, response: parsed };
   });
 
-export const getDailyRecommendation = createServerFn({ method: "GET" })
+async function generateRecommendationText(memory: string, apiKey: string): Promise<string> {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: "You are Prima Donna AI™. Generate ONE crisp strategic recommendation (1-2 sentences max) that a childcare center owner could act on today. No fluff, no greetings. Speak with authority." },
+        { role: "user", content: `Owner context: ${memory}\n\nGive me today's strategic move.` },
+      ],
+    }),
+  });
+  if (!res.ok) return "Audit your top 3 enrollment leads from the past 7 days. Which one have you not yet personally called?";
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content?.trim() ?? "Make one decision today that your future self will thank you for.";
+}
+
+function buildOwnerMemory(profile: any, centers: any[] | null): string {
+  return centers && centers.length
+    ? `Owner runs ${centers.length} center(s): ${centers.map((c) => `${c.name} (${c.state ?? "?"}, ${c.enrollment_size ?? "?"}/${c.capacity ?? "?"} enrolled, tuition ${c.tuition_range ?? "?"})`).join("; ")}.`
+    : profile
+    ? `Single center: ${profile.business_name ?? "(unnamed)"}, ${profile.state ?? "n/a"}.`
+    : "No business profile yet.";
+}
+
+export const getTodayRecommendation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("business_name, state, timezone")
+      .eq("id", userId)
+      .maybeSingle();
+    const tz = profile?.timezone ?? "America/New_York";
+    const todayLocal = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+
+    // Try cached row
+    const { data: existing } = await supabase
+      .from("daily_recommendations")
+      .select("recommendation, created_at, for_date")
+      .eq("user_id", userId)
+      .eq("for_date", todayLocal)
+      .maybeSingle();
+    if (existing) return { recommendation: existing.recommendation, created_at: existing.created_at, for_date: existing.for_date };
+
+    // Generate now
     const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { recommendation: "Connect AI to receive today's strategic move." };
+    if (!apiKey) return { recommendation: "Connect AI to receive today's strategic move.", created_at: new Date().toISOString(), for_date: todayLocal };
 
-    const [{ data: profile }, { data: centers }] = await Promise.all([
-      supabase.from("profiles").select("business_name, state").eq("id", userId).maybeSingle(),
-      supabase.from("centers").select("name, state, enrollment_size, capacity, tuition_range, staff_count").eq("user_id", userId),
-    ]);
+    const { data: centers } = await supabase
+      .from("centers")
+      .select("name, state, enrollment_size, capacity, tuition_range, staff_count")
+      .eq("user_id", userId);
 
-    const memory = centers && centers.length
-      ? `Owner runs ${centers.length} center(s): ${centers.map(c => `${c.name} (${c.state ?? "?"}, ${c.enrollment_size ?? "?"}/${c.capacity ?? "?"} enrolled, tuition ${c.tuition_range ?? "?"})`).join("; ")}.`
-      : profile
-      ? `Single center: ${profile.business_name ?? "(unnamed)"}, ${profile.state ?? "n/a"}.`
-      : "No business profile yet.";
+    const text = await generateRecommendationText(buildOwnerMemory(profile, centers), apiKey);
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "You are Prima Donna AI™. Generate ONE crisp strategic recommendation (1-2 sentences max) that a childcare center owner could act on today. No fluff, no greetings. Speak with authority." },
-          { role: "user", content: `Owner context: ${memory}\n\nGive me today's strategic move.` },
-        ],
-      }),
-    });
-    if (!res.ok) return { recommendation: "Audit your top 3 enrollment leads from the past 7 days. Which one have you not yet personally called?" };
-    const json = await res.json();
-    const text = json.choices?.[0]?.message?.content?.trim() ?? "Make one decision today that your future self will thank you for.";
-    return { recommendation: text };
+    const { data: inserted } = await supabase
+      .from("daily_recommendations")
+      .insert({ user_id: userId, for_date: todayLocal, recommendation: text })
+      .select("recommendation, created_at, for_date")
+      .maybeSingle();
+
+    return inserted ?? { recommendation: text, created_at: new Date().toISOString(), for_date: todayLocal };
   });

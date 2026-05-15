@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { getDailyRecommendation } from "@/lib/coaching.functions";
+import { getTodayRecommendation } from "@/lib/coaching.functions";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, FileText, TrendingUp, Sparkles } from "lucide-react";
@@ -25,8 +25,8 @@ type Profile = {
 function Dashboard() {
   const { user, tier } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const dailyFn = useServerFn(getDailyRecommendation);
-  const daily = useQuery({ queryKey: ["daily", user?.id], queryFn: () => dailyFn(), enabled: !!user });
+  const dailyFn = useServerFn(getTodayRecommendation);
+  const daily = useQuery({ queryKey: ["daily", user?.id], queryFn: () => dailyFn(), enabled: !!user, staleTime: 60 * 60 * 1000 });
 
   useEffect(() => {
     if (!user) return;
@@ -74,6 +74,11 @@ function Dashboard() {
         <p className="mt-4 font-display text-2xl md:text-3xl leading-snug">
           {daily.isLoading ? "Drawing today's move…" : daily.data?.recommendation ?? "—"}
         </p>
+        {daily.data?.created_at && (
+          <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Generated {new Date(daily.data.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · refreshes daily at 3 AM your time
+          </p>
+        )}
       </section>
 
       {/* Quick actions */}
