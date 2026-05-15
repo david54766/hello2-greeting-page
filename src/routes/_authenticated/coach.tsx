@@ -142,6 +142,10 @@ function Coach() {
             </button>
           ))}
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {MODES.find((m) => m.id === mode)?.tag}
+          {mode === "compliance" && " — answers are tailored to each center's state licensing rules."}
+        </p>
 
         <div className="mt-6 flex items-center gap-3 rounded-full border border-border/60 bg-card px-4 py-2 w-fit">
           {ttsEnabled ? <Volume2 className="size-4 text-primary" /> : <VolumeX className="size-4 text-muted-foreground" />}
