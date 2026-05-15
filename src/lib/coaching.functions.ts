@@ -39,18 +39,23 @@ export const runCoaching = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("business_name, state, enrollment_size, tuition_range, staff_count")
-      .eq("id", userId)
-      .maybeSingle();
+    const [{ data: profile }, { data: centers }] = await Promise.all([
+      supabase.from("profiles").select("full_name, business_name, state, enrollment_size, tuition_range, staff_count").eq("id", userId).maybeSingle(),
+      supabase.from("centers").select("name, city, state, enrollment_size, capacity, tuition_range, staff_count, ages_served, notes").eq("user_id", userId).order("created_at", { ascending: true }),
+    ]);
 
-    const memory = profile
-      ? `Center: ${profile.business_name ?? "(unnamed)"}, State: ${profile.state ?? "n/a"}, Enrollment: ${profile.enrollment_size ?? "n/a"}, Tuition range: ${profile.tuition_range ?? "n/a"}, Staff: ${profile.staff_count ?? "n/a"}.`
-      : "No business profile on file yet.";
+    const ownerLine = profile
+      ? `Owner: ${profile.full_name ?? "(unnamed)"}. Primary center on file: ${profile.business_name ?? "(unnamed)"}.`
+      : "No owner profile on file yet.";
+
+    const centerBlock = centers && centers.length
+      ? centers.map((c, i) => `Center ${i + 1}: ${c.name}${c.city ? `, ${c.city}` : ""}${c.state ? `, ${c.state}` : ""}. Enrollment ${c.enrollment_size ?? "n/a"}/${c.capacity ?? "n/a"} capacity. Tuition ${c.tuition_range ?? "n/a"}. Staff ${c.staff_count ?? "n/a"}. Ages ${c.ages_served ?? "n/a"}.${c.notes ? ` Notes: ${c.notes}` : ""}`).join("\n")
+      : "No centers registered yet — guidance will be general until the owner adds centers in Settings.";
+
+    const memory = `${ownerLine}\n\nPORTFOLIO (${centers?.length ?? 0} center${centers?.length === 1 ? "" : "s"}):\n${centerBlock}`;
 
     const messages = [
-      { role: "system", content: `${SYSTEM_BASE}\n\nMODE: ${MODE_PROMPTS[data.mode]}\n\nOWNER CONTEXT: ${memory}` },
+      { role: "system", content: `${SYSTEM_BASE}\n\nMODE: ${MODE_PROMPTS[data.mode]}\n\nOWNER CONTEXT:\n${memory}\n\nWhen the owner runs multiple centers, tailor your insight, recommendation, and action steps to the specific center(s) implicated by their question. If unclear, address the portfolio as a whole and call out which center each step applies to.` },
       { role: "user", content: data.prompt },
     ];
 
@@ -126,14 +131,15 @@ export const getDailyRecommendation = createServerFn({ method: "GET" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) return { recommendation: "Connect AI to receive today's strategic move." };
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("business_name, state, enrollment_size, tuition_range, staff_count")
-      .eq("id", userId)
-      .maybeSingle();
+    const [{ data: profile }, { data: centers }] = await Promise.all([
+      supabase.from("profiles").select("business_name, state").eq("id", userId).maybeSingle(),
+      supabase.from("centers").select("name, state, enrollment_size, capacity, tuition_range, staff_count").eq("user_id", userId),
+    ]);
 
-    const memory = profile
-      ? `Center: ${profile.business_name ?? "(unnamed)"}, State: ${profile.state ?? "n/a"}, Enrollment: ${profile.enrollment_size ?? "n/a"}, Tuition: ${profile.tuition_range ?? "n/a"}, Staff: ${profile.staff_count ?? "n/a"}.`
+    const memory = centers && centers.length
+      ? `Owner runs ${centers.length} center(s): ${centers.map(c => `${c.name} (${c.state ?? "?"}, ${c.enrollment_size ?? "?"}/${c.capacity ?? "?"} enrolled, tuition ${c.tuition_range ?? "?"})`).join("; ")}.`
+      : profile
+      ? `Single center: ${profile.business_name ?? "(unnamed)"}, ${profile.state ?? "n/a"}.`
       : "No business profile yet.";
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

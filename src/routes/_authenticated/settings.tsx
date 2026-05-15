@@ -97,6 +97,10 @@ function Settings() {
 
       <div className="gold-divider mt-12" />
 
+      <CentersManager userId={user?.id} />
+
+      <div className="gold-divider mt-12" />
+
       <section className="mt-10">
         <h2 className="font-display text-2xl">Membership</h2>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -134,5 +138,152 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label>{label}</Label>
       {children}
     </div>
+  );
+}
+
+type Center = {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string | null;
+  enrollment_size: number | null;
+  capacity: number | null;
+  tuition_range: string | null;
+  staff_count: number | null;
+  ages_served: string | null;
+  notes: string | null;
+};
+
+const EMPTY_CENTER = { name: "", city: "", state: "", enrollment_size: "", capacity: "", tuition_range: "", staff_count: "", ages_served: "", notes: "" };
+
+function CentersManager({ userId }: { userId?: string }) {
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState(EMPTY_CENTER);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    if (!userId) return;
+    setLoading(true);
+    const { data, error } = await supabase.from("centers").select("*").eq("user_id", userId).order("created_at");
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    setCenters((data ?? []) as Center[]);
+  };
+
+  useEffect(() => { load(); }, [userId]);
+
+  const startEdit = (c: Center) => {
+    setEditingId(c.id);
+    setDraft({
+      name: c.name ?? "",
+      city: c.city ?? "",
+      state: c.state ?? "",
+      enrollment_size: c.enrollment_size?.toString() ?? "",
+      capacity: c.capacity?.toString() ?? "",
+      tuition_range: c.tuition_range ?? "",
+      staff_count: c.staff_count?.toString() ?? "",
+      ages_served: c.ages_served ?? "",
+      notes: c.notes ?? "",
+    });
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  };
+
+  const cancel = () => { setEditingId(null); setDraft(EMPTY_CENTER); };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!userId || !draft.name.trim()) return;
+    setBusy(true);
+    const payload = {
+      user_id: userId,
+      name: draft.name.trim(),
+      city: draft.city || null,
+      state: draft.state || null,
+      enrollment_size: draft.enrollment_size ? parseInt(draft.enrollment_size) : null,
+      capacity: draft.capacity ? parseInt(draft.capacity) : null,
+      tuition_range: draft.tuition_range || null,
+      staff_count: draft.staff_count ? parseInt(draft.staff_count) : null,
+      ages_served: draft.ages_served || null,
+      notes: draft.notes || null,
+    };
+    const { error } = editingId
+      ? await supabase.from("centers").update(payload).eq("id", editingId)
+      : await supabase.from("centers").insert(payload);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(editingId ? "Center updated." : "Center added.");
+    cancel();
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remove this center?")) return;
+    const { error } = await supabase.from("centers").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Center removed.");
+    load();
+  };
+
+  return (
+    <section className="mt-10">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h2 className="font-display text-2xl">Your centers</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Add every center you operate. The AI uses this portfolio to tailor recommendations.</p>
+        </div>
+        <span className="text-xs uppercase tracking-[0.2em] text-primary">{centers.length} on file</span>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {!loading && centers.length === 0 && <p className="text-sm text-muted-foreground">No centers yet. Add your first below.</p>}
+        {centers.map((c) => (
+          <div key={c.id} className="rounded-xl border border-border/60 bg-card p-5 flex justify-between items-start gap-4">
+            <div className="min-w-0">
+              <div className="font-display text-lg">{c.name}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {[c.city, c.state].filter(Boolean).join(", ") || "—"} · {c.enrollment_size ?? "?"}/{c.capacity ?? "?"} enrolled · {c.tuition_range ?? "tuition n/a"} · {c.staff_count ?? "?"} staff
+                {c.ages_served ? ` · ages ${c.ages_served}` : ""}
+              </div>
+              {c.notes && <p className="mt-2 text-sm">{c.notes}</p>}
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="ghost" size="sm" onClick={() => startEdit(c)}>Edit</Button>
+              <Button variant="ghost" size="sm" onClick={() => remove(c.id)}>Remove</Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={submit} className="mt-6 rounded-2xl border border-border/60 bg-card p-6">
+        <h3 className="font-display text-lg">{editingId ? "Edit center" : "Add a center"}</h3>
+        <div className="mt-4 grid sm:grid-cols-2 gap-4">
+          <Field label="Center name"><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required /></Field>
+          <Field label="City"><Input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} /></Field>
+          <Field label="State"><Input value={draft.state} onChange={(e) => setDraft({ ...draft, state: e.target.value })} placeholder="e.g. TX" /></Field>
+          <Field label="Ages served"><Input value={draft.ages_served} onChange={(e) => setDraft({ ...draft, ages_served: e.target.value })} placeholder="e.g. 6wks–5yrs" /></Field>
+          <Field label="Enrollment"><Input type="number" value={draft.enrollment_size} onChange={(e) => setDraft({ ...draft, enrollment_size: e.target.value })} /></Field>
+          <Field label="Licensed capacity"><Input type="number" value={draft.capacity} onChange={(e) => setDraft({ ...draft, capacity: e.target.value })} /></Field>
+          <Field label="Tuition range"><Input value={draft.tuition_range} onChange={(e) => setDraft({ ...draft, tuition_range: e.target.value })} placeholder="$1200–1800/mo" /></Field>
+          <Field label="Staff count"><Input type="number" value={draft.staff_count} onChange={(e) => setDraft({ ...draft, staff_count: e.target.value })} /></Field>
+          <div className="sm:col-span-2">
+            <Label>Notes / context for AI</Label>
+            <textarea
+              value={draft.notes}
+              onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              rows={3}
+              placeholder="Differentiators, current challenges, goals, market conditions…"
+              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+        <div className="mt-5 flex gap-2">
+          <Button type="submit" disabled={busy} className="rounded-full">{busy ? "Saving…" : editingId ? "Save changes" : "Add center"}</Button>
+          {editingId && <Button type="button" variant="ghost" onClick={cancel}>Cancel</Button>}
+        </div>
+      </form>
+    </section>
   );
 }
