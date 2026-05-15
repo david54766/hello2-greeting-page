@@ -131,14 +131,15 @@ export const getDailyRecommendation = createServerFn({ method: "GET" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) return { recommendation: "Connect AI to receive today's strategic move." };
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("business_name, state, enrollment_size, tuition_range, staff_count")
-      .eq("id", userId)
-      .maybeSingle();
+    const [{ data: profile }, { data: centers }] = await Promise.all([
+      supabase.from("profiles").select("business_name, state").eq("id", userId).maybeSingle(),
+      supabase.from("centers").select("name, state, enrollment_size, capacity, tuition_range, staff_count").eq("user_id", userId),
+    ]);
 
-    const memory = profile
-      ? `Center: ${profile.business_name ?? "(unnamed)"}, State: ${profile.state ?? "n/a"}, Enrollment: ${profile.enrollment_size ?? "n/a"}, Tuition: ${profile.tuition_range ?? "n/a"}, Staff: ${profile.staff_count ?? "n/a"}.`
+    const memory = centers && centers.length
+      ? `Owner runs ${centers.length} center(s): ${centers.map(c => `${c.name} (${c.state ?? "?"}, ${c.enrollment_size ?? "?"}/${c.capacity ?? "?"} enrolled, tuition ${c.tuition_range ?? "?"})`).join("; ")}.`
+      : profile
+      ? `Single center: ${profile.business_name ?? "(unnamed)"}, ${profile.state ?? "n/a"}.`
       : "No business profile yet.";
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
