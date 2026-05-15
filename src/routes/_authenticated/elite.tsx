@@ -4,12 +4,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { submitEliteRequest, getMyEliteRequests } from "@/lib/elite.functions";
+import {
+  submitEliteApplication,
+  getMyEliteApplication,
+} from "@/lib/elite-application.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "@tanstack/react-router";
-import { Crown, Calendar } from "lucide-react";
+import { Crown, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/elite")({
@@ -20,6 +24,280 @@ export const Route = createFileRoute("/_authenticated/elite")({
 function Elite() {
   const { tier, user } = useAuth();
   const isElite = tier === "elite";
+
+  if (!isElite) return <ApplicationFlow />;
+  return <EliteMemberView userId={user?.id} />;
+}
+
+// ---------------------------------------------------------------------------
+// Application flow for non-Elite users
+// ---------------------------------------------------------------------------
+function ApplicationFlow() {
+  const { user } = useAuth();
+  const getAppFn = useServerFn(getMyEliteApplication);
+  const submitFn = useServerFn(submitEliteApplication);
+  const qc = useQueryClient();
+
+  const myApp = useQuery({
+    queryKey: ["my-elite-application", user?.id],
+    queryFn: () => getAppFn(),
+    enabled: !!user,
+  });
+
+  const app = myApp.data?.application;
+
+  const [form, setForm] = useState({
+    full_name: "",
+    email: user?.email ?? "",
+    business_name: "",
+    state: "",
+    role: "",
+    centers_count: "" as string,
+    annual_revenue: "" as "" | "under_250k" | "250k_1m" | "1m_5m" | "over_5m",
+    goals: "",
+    referral: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((s) => ({ ...s, [k]: v }));
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (form.goals.trim().length < 20) {
+      toast.error("Tell us a bit more about your goals (at least 20 characters).");
+      return;
+    }
+    setSubmitting(true);
+    const r = await submitFn({
+      data: {
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        business_name: form.business_name.trim(),
+        state: form.state.trim() || undefined,
+        role: form.role.trim() || undefined,
+        centers_count: form.centers_count ? Number(form.centers_count) : undefined,
+        annual_revenue: form.annual_revenue || undefined,
+        goals: form.goals.trim(),
+        referral: form.referral.trim() || undefined,
+      },
+    });
+    setSubmitting(false);
+    if (r.ok) {
+      toast.success(r.message);
+      qc.invalidateQueries({ queryKey: ["my-elite-application", user?.id] });
+    } else {
+      toast.error(r.message);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-16">
+      <div className="text-center">
+        <Crown className="size-10 text-elite mx-auto" />
+        <h1 className="mt-6 font-display text-4xl md:text-5xl">The Elite Circle is by application.</h1>
+        <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+          Live coaching, vault content reserved for the Circle, and priority strategic guidance. Tell us
+          where you are and where you're going — we review every application personally.
+        </p>
+      </div>
+
+      <div className="gold-divider mt-10" />
+
+      {myApp.isLoading ? (
+        <p className="mt-12 text-center text-sm text-muted-foreground">Loading your status…</p>
+      ) : app?.status === "pending" ? (
+        <StatusCard
+          icon={<Clock className="size-5 text-elite-foreground" />}
+          title="Your application is under review"
+          body={`Submitted ${new Date(app.created_at).toLocaleDateString()}. The Circle team reviews each application personally — we'll email ${user?.email ?? "you"} as soon as a decision is made.`}
+        />
+      ) : app?.status === "approved" ? (
+        <StatusCard
+          icon={<CheckCircle2 className="size-5 text-elite" />}
+          title="You're approved — welcome to the Circle"
+          body="The final step is confirming your membership in Settings. Once you finalize, every Elite feature unlocks immediately."
+          action={
+            <Button asChild className="rounded-full mt-4">
+              <Link to="/settings">Confirm & complete registration</Link>
+            </Button>
+          }
+        />
+      ) : app?.status === "declined" ? (
+        <StatusCard
+          icon={<XCircle className="size-5 text-muted-foreground" />}
+          title="Not the right fit right now"
+          body={
+            app.admin_notes
+              ? `Notes from the review team: ${app.admin_notes}`
+              : "We aren't able to offer membership at this time. You're welcome to keep building inside Pro and reapply when your goals evolve."
+          }
+          action={
+            <Button
+              variant="outline"
+              className="rounded-full mt-4"
+              onClick={() => qc.invalidateQueries({ queryKey: ["my-elite-application", user?.id] })}
+            >
+              Refresh status
+            </Button>
+          }
+        />
+      ) : (
+        <form
+          onSubmit={submit}
+          className="mt-10 rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/5 to-transparent p-8 space-y-5"
+        >
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Full name" required>
+              <Input
+                value={form.full_name}
+                onChange={(e) => update("full_name", e.target.value)}
+                required
+                maxLength={120}
+              />
+            </Field>
+            <Field label="Email" required>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+                required
+                maxLength={255}
+              />
+            </Field>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Business name" required>
+              <Input
+                value={form.business_name}
+                onChange={(e) => update("business_name", e.target.value)}
+                required
+                maxLength={160}
+              />
+            </Field>
+            <Field label="Your role">
+              <Input
+                value={form.role}
+                onChange={(e) => update("role", e.target.value)}
+                placeholder="Owner, Director, COO…"
+                maxLength={120}
+              />
+            </Field>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Field label="State">
+              <Input
+                value={form.state}
+                onChange={(e) => update("state", e.target.value)}
+                placeholder="TX"
+                maxLength={60}
+              />
+            </Field>
+            <Field label="Number of centers">
+              <Input
+                type="number"
+                min={1}
+                max={500}
+                value={form.centers_count}
+                onChange={(e) => update("centers_count", e.target.value)}
+              />
+            </Field>
+            <Field label="Annual revenue">
+              <select
+                value={form.annual_revenue}
+                onChange={(e) => update("annual_revenue", e.target.value as typeof form.annual_revenue)}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Select…</option>
+                <option value="under_250k">Under $250k</option>
+                <option value="250k_1m">$250k – $1M</option>
+                <option value="1m_5m">$1M – $5M</option>
+                <option value="over_5m">$5M+</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="What do you want to accomplish in the Circle?" required>
+            <Textarea
+              rows={4}
+              value={form.goals}
+              onChange={(e) => update("goals", e.target.value)}
+              placeholder="The one transformation you want this year, the bottleneck blocking it, and where you need a higher-altitude perspective."
+              required
+              maxLength={2000}
+            />
+          </Field>
+
+          <Field label="How did you hear about us? (optional)">
+            <Input
+              value={form.referral}
+              onChange={(e) => update("referral", e.target.value)}
+              maxLength={500}
+            />
+          </Field>
+
+          <div className="pt-2">
+            <Button type="submit" disabled={submitting} className="rounded-full">
+              {submitting ? "Submitting…" : "Submit application"}
+            </Button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              We review every application personally. You'll receive an email decision typically within 2 business days.
+            </p>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>
+        {label} {required && <span className="text-elite">*</span>}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function StatusCard({
+  icon,
+  title,
+  body,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="mt-10 rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/10 to-transparent p-8">
+      <div className="flex items-center gap-3">
+        {icon}
+        <h2 className="font-display text-2xl">{title}</h2>
+      </div>
+      <p className="mt-3 text-muted-foreground">{body}</p>
+      {action}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Existing Elite member view (1:1 session requests)
+// ---------------------------------------------------------------------------
+function EliteMemberView({ userId }: { userId?: string }) {
   const [topic, setTopic] = useState("");
   const [times, setTimes] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -28,23 +306,10 @@ function Elite() {
   const listFn = useServerFn(getMyEliteRequests);
   const qc = useQueryClient();
   const myReqs = useQuery({
-    queryKey: ["my-elite-requests", user?.id],
+    queryKey: ["my-elite-requests", userId],
     queryFn: () => listFn(),
-    enabled: !!user && isElite,
+    enabled: !!userId,
   });
-
-  if (!isElite) {
-    return (
-      <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-        <Crown className="size-10 text-elite mx-auto" />
-        <h1 className="mt-6 font-display text-5xl">The Elite Circle is by invitation.</h1>
-        <p className="mt-4 text-muted-foreground">
-          Live coaching, vault content reserved for the Circle, priority response styling. The room where decisions are made.
-        </p>
-        <Button asChild className="mt-8 rounded-full"><Link to="/settings">Apply for Elite</Link></Button>
-      </div>
-    );
-  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -54,8 +319,9 @@ function Elite() {
     setSubmitting(false);
     if (r.ok) {
       toast.success(r.message);
-      setTopic(""); setTimes("");
-      qc.invalidateQueries({ queryKey: ["my-elite-requests", user?.id] });
+      setTopic("");
+      setTimes("");
+      qc.invalidateQueries({ queryKey: ["my-elite-requests", userId] });
     } else {
       toast.error(r.message);
     }
@@ -75,15 +341,26 @@ function Elite() {
           <Calendar className="size-5 text-elite-foreground" />
           <h2 className="font-display text-2xl">Request a 1:1 strategy session</h2>
         </div>
-        <p className="mt-3 text-muted-foreground">Tell us the situation. The Circle team will follow up within 1 business day.</p>
+        <p className="mt-3 text-muted-foreground">
+          Tell us the situation. The Circle team will follow up within 1 business day.
+        </p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div className="space-y-2">
             <Label>What do you want to work on?</Label>
-            <Textarea value={topic} onChange={(e) => setTopic(e.target.value)} rows={3} placeholder="e.g. Building a 90-day enrollment plan for my second location." />
+            <Textarea
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              rows={3}
+              placeholder="e.g. Building a 90-day enrollment plan for my second location."
+            />
           </div>
           <div className="space-y-2">
             <Label>Preferred times (optional)</Label>
-            <Input value={times} onChange={(e) => setTimes(e.target.value)} placeholder="e.g. Weekday mornings CT" />
+            <Input
+              value={times}
+              onChange={(e) => setTimes(e.target.value)}
+              placeholder="e.g. Weekday mornings CT"
+            />
           </div>
           <Button type="submit" disabled={submitting || topic.trim().length < 5} className="rounded-full">
             {submitting ? "Submitting…" : "Request session"}
@@ -94,13 +371,22 @@ function Elite() {
       <section className="mt-10">
         <h2 className="font-display text-2xl">Your requests</h2>
         <div className="mt-4 space-y-3">
-          {myReqs.data?.requests?.length === 0 && <p className="text-sm text-muted-foreground">No requests yet.</p>}
+          {myReqs.data?.requests?.length === 0 && (
+            <p className="text-sm text-muted-foreground">No requests yet.</p>
+          )}
           {myReqs.data?.requests?.map((r: any) => (
-            <div key={r.id} className="rounded-xl border border-border/60 bg-card p-5 flex justify-between items-start gap-4">
+            <div
+              key={r.id}
+              className="rounded-xl border border-border/60 bg-card p-5 flex justify-between items-start gap-4"
+            >
               <div>
                 <p className="text-sm">{r.topic}</p>
-                {r.preferred_times && <p className="text-xs text-muted-foreground mt-1">Preferred: {r.preferred_times}</p>}
-                <p className="text-[11px] text-muted-foreground mt-2">{new Date(r.created_at).toLocaleString()}</p>
+                {r.preferred_times && (
+                  <p className="text-xs text-muted-foreground mt-1">Preferred: {r.preferred_times}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  {new Date(r.created_at).toLocaleString()}
+                </p>
               </div>
               <span className="text-xs uppercase tracking-wider text-elite-foreground capitalize">{r.status}</span>
             </div>
@@ -110,7 +396,13 @@ function Elite() {
 
       <section className="mt-12">
         <h2 className="font-display text-2xl">Circle Vault</h2>
-        <p className="mt-2 text-muted-foreground">Curated content reserved for Elite members lives in the <Link to="/templates" className="text-primary underline">Template Vault</Link> — Elite-only items unlock automatically.</p>
+        <p className="mt-2 text-muted-foreground">
+          Curated content reserved for Elite members lives in the{" "}
+          <Link to="/templates" className="text-primary underline">
+            Template Vault
+          </Link>{" "}
+          — Elite-only items unlock automatically.
+        </p>
       </section>
     </div>
   );
