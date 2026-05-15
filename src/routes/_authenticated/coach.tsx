@@ -17,11 +17,11 @@ export const Route = createFileRoute("/_authenticated/coach")({
 });
 
 const MODES = [
-  { id: "ceo" as const, label: "CEO" },
-  { id: "revenue" as const, label: "Revenue" },
-  { id: "marketing" as const, label: "Marketing" },
-  { id: "compliance" as const, label: "Compliance" },
-  { id: "systems" as const, label: "Systems" },
+  { id: "ceo" as const, label: "CEO", tag: "Vision · Leadership · Decisions" },
+  { id: "revenue" as const, label: "Revenue", tag: "Pricing · Enrollment · Retention" },
+  { id: "marketing" as const, label: "Marketing", tag: "Brand · Funnels · Conversion" },
+  { id: "compliance" as const, label: "Compliance", tag: "Licensing · Ratios · Policy (per state)" },
+  { id: "systems" as const, label: "Systems", tag: "SOPs · Hiring · Operations" },
 ];
 
 type Mode = (typeof MODES)[number]["id"];
@@ -142,6 +142,10 @@ function Coach() {
             </button>
           ))}
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {MODES.find((m) => m.id === mode)?.tag}
+          {mode === "compliance" && " — answers are tailored to each center's state licensing rules."}
+        </p>
 
         <div className="mt-6 flex items-center gap-3 rounded-full border border-border/60 bg-card px-4 py-2 w-fit">
           {ttsEnabled ? <Volume2 className="size-4 text-primary" /> : <VolumeX className="size-4 text-muted-foreground" />}
