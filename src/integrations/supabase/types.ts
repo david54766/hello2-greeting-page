@@ -113,6 +113,66 @@ export type Database = {
         }
         Relationships: []
       }
+      elite_applications: {
+        Row: {
+          admin_notes: string | null
+          annual_revenue: string | null
+          business_name: string
+          centers_count: number | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          email: string
+          full_name: string
+          goals: string
+          id: string
+          referral: string | null
+          role: string | null
+          state: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          annual_revenue?: string | null
+          business_name: string
+          centers_count?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email: string
+          full_name: string
+          goals: string
+          id?: string
+          referral?: string | null
+          role?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          annual_revenue?: string | null
+          business_name?: string
+          centers_count?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string
+          full_name?: string
+          goals?: string
+          id?: string
+          referral?: string | null
+          role?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       elite_requests: {
         Row: {
           created_at: string
