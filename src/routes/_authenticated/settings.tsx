@@ -97,6 +97,10 @@ function Settings() {
 
       <div className="gold-divider mt-12" />
 
+      <CentersManager userId={user?.id} />
+
+      <div className="gold-divider mt-12" />
+
       <section className="mt-10">
         <h2 className="font-display text-2xl">Membership</h2>
         <p className="mt-2 text-sm text-muted-foreground">
