@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      centers: {
+        Row: {
+          ages_served: string | null
+          capacity: number | null
+          city: string | null
+          created_at: string
+          enrollment_size: number | null
+          id: string
+          name: string
+          notes: string | null
+          staff_count: number | null
+          state: string | null
+          tuition_range: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ages_served?: string | null
+          capacity?: number | null
+          city?: string | null
+          created_at?: string
+          enrollment_size?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          staff_count?: number | null
+          state?: string | null
+          tuition_range?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ages_served?: string | null
+          capacity?: number | null
+          city?: string | null
+          created_at?: string
+          enrollment_size?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          staff_count?: number | null
+          state?: string | null
+          tuition_range?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       coaching_sessions: {
         Row: {
           created_at: string
