@@ -10,10 +10,15 @@ import {
   updateEliteRequestStatus,
   deleteRagDocument,
 } from "@/lib/admin.functions";
+import {
+  listEliteApplications,
+  decideEliteApplication,
+} from "@/lib/elite-application.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — Prima Donna AI™" }] }),
@@ -32,10 +37,13 @@ function Admin() {
   const eliteFn = useServerFn(listEliteRequests);
   const eliteUpdateFn = useServerFn(updateEliteRequestStatus);
   const deleteDocFn = useServerFn(deleteRagDocument);
+  const listAppsFn = useServerFn(listEliteApplications);
+  const decideAppFn = useServerFn(decideEliteApplication);
   const qc = useQueryClient();
 
   const users = useQuery({ queryKey: ["admin-users"], queryFn: () => usersFn() });
   const eliteReqs = useQuery({ queryKey: ["admin-elite-requests"], queryFn: () => eliteFn() });
+  const eliteApps = useQuery({ queryKey: ["admin-elite-applications"], queryFn: () => listAppsFn() });
 
   const loadStats = async () => {
     const [s, sessions, d] = await Promise.all([
@@ -84,6 +92,20 @@ function Admin() {
   const setReqStatus = async (id: string, status: "pending" | "scheduled" | "completed" | "declined") => {
     await eliteUpdateFn({ data: { id, status } });
     qc.invalidateQueries({ queryKey: ["admin-elite-requests"] });
+  };
+
+  const decideApp = async (id: string, decision: "approved" | "declined", admin_notes?: string) => {
+    const r = await decideAppFn({ data: { id, decision, admin_notes } });
+    if (r.ok) {
+      toast.success(r.message);
+      qc.invalidateQueries({ queryKey: ["admin-elite-applications"] });
+      // Approved applicants will need their tier upgraded — surface a hint.
+      if (decision === "approved") {
+        toast.message("Set the member's tier to Elite once they complete checkout.");
+      }
+    } else {
+      toast.error(r.message);
+    }
   };
 
   return (
@@ -137,6 +159,24 @@ function Admin() {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <div className="gold-divider mt-12" />
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl">Elite Circle applications</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Review and approve applicants. Approval triggers a confirmation email with final registration steps.
+        </p>
+        <div className="mt-6 space-y-3">
+          {eliteApps.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {eliteApps.data?.applications?.length === 0 && (
+            <p className="text-sm text-muted-foreground">No applications yet.</p>
+          )}
+          {eliteApps.data?.applications?.map((a: any) => (
+            <ApplicationCard key={a.id} app={a} onDecide={decideApp} />
+          ))}
         </div>
       </section>
 
@@ -214,6 +254,102 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="rounded-xl border border-border/60 bg-card p-5">
       <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-2 font-display text-3xl">{value}</div>
+    </div>
+  );
+}
+
+function ApplicationCard({
+  app,
+  onDecide,
+}: {
+  app: any;
+  onDecide: (id: string, decision: "approved" | "declined", admin_notes?: string) => Promise<void>;
+}) {
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+  const isPending = app.status === "pending";
+
+  const act = async (decision: "approved" | "declined") => {
+    setBusy(true);
+    await onDecide(app.id, decision, notes.trim() || undefined);
+    setBusy(false);
+    setNotes("");
+  };
+
+  const revenueLabel: Record<string, string> = {
+    under_250k: "Under $250k",
+    "250k_1m": "$250k–$1M",
+    "1m_5m": "$1M–$5M",
+    over_5m: "$5M+",
+  };
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-5">
+      <div className="flex flex-wrap justify-between items-start gap-4">
+        <div className="min-w-0">
+          <div className="text-xs uppercase tracking-wider text-primary">
+            {app.full_name} · {app.business_name}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{app.email}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {app.role ? `${app.role} · ` : ""}
+            {app.state ? `${app.state} · ` : ""}
+            {app.centers_count ? `${app.centers_count} center${app.centers_count > 1 ? "s" : ""} · ` : ""}
+            {app.annual_revenue ? revenueLabel[app.annual_revenue] : ""}
+          </p>
+          <p className="mt-3 whitespace-pre-line text-sm">{app.goals}</p>
+          {app.referral && (
+            <p className="mt-2 text-xs text-muted-foreground">Referral: {app.referral}</p>
+          )}
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Submitted {new Date(app.created_at).toLocaleString()}
+            {app.decided_at && ` · Decided ${new Date(app.decided_at).toLocaleString()}`}
+          </p>
+        </div>
+        <span
+          className={`text-xs uppercase tracking-wider capitalize rounded-full px-3 py-1 ${
+            app.status === "approved"
+              ? "bg-elite/15 text-elite-foreground"
+              : app.status === "declined"
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary/15 text-primary"
+          }`}
+        >
+          {app.status}
+        </span>
+      </div>
+
+      {isPending && (
+        <div className="mt-4 space-y-3 border-t border-border/60 pt-4">
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Optional notes — included in decline emails, kept internal otherwise."
+            maxLength={2000}
+          />
+          <div className="flex gap-2">
+            <Button size="sm" disabled={busy} className="rounded-full" onClick={() => act("approved")}>
+              <CheckCircle2 className="size-4 mr-2" /> Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              className="rounded-full"
+              onClick={() => act("declined")}
+            >
+              <XCircle className="size-4 mr-2" /> Decline
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isPending && app.admin_notes && (
+        <p className="mt-3 text-xs text-muted-foreground border-t border-border/60 pt-3">
+          Notes: {app.admin_notes}
+        </p>
+      )}
     </div>
   );
 }
