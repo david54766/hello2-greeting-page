@@ -12,12 +12,6 @@ export const Route = createFileRoute("/api/public/hooks/generate-daily-recommend
         const lovableKey = process.env.LOVABLE_API_KEY;
         if (!lovableKey) return new Response("LOVABLE_API_KEY missing", { status: 500 });
 
-        // Profiles whose local hour right now is 3 AM and who don't have a row for their local "today"
-        const { data: profiles, error } = await supabaseAdmin.rpc("noop_select_due_profiles" as any, {}).then(
-          () => ({ data: null as any, error: null as any }),
-          () => ({ data: null, error: null }),
-        );
-        // Fallback: do it inline since we don't want a custom RPC
         const { data: due, error: dueErr } = await supabaseAdmin
           .from("profiles")
           .select("id, business_name, state, timezone");
