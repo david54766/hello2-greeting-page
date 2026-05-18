@@ -191,7 +191,7 @@ export const getTopPrompts = createServerFn({ method: "POST" })
       grouped[norm].count++;
       if (r.created_at > grouped[norm].lastAsked) grouped[norm].lastAsked = r.created_at;
 
-      norm.split(/[^a-z0-9]+/).forEach((w) => {
+      norm.split(/[^a-z0-9]+/).forEach((w: string) => {
         if (w.length < 4 || STOP_WORDS.has(w)) return;
         keywordCounts[w] = (keywordCounts[w] ?? 0) + 1;
       });
