@@ -1,81 +1,64 @@
-## Goal
+## Super-Admin Analytics Dashboard
 
-Turn "Apply to Elite Circle" into a real gated application + approval workflow:
+A new admin-only page at `/admin/analytics` (linked from the existing admin panel) that surfaces platform-wide activity metrics. Read-only — no schema changes required; pulls from existing tables (`profiles`, `subscriptions`, `coaching_sessions`, `usage_events`, `daily_recommendations`, `elite_applications`, `elite_requests`, `templates`, `user_roles`).
 
-1. Non-Elite user submits a structured application form
-2. Admin sees it in the admin panel and approves or declines
-3. On approval, applicant gets an email with confirmation + final steps to upgrade to Elite
-4. On decline, applicant optionally gets a polite decline email
+### Sections
 
-The existing `elite_requests` table is for *current Elite members requesting 1-1 sessions* — we keep that untouched and add a separate `elite_applications` table for the new approval flow.
+1. **Overview KPIs** (top cards)
+   - Total users, new users (7d / 30d)
+   - Active users (DAU / WAU / MAU based on `usage_events`)
+   - Total coaching sessions, daily recommendations generated, elite applications
+   - Average sessions per active user
 
-## Steps
+2. **Active tiers**
+   - Stacked bar / donut: user count by `subscriptions.tier` (essentials / pro / elite)
+   - Tier mix over time (new signups per tier per week)
+   - Conversion funnel: essentials → pro → elite (counts + %)
 
-### 1. Database (`elite_applications` table)
-New table with columns:
-- `user_id` (uuid, FK to auth.users via RLS, the applicant)
-- `full_name`, `email`, `business_name`, `state`, `role` (text)
-- `centers_count` (int), `annual_revenue` (text bracket: <250k / 250k–1M / 1M+ / 5M+)
-- `goals` (text, why Elite — required)
-- `referral` (text, how they heard, optional)
-- `status` (text, default `pending`: `pending` | `approved` | `declined`)
-- `admin_notes` (text, internal)
-- `decided_by` (uuid, admin user), `decided_at` (timestamptz)
-- standard `created_at`, `updated_at`
+3. **Usage over time**
+   - Line chart of daily active users (last 30 / 90 days, toggle)
+   - Line chart of coaching sessions per day, split by `mode`
+   - "Usage time" proxy: sessions per user per day + busiest hours heatmap (hour × weekday from `coaching_sessions.created_at`, in admin's timezone)
 
-RLS:
-- Users can `INSERT` and `SELECT` their own application
-- Admins can `SELECT` all and `UPDATE` (to set status / notes)
-- Unique partial index: one *pending* or *approved* application per user (allow re-apply after decline)
+4. **Most actively used features**
+   - Bar chart of `usage_events.event_type` counts (last 30d)
+   - Coaching `mode` breakdown (which coaching modes get used most)
+   - Template engagement: top templates by view/download events (from `usage_events.metadata`)
+   - Elite request topics frequency
 
-### 2. Application form (`src/routes/_authenticated/elite.tsx`)
-Replace the current "Request a Session" CTA for non-Elite users with a multi-field application form (Zod-validated). Show one of three states:
-- No application → form
-- `pending` → "Application under review" status card with submitted date
-- `declined` → decline reason + "Apply again" button
-- `approved` → success card with "Confirm & Upgrade" button (links to `/settings` upgrade flow)
+5. **Common questions asked**
+   - Top coaching prompts (last 30 / 90d) — grouped by normalized prompt (lowercased + trimmed, top 25)
+   - Quick keyword cloud derived from prompts (client-side tokenization, stop-word filter)
+   - Searchable, paginated table of recent prompts with user (full_name), tier, mode, timestamp; click row to view full response JSON in a drawer
 
-Existing Elite members keep their session-request UI as-is.
+6. **Filters (top of page)**
+   - Date range (7d / 30d / 90d / custom)
+   - Tier filter
+   - Mode filter (where applicable)
 
-### 3. Server functions (`src/lib/elite-application.functions.ts`)
-- `submitEliteApplication` — auth-protected, inserts row, blocks if pending/approved exists
-- `getMyEliteApplication` — auth-protected, returns user's latest
-- `listEliteApplications` (admin only) — returns all with applicant profile
-- `decideEliteApplication` (admin only) — updates status + admin_notes, sets `decided_by/at`, **triggers email**
+### Technical Implementation
 
-### 4. Admin UI (`src/routes/_authenticated/_admin/admin.tsx`)
-Add an "Elite Applications" card alongside the existing Elite Requests card:
-- Pending applications list with full details
-- Approve / Decline buttons (decline opens a small modal for reason)
-- Filter tabs: Pending / Approved / Declined / All
+- **Route**: `src/routes/_authenticated/_admin/admin.analytics.tsx` (sibling of `admin.tsx`, under existing admin guard). Add nav link in `admin.tsx` header.
+- **Server functions** in `src/lib/admin-analytics.functions.ts`, each `.middleware([requireSupabaseAuth])` and gated by `has_role(userId, 'admin')` — return 403 if not admin. Functions:
+  - `getAnalyticsOverview({ from, to })` — KPI counts via parallel `supabase` count queries.
+  - `getTierBreakdown({ from, to })` — group `subscriptions` by tier; weekly new-signup series.
+  - `getActivityTimeseries({ from, to })` — DAU + sessions/day (group in JS after fetching `usage_events` and `coaching_sessions` rows in range).
+  - `getFeatureUsage({ from, to })` — `usage_events.event_type` counts + coaching `mode` counts + top templates from metadata.
+  - `getTopPrompts({ from, to, limit })` — fetch prompts in range, normalize + group in JS, return top N with counts and last-asked timestamp.
+  - `listRecentPrompts({ from, to, page, search })` — paginated joined view (prompt, mode, created_at, user full_name, tier).
+- **Client**: TanStack Query for each function; charts via `recharts` (already a common shadcn pairing — install if missing). Heatmap rendered as a CSS grid. Drawer uses existing shadcn `Sheet` for full-response inspection.
+- **Performance**: cap fetches at 5k rows per function; add date-range guard. Aggregations done server-side where possible (count queries) and in JS for grouping prompts/modes.
+- **Security**: every analytics server function checks `has_role(userId, 'admin')` server-side; no service-role client needed since RLS already grants admins SELECT on these tables.
 
-### 5. Email delivery
-The project does not yet have email infrastructure. Recommended path: **Lovable Emails** (built-in, branded auth + transactional, no third-party signup).
+### Out of scope (call out, don't build)
 
-To send the approval/decline notification we need:
-- A verified sender domain (workspace-level setup)
-- Email infra scaffolded once, then a transactional template `elite-approved` and `elite-declined`
+- True "session duration" — not currently tracked; "usage time" is approximated by event frequency and busiest-hours heatmap. If you want real duration, we'd add a `session_duration_ms` column or page-view ping events later.
+- CSV export — can add in a follow-up.
 
-If Lovable Emails is acceptable, the flow becomes: admin clicks Approve → server fn updates row → enqueues a transactional email via the scaffolded `process-email-queue` → applicant gets a branded "You're in" email with a CTA back to `/settings` to complete upgrade.
+### Files to add / edit
 
-If you prefer a third-party (Resend / Brevo / Mailgun), I can wire that instead — Resend is the simplest.
-
-### 6. Out of scope (this turn)
-- No automatic Stripe upgrade — the email links to `/settings` where existing upgrade flow lives
-- No public (logged-out) application form — applicant must have a free Essentials account first; the email-on-approval acts as the "final steps to register/upgrade" message
-- If you want a fully public application (no signup required), say so and I'll add a public route + magic-link flow instead
-
-## Files
-
-- `supabase/migrations/...` — `elite_applications` table + RLS
-- `src/lib/elite-application.functions.ts` — new
-- `src/routes/_authenticated/elite.tsx` — application form for non-Elite users
-- `src/routes/_authenticated/_admin/admin.tsx` — admin review card
-- `src/lib/admin.functions.ts` — add `listEliteApplications` + `decideEliteApplication`
-- Email scaffolding files (only after you confirm provider choice)
-
-## Question before I implement
-
-**Email provider**: Lovable Emails (built-in, recommended) or Resend / Brevo / Mailgun?
-
-**Applicant scope**: Must the applicant already be a logged-in Essentials user (current plan), or do you want a fully public application form where anyone can apply without an account?
+```text
+src/lib/admin-analytics.functions.ts        (new)
+src/routes/_authenticated/_admin/admin.analytics.tsx   (new)
+src/routes/_authenticated/_admin/admin.tsx  (add nav link to /admin/analytics)
+```
