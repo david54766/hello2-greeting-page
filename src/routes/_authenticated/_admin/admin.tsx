@@ -115,6 +115,14 @@ function Admin() {
     }
   };
 
+  const decideSignupReq = async (id: string, decision: "approved" | "declined", admin_notes?: string) => {
+    const r = await decideSignupReqFn({ data: { id, decision, admin_notes } });
+    if (r.ok) {
+      toast.success(r.message);
+      qc.invalidateQueries({ queryKey: ["admin-elite-signup-requests"] });
+    } else toast.error(r.message);
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex items-center justify-between flex-wrap gap-3">
