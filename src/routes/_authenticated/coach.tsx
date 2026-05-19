@@ -6,7 +6,7 @@ import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
 import { synthesizeSpeech } from "@/lib/tts.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Copy, History, Volume2, Square } from "lucide-react";
