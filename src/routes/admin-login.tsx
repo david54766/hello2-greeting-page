@@ -23,21 +23,71 @@ export const Route = createFileRoute("/admin-login")({
   component: AdminLogin,
 });
 
+const LOCK_KEY = "pd_admin_login_attempts";
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
+const THROTTLE_MS = 1000;
+
+type AttemptState = { count: number; firstAt: number; lockedUntil: number; lastAt: number };
+
+function readState(): AttemptState {
+  try {
+    const raw = localStorage.getItem(LOCK_KEY);
+    if (!raw) return { count: 0, firstAt: 0, lockedUntil: 0, lastAt: 0 };
+    return JSON.parse(raw);
+  } catch {
+    return { count: 0, firstAt: 0, lockedUntil: 0, lastAt: 0 };
+  }
+}
+const writeState = (s: AttemptState) => localStorage.setItem(LOCK_KEY, JSON.stringify(s));
+const clearState = () => localStorage.removeItem(LOCK_KEY);
+
 function AdminLogin() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lockMsg, setLockMsg] = useState<string | null>(null);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    const now = Date.now();
+    const state = readState();
+    if (state.lockedUntil > now) {
+      const mins = Math.ceil((state.lockedUntil - now) / 60000);
+      setLockMsg(`Locked. Try again in ~${mins} min.`);
+      return toast.error(`Locked out. Try again in ~${mins} min.`);
+    }
+    if (state.lastAt && now - state.lastAt < THROTTLE_MS) {
+      return toast.error("Slow down — wait a moment before retrying.");
+    }
+
+    const recordFailure = () => {
+      const s = readState();
+      const within = s.firstAt && now - s.firstAt < LOCKOUT_MS;
+      const base = within ? s : { count: 0, firstAt: now, lockedUntil: 0, lastAt: now };
+      const next: AttemptState = {
+        count: base.count + 1,
+        firstAt: base.firstAt || now,
+        lastAt: now,
+        lockedUntil: base.count + 1 >= MAX_ATTEMPTS ? now + LOCKOUT_MS : 0,
+      };
+      writeState(next);
+      if (next.lockedUntil) {
+        setLockMsg("Too many failed attempts. Locked for 15 minutes.");
+        toast.error("Too many failed attempts. Locked for 15 minutes.");
+      } else {
+        const remaining = MAX_ATTEMPTS - next.count;
+        toast.error(`Sign in failed. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`);
+      }
+    };
+
     setLoading(true);
     const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error || !signIn.user) {
       setLoading(false);
-      return toast.error(error?.message ?? "Sign in failed");
+      return recordFailure();
     }
-    // Verify admin role
     const { data: roleRow } = await supabase
       .from("user_roles")
       .select("role")
@@ -47,8 +97,11 @@ function AdminLogin() {
     setLoading(false);
     if (!roleRow) {
       await supabase.auth.signOut();
+      recordFailure();
       return toast.error("This account does not have super admin access.");
     }
+    clearState();
+    setLockMsg(null);
     toast.success("Welcome, Admin.");
     nav({ to: "/admin" });
   };
