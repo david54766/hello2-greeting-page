@@ -51,7 +51,7 @@ function Signup() {
       password,
       options: {
         data: { full_name: fullName, intended_tier: tier },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `https://app.thepreschoolprimadonna.com/dashboard`,
       },
     });
     if (error) {
