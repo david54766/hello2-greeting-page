@@ -367,3 +367,23 @@ function TwoColList({ items, empty }: { items: { name: string; count: number }[]
     </ul>
   );
 }
+
+function FragmentRow({ dayLabel, day, heatmap, max }: { dayLabel: string; day: number; heatmap: { day: number; hour: number; count: number }[]; max: number }) {
+  return (
+    <>
+      <div className="text-[10px] pr-2 text-muted-foreground self-center">{dayLabel}</div>
+      {Array.from({ length: 24 }, (_, hour) => {
+        const cell = heatmap.find((c) => c.day === day && c.hour === hour);
+        const intensity = (cell?.count ?? 0) / max;
+        return (
+          <div
+            key={`${day}-${hour}`}
+            title={`${dayLabel} ${hour}:00 — ${cell?.count ?? 0} sessions`}
+            className="aspect-square rounded-sm"
+            style={{ background: `hsl(var(--primary) / ${0.08 + intensity * 0.85})` }}
+          />
+        );
+      })}
+    </>
+  );
+}
