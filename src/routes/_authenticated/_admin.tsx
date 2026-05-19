@@ -23,21 +23,82 @@ export const Route = createFileRoute("/_authenticated/_admin")({
   component: AdminGuard,
 });
 
+async function forceSignOut() {
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // ignore
+  }
+  window.location.href = "/admin-login?reason=revoked";
+}
+
+async function verifyOrEject() {
+  try {
+    await assertAdmin();
+    return true;
+  } catch {
+    await forceSignOut();
+    return false;
+  }
+}
+
 function AdminGuard() {
   const [ok, setOk] = useState(false);
   useEffect(() => {
     let mounted = true;
-    assertAdmin()
-      .then(() => mounted && setOk(true))
-      .catch(() => {
+    let roleChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const init = async () => {
+      const passed = await verifyOrEject();
+      if (!mounted) return;
+      if (!passed) return;
+      setOk(true);
+
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      if (uid) {
+        roleChannel = supabase
+          .channel(`admin-role-watch-${uid}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "user_roles",
+              filter: `user_id=eq.${uid}`,
+            },
+            () => {
+              void verifyOrEject();
+            },
+          )
+          .subscribe();
+      }
+    };
+
+    void init();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, session) => {
+      if (!session) {
         window.location.href = "/admin-login";
-      });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!session) window.location.href = "/admin-login";
+        return;
+      }
+      await verifyOrEject();
     });
+
+    const onFocus = () => {
+      void verifyOrEject();
+    };
+    window.addEventListener("focus", onFocus);
+    const interval = window.setInterval(() => {
+      void verifyOrEject();
+    }, 60_000);
+
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
+      if (roleChannel) supabase.removeChannel(roleChannel);
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(interval);
     };
   }, []);
   if (!ok) {
