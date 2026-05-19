@@ -370,7 +370,7 @@ function ApplicationCard({
           />
           <div className="flex gap-2">
             <Button size="sm" disabled={busy} className="rounded-full" onClick={() => act("approved")}>
-              <CheckCircle2 className="size-4 mr-2" /> Approve
+              <CheckCircle2 className="size-4 mr-2" /> {approveLabel}
             </Button>
             <Button
               size="sm"
