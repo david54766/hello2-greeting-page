@@ -21,6 +21,7 @@ import { Route as AuthenticatedCoachRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
 import { Route as AuthenticatedAdminAdminRouteImport } from './routes/_authenticated/_admin/admin'
 import { Route as ApiPublicHooksGenerateDailyRecommendationsRouteImport } from './routes/api/public/hooks/generate-daily-recommendations'
+import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin.analytics'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -81,6 +82,12 @@ const ApiPublicHooksGenerateDailyRecommendationsRoute =
     path: '/api/public/hooks/generate-daily-recommendations',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedAdminAdminAnalyticsRoute =
+  AuthenticatedAdminAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -91,7 +98,8 @@ export interface FileRoutesByFullPath {
   '/elite': typeof AuthenticatedEliteRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
-  '/admin': typeof AuthenticatedAdminAdminRoute
+  '/admin': typeof AuthenticatedAdminAdminRouteWithChildren
+  '/admin/analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRoutesByTo {
@@ -103,7 +111,8 @@ export interface FileRoutesByTo {
   '/elite': typeof AuthenticatedEliteRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
-  '/admin': typeof AuthenticatedAdminAdminRoute
+  '/admin': typeof AuthenticatedAdminAdminRouteWithChildren
+  '/admin/analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRoutesById {
@@ -118,7 +127,8 @@ export interface FileRoutesById {
   '/_authenticated/elite': typeof AuthenticatedEliteRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
-  '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
+  '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRouteWithChildren
+  '/_authenticated/_admin/admin/analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRouteTypes {
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/templates'
     | '/admin'
+    | '/admin/analytics'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/templates'
     | '/admin'
+    | '/admin/analytics'
     | '/api/public/hooks/generate-daily-recommendations'
   id:
     | '__root__'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/templates'
     | '/_authenticated/_admin/admin'
+    | '/_authenticated/_admin/admin/analytics'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesById: FileRoutesById
 }
@@ -256,15 +269,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksGenerateDailyRecommendationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/_admin/admin/analytics': {
+      id: '/_authenticated/_admin/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAdminAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminAdminRoute
+    }
   }
 }
 
+interface AuthenticatedAdminAdminRouteChildren {
+  AuthenticatedAdminAdminAnalyticsRoute: typeof AuthenticatedAdminAdminAnalyticsRoute
+}
+
+const AuthenticatedAdminAdminRouteChildren: AuthenticatedAdminAdminRouteChildren =
+  {
+    AuthenticatedAdminAdminAnalyticsRoute:
+      AuthenticatedAdminAdminAnalyticsRoute,
+  }
+
+const AuthenticatedAdminAdminRouteWithChildren =
+  AuthenticatedAdminAdminRoute._addFileChildren(
+    AuthenticatedAdminAdminRouteChildren,
+  )
+
 interface AuthenticatedAdminRouteChildren {
-  AuthenticatedAdminAdminRoute: typeof AuthenticatedAdminAdminRoute
+  AuthenticatedAdminAdminRoute: typeof AuthenticatedAdminAdminRouteWithChildren
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
-  AuthenticatedAdminAdminRoute: AuthenticatedAdminAdminRoute,
+  AuthenticatedAdminAdminRoute: AuthenticatedAdminAdminRouteWithChildren,
 }
 
 const AuthenticatedAdminRouteWithChildren =
@@ -303,3 +338,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
