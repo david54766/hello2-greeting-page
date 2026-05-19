@@ -28,7 +28,7 @@ import {
   Legend,
 } from "recharts";
 
-export const Route = createFileRoute("/_authenticated/_admin/admin/analytics")({
+export const Route = createFileRoute("/_authenticated/_admin/admin-analytics")({
   head: () => ({ meta: [{ title: "Analytics — Admin" }] }),
   component: AnalyticsPage,
 });
