@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ShieldCheck, CheckCircle2, AlertTriangle } from "lucide-react";
 import { verifySuperAdminConfigured } from "@/lib/admin-status.functions";
+import { sendPasswordReset } from "@/lib/auth-email.functions";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({ meta: [{ title: "Super Admin — Prima Donna AI™" }] }),
@@ -112,7 +113,6 @@ function AdminLogin() {
   const sendReset = async () => {
     const target = email.trim();
     if (!target) return toast.error("Enter your admin email above first.");
-    const { sendPasswordReset } = await import("@/lib/auth-email.functions");
     const res = await sendPasswordReset({ data: { email: target } });
     toast.success(res.message);
   };
