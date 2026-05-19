@@ -203,6 +203,66 @@ export type Database = {
         }
         Relationships: []
       }
+      elite_signup_requests: {
+        Row: {
+          admin_notes: string | null
+          annual_revenue: string | null
+          business_name: string
+          centers_count: number | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          email: string
+          full_name: string
+          goals: string
+          id: string
+          invited_user_id: string | null
+          referral: string | null
+          role: string | null
+          state: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          annual_revenue?: string | null
+          business_name: string
+          centers_count?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email: string
+          full_name: string
+          goals: string
+          id?: string
+          invited_user_id?: string | null
+          referral?: string | null
+          role?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          annual_revenue?: string | null
+          business_name?: string
+          centers_count?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string
+          full_name?: string
+          goals?: string
+          id?: string
+          invited_user_id?: string | null
+          referral?: string | null
+          role?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           business_name: string | null
