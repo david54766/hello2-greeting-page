@@ -152,10 +152,9 @@ export const decideEliteApplication = createServerFn({ method: "POST" })
     };
   });
 
-// --- Email delivery (pluggable) ---------------------------------------------
-// Until an email provider (Lovable Emails / Resend / Brevo) is wired, the
-// decision payload is logged server-side so admins can verify the workflow.
-// Replace the body of this function with the provider call when ready.
+// --- Email delivery via Resend (branded, custom domain) --------------------
+import { sendEmail, Templates } from "./mailer.server";
+
 async function sendDecisionEmail(args: {
   to: string;
   applicantName: string;
@@ -163,19 +162,10 @@ async function sendDecisionEmail(args: {
   decision: "approved" | "declined";
   adminNotes?: string;
 }) {
-  const subject =
+  const tmpl =
     args.decision === "approved"
-      ? "You're in — Welcome to the Prima Donna AI Elite Circle"
-      : "An update on your Elite Circle application";
-
-  const upgradeUrl = `${process.env.APP_URL ?? "https://app.primadonna.ai"}/settings`;
-
-  const body =
-    args.decision === "approved"
-      ? `Hi ${args.applicantName},\n\nCongratulations — your application for the Prima Donna AI Elite Circle has been approved.\n\nFinal step: confirm your membership and complete registration here:\n${upgradeUrl}\n\nOnce you finalize, your Elite features unlock immediately:\n• Live coaching access\n• Elite-only Vault content\n• Priority response and 1:1 strategy sessions\n\nLooking forward to having ${args.businessName} in the room.\n\n— The Circle Team`
-      : `Hi ${args.applicantName},\n\nThank you for applying to the Prima Donna AI Elite Circle. After review, we are not able to offer membership at this time.\n\n${args.adminNotes ? `Notes from the review team:\n${args.adminNotes}\n\n` : ""}You're welcome to keep building inside Pro and reapply when your goals evolve.\n\n— The Circle Team`;
-
-  // TODO: replace with Lovable Emails / Resend / Brevo provider call.
-  console.log("[elite-application:email]", { to: args.to, subject, body });
-  return { queued: true };
+      ? Templates.decisionApproved({ name: args.applicantName, businessName: args.businessName })
+      : Templates.decisionDeclined({ name: args.applicantName, adminNotes: args.adminNotes });
+  const res = await sendEmail({ to: args.to, ...tmpl });
+  return { queued: res.ok };
 }

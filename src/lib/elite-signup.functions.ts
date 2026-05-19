@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendEmail, Templates, APP_URL } from "./mailer.server";
 
 async function isAdminUser(userId: string) {
   const { data } = await supabaseAdmin
@@ -50,21 +51,31 @@ export const decideEliteSignupRequest = createServerFn({ method: "POST" })
     let invitedUserId: string | null = null;
 
     if (data.decision === "approved") {
-      // Invite the user via Supabase Auth, pre-seeded for Elite tier provisioning.
-      const { data: invite, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-        req.email,
-        {
+      // 1) Create the auth user (or fetch existing) and mint an invitation link
+      //    we can deliver ourselves through Resend on our own domain.
+      const { data: link, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+        type: "invite",
+        email: req.email,
+        options: {
+          redirectTo: `${APP_URL}/dashboard`,
           data: {
             full_name: req.full_name,
             intended_tier: "elite",
             elite_invited: "true",
           },
         },
-      );
-      if (inviteErr) {
-        return { ok: false, message: `Invite failed: ${inviteErr.message}` };
+      });
+      if (linkErr || !link.properties?.action_link) {
+        return { ok: false, message: `Invite failed: ${linkErr?.message ?? "no link"}` };
       }
-      invitedUserId = invite.user?.id ?? null;
+      invitedUserId = link.user?.id ?? null;
+
+      // 2) Send a branded invitation email through our domain via Resend.
+      const tmpl = Templates.invite({ name: req.full_name, link: link.properties.action_link });
+      const send = await sendEmail({ to: req.email, ...tmpl });
+      if (!send.ok) {
+        return { ok: false, message: send.error ?? "Email delivery failed" };
+      }
     }
 
     const { error: updErr } = await supabaseAdmin
