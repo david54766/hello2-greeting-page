@@ -106,6 +106,16 @@ function AdminLogin() {
     nav({ to: "/admin" });
   };
 
+  const sendReset = async () => {
+    const target = email.trim();
+    if (!target) return toast.error("Enter your admin email above first.");
+    const { error } = await supabase.auth.resetPasswordForEmail(target, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("If that account exists, a reset link is on its way.");
+  };
+
   useEffect(() => {
     const tick = () => {
       const s = readState();
@@ -162,6 +172,11 @@ function AdminLogin() {
           <Button type="submit" className="w-full rounded-full h-11" disabled={loading || isLocked}>
             {isLocked ? "Locked" : loading ? "Verifying…" : "Enter Admin Console"}
           </Button>
+          <div className="text-center">
+            <button type="button" onClick={sendReset} className="text-xs text-primary underline underline-offset-4">
+              Forgot password?
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground text-center">
             Access logged. After {MAX_ATTEMPTS} failed attempts, this device is locked for 15 minutes.
           </p>
