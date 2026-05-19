@@ -106,6 +106,23 @@ function AdminLogin() {
     nav({ to: "/admin" });
   };
 
+  useEffect(() => {
+    const tick = () => {
+      const s = readState();
+      if (s.lockedUntil > Date.now()) {
+        const mins = Math.ceil((s.lockedUntil - Date.now()) / 60000);
+        setLockMsg(`Locked. Try again in ~${mins} min.`);
+      } else if (lockMsg) {
+        setLockMsg(null);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, [lockMsg]);
+
+  const isLocked = !!lockMsg;
+
   return (
     <div className="min-h-screen grid md:grid-cols-2 bg-background">
       <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-foreground via-foreground/95 to-primary/40 text-background">
