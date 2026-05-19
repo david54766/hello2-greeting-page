@@ -1,0 +1,1 @@
+DROP POLICY "Anyone can submit elite signup request" ON public.elite_signup_requests;

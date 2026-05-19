@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApplyEliteRouteImport } from './routes/apply-elite'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,6 +22,7 @@ import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCoachRouteImport } from './routes/_authenticated/coach'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
+import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
 import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin-analytics'
 import { Route as AuthenticatedAdminAdminRouteImport } from './routes/_authenticated/_admin/admin'
 import { Route as ApiPublicHooksGenerateDailyRecommendationsRouteImport } from './routes/api/public/hooks/generate-daily-recommendations'
@@ -38,6 +40,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApplyEliteRoute = ApplyEliteRouteImport.update({
+  id: '/apply-elite',
+  path: '/apply-elite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -83,6 +90,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/_admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicEliteApplyRoute = ApiPublicEliteApplyRouteImport.update({
+  id: '/api/public/elite-apply',
+  path: '/api/public/elite-apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminAdminAnalyticsRoute =
   AuthenticatedAdminAdminAnalyticsRouteImport.update({
     id: '/admin-analytics',
@@ -104,6 +116,7 @@ const ApiPublicHooksGenerateDailyRecommendationsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin-login': typeof AdminLoginRoute
+  '/apply-elite': typeof ApplyEliteRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -114,11 +127,13 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin-login': typeof AdminLoginRoute
+  '/apply-elite': typeof ApplyEliteRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -129,6 +144,7 @@ export interface FileRoutesByTo {
   '/templates': typeof AuthenticatedTemplatesRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRoutesById {
@@ -136,6 +152,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
+  '/apply-elite': typeof ApplyEliteRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -147,6 +164,7 @@ export interface FileRoutesById {
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
   '/_authenticated/_admin/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRouteTypes {
@@ -154,6 +172,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin-login'
+    | '/apply-elite'
     | '/login'
     | '/reset-password'
     | '/signup'
@@ -164,11 +183,13 @@ export interface FileRouteTypes {
     | '/templates'
     | '/admin'
     | '/admin-analytics'
+    | '/api/public/elite-apply'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin-login'
+    | '/apply-elite'
     | '/login'
     | '/reset-password'
     | '/signup'
@@ -179,12 +200,14 @@ export interface FileRouteTypes {
     | '/templates'
     | '/admin'
     | '/admin-analytics'
+    | '/api/public/elite-apply'
     | '/api/public/hooks/generate-daily-recommendations'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/admin-login'
+    | '/apply-elite'
     | '/login'
     | '/reset-password'
     | '/signup'
@@ -196,6 +219,7 @@ export interface FileRouteTypes {
     | '/_authenticated/templates'
     | '/_authenticated/_admin/admin'
     | '/_authenticated/_admin/admin-analytics'
+    | '/api/public/elite-apply'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesById: FileRoutesById
 }
@@ -203,9 +227,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
+  ApplyEliteRoute: typeof ApplyEliteRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  ApiPublicEliteApplyRoute: typeof ApiPublicEliteApplyRoute
   ApiPublicHooksGenerateDailyRecommendationsRoute: typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 
@@ -230,6 +256,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/apply-elite': {
+      id: '/apply-elite'
+      path: '/apply-elite'
+      fullPath: '/apply-elite'
+      preLoaderRoute: typeof ApplyEliteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-login': {
@@ -295,6 +328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/elite-apply': {
+      id: '/api/public/elite-apply'
+      path: '/api/public/elite-apply'
+      fullPath: '/api/public/elite-apply'
+      preLoaderRoute: typeof ApiPublicEliteApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/_admin/admin-analytics': {
       id: '/_authenticated/_admin/admin-analytics'
       path: '/admin-analytics'
@@ -358,9 +398,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
+  ApplyEliteRoute: ApplyEliteRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  ApiPublicEliteApplyRoute: ApiPublicEliteApplyRoute,
   ApiPublicHooksGenerateDailyRecommendationsRoute:
     ApiPublicHooksGenerateDailyRecommendationsRoute,
 }

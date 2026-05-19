@@ -14,6 +14,10 @@ import {
   listEliteApplications,
   decideEliteApplication,
 } from "@/lib/elite-application.functions";
+import {
+  listEliteSignupRequests,
+  decideEliteSignupRequest,
+} from "@/lib/elite-signup.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,11 +43,14 @@ function Admin() {
   const deleteDocFn = useServerFn(deleteRagDocument);
   const listAppsFn = useServerFn(listEliteApplications);
   const decideAppFn = useServerFn(decideEliteApplication);
+  const listSignupReqFn = useServerFn(listEliteSignupRequests);
+  const decideSignupReqFn = useServerFn(decideEliteSignupRequest);
   const qc = useQueryClient();
 
   const users = useQuery({ queryKey: ["admin-users"], queryFn: () => usersFn() });
   const eliteReqs = useQuery({ queryKey: ["admin-elite-requests"], queryFn: () => eliteFn() });
   const eliteApps = useQuery({ queryKey: ["admin-elite-applications"], queryFn: () => listAppsFn() });
+  const signupReqs = useQuery({ queryKey: ["admin-elite-signup-requests"], queryFn: () => listSignupReqFn() });
 
   const loadStats = async () => {
     const [s, sessions, d] = await Promise.all([
@@ -108,6 +115,14 @@ function Admin() {
     }
   };
 
+  const decideSignupReq = async (id: string, decision: "approved" | "declined", admin_notes?: string) => {
+    const r = await decideSignupReqFn({ data: { id, decision, admin_notes } });
+    if (r.ok) {
+      toast.success(r.message);
+      qc.invalidateQueries({ queryKey: ["admin-elite-signup-requests"] });
+    } else toast.error(r.message);
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -170,6 +185,22 @@ function Admin() {
       </section>
 
       <div className="gold-divider mt-12" />
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl">Elite Circle signup requests</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Public applications from prospects without an account yet. Approving sends them an invitation email; on first sign-in they're provisioned at the Elite tier automatically.
+        </p>
+        <div className="mt-6 space-y-3">
+          {signupReqs.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {signupReqs.data?.requests?.length === 0 && (
+            <p className="text-sm text-muted-foreground">No signup requests yet.</p>
+          )}
+          {signupReqs.data?.requests?.map((a: any) => (
+            <ApplicationCard key={a.id} app={a} onDecide={decideSignupReq} approveLabel="Approve & invite" />
+          ))}
+        </div>
+      </section>
 
       <section className="mt-10">
         <h2 className="font-display text-2xl">Elite Circle applications</h2>
@@ -268,9 +299,11 @@ function Stat({ label, value }: { label: string; value: number }) {
 function ApplicationCard({
   app,
   onDecide,
+  approveLabel = "Approve",
 }: {
   app: any;
   onDecide: (id: string, decision: "approved" | "declined", admin_notes?: string) => Promise<void>;
+  approveLabel?: string;
 }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -337,7 +370,7 @@ function ApplicationCard({
           />
           <div className="flex gap-2">
             <Button size="sm" disabled={busy} className="rounded-full" onClick={() => act("approved")}>
-              <CheckCircle2 className="size-4 mr-2" /> Approve
+              <CheckCircle2 className="size-4 mr-2" /> {approveLabel}
             </Button>
             <Button
               size="sm"
