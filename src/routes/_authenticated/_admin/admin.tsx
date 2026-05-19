@@ -187,6 +187,22 @@ function Admin() {
       <div className="gold-divider mt-12" />
 
       <section className="mt-10">
+        <h2 className="font-display text-2xl">Elite Circle signup requests</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Public applications from prospects without an account yet. Approving sends them an invitation email; on first sign-in they're provisioned at the Elite tier automatically.
+        </p>
+        <div className="mt-6 space-y-3">
+          {signupReqs.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {signupReqs.data?.requests?.length === 0 && (
+            <p className="text-sm text-muted-foreground">No signup requests yet.</p>
+          )}
+          {signupReqs.data?.requests?.map((a: any) => (
+            <ApplicationCard key={a.id} app={a} onDecide={decideSignupReq} approveLabel="Approve & invite" />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
         <h2 className="font-display text-2xl">Elite Circle applications</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Review and approve applicants. Approval triggers a confirmation email with final registration steps.
