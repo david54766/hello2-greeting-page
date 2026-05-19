@@ -4,7 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import signupPortrait from "@/assets/prima-donna-signup.jpeg";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
+
+type SelectableTier = "essentials" | "pro";
+
+const TIERS: { id: SelectableTier; name: string; price: string; tagline: string }[] = [
+  {
+    id: "essentials",
+    name: "Essentials",
+    price: "$97/mo",
+    tagline: "Daily strategy + AI coach across all 5 modes.",
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: "$197/mo",
+    tagline: "Everything in Essentials + the full Template Vault.",
+  },
+];
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Apply — Prima Donna AI™" }] }),
@@ -21,6 +40,7 @@ function Signup() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [tier, setTier] = useState<SelectableTier>("essentials");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: FormEvent) => {
@@ -30,7 +50,7 @@ function Signup() {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, intended_tier: tier },
         emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
@@ -39,8 +59,10 @@ function Signup() {
       return toast.error(error.message);
     }
     if (data.user) {
-      // Backfill business name on profile (trigger created the row)
-      await supabase.from("profiles").update({ business_name: businessName, full_name: fullName }).eq("id", data.user.id);
+      await supabase
+        .from("profiles")
+        .update({ business_name: businessName, full_name: fullName })
+        .eq("id", data.user.id);
     }
     setLoading(false);
     toast.success("Welcome to Prima Donna AI.");
@@ -51,18 +73,59 @@ function Signup() {
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-primary/10 via-rose-soft/20 to-background">
         <Link to="/" className="font-display text-2xl">Prima Donna AI™</Link>
-        <blockquote className="font-display text-3xl leading-tight max-w-md">
-          You don't need another chatbot. You need a strategist who already knows your room.
+        <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
+          <img src={signupPortrait} alt="Founder of Prima Donna AI™" className="size-full object-cover" loading="eager" />
+        </div>
+        <blockquote className="font-display text-2xl leading-tight max-w-md text-center italic">
+          "You don't need another chatbot. You need a strategist who already knows your room."
         </blockquote>
       </div>
       <div className="flex items-center justify-center p-8">
-        <form onSubmit={submit} className="w-full max-w-sm space-y-5">
+        <form onSubmit={submit} className="w-full max-w-md space-y-5">
           <div>
             <h1 className="font-display text-4xl">Apply</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Already a member? <Link to="/login" className="text-primary underline">Sign in</Link>
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label>Choose your tier</Label>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {TIERS.map((t) => {
+                const active = tier === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTier(t.id)}
+                    className={`text-left rounded-xl border p-3 transition ${
+                      active
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-display text-lg">{t.name}</span>
+                      {active && <Check className="size-4 text-primary" />}
+                    </div>
+                    <div className="text-xs text-primary font-medium">{t.price}</div>
+                    <p className="mt-1 text-xs text-muted-foreground leading-snug">{t.tagline}</p>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-display text-sm">Elite Circle · $497/mo</span>
+                <Link to="/apply-elite" className="text-primary underline">Apply →</Link>
+              </div>
+              <p className="mt-1 text-muted-foreground leading-snug">
+                Invitation only. Requires application + approval before signup.
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Your name</Label>
             <Input id="name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
@@ -80,10 +143,10 @@ function Signup() {
             <Input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <Button type="submit" className="w-full rounded-full h-11" disabled={loading}>
-            {loading ? "Creating your seat…" : "Take my seat"}
+            {loading ? "Creating your seat…" : `Take my seat — ${TIERS.find((t) => t.id === tier)?.name}`}
           </Button>
           <p className="text-xs text-muted-foreground text-center">
-            Starts on Essentials. Upgrade anytime.
+            Upgrade or downgrade anytime.
           </p>
         </form>
       </div>
