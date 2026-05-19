@@ -39,7 +39,7 @@ function Login() {
         <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
           <img src={loginPortrait} alt="Founder of Prima Donna AI™" className="size-full object-cover" loading="eager" />
         </div>
-        <blockquote className="font-display text-2xl leading-tight max-w-md">
+        <blockquote className="font-display text-2xl leading-tight max-w-md text-center italic">
           "Owners who treat their center like a business build empires. The rest run daycare."
         </blockquote>
       </div>
