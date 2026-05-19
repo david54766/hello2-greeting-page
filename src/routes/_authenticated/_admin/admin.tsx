@@ -14,6 +14,10 @@ import {
   listEliteApplications,
   decideEliteApplication,
 } from "@/lib/elite-application.functions";
+import {
+  listEliteSignupRequests,
+  decideEliteSignupRequest,
+} from "@/lib/elite-signup.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
