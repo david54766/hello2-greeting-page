@@ -6,10 +6,10 @@ import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
 import { synthesizeSpeech } from "@/lib/tts.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Copy, History, Volume2, VolumeX, Square } from "lucide-react";
+import { Loader2, Sparkles, Copy, History, Volume2, Square } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
@@ -33,23 +33,12 @@ function Coach() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<Resp | null>(null);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const run = useServerFn(runCoaching);
   const tts = useServerFn(synthesizeSpeech);
   const historyFn = useServerFn(getCoachingHistory);
   const qc = useQueryClient();
-
-  // Persist toggle
-  useEffect(() => {
-    const saved = localStorage.getItem("pd_tts_enabled");
-    if (saved === "1") setTtsEnabled(true);
-  }, []);
-  useEffect(() => {
-    localStorage.setItem("pd_tts_enabled", ttsEnabled ? "1" : "0");
-    if (!ttsEnabled) stopAudio();
-  }, [ttsEnabled]);
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -99,7 +88,7 @@ function Coach() {
       else {
         setResponse(result.response);
         qc.invalidateQueries({ queryKey: ["coaching-history", user?.id] });
-        if (ttsEnabled) speak(result.response);
+        speak(result.response);
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Strategist unavailable");
@@ -147,10 +136,9 @@ function Coach() {
           {mode === "compliance" && " — answers are tailored to each center's state licensing rules."}
         </p>
 
-        <div className="mt-6 flex items-center gap-3 rounded-full border border-border/60 bg-card px-4 py-2 w-fit">
-          {ttsEnabled ? <Volume2 className="size-4 text-primary" /> : <VolumeX className="size-4 text-muted-foreground" />}
-          <span className="text-xs uppercase tracking-[0.2em]">Raven voice</span>
-          <Switch checked={ttsEnabled} onCheckedChange={setTtsEnabled} />
+        <div className="mt-6 flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2 w-fit">
+          <Volume2 className="size-4 text-primary" />
+          <span className="text-xs uppercase tracking-[0.2em]">Raven voice · always on</span>
         </div>
 
         <div className="mt-6">
@@ -177,16 +165,14 @@ function Coach() {
                 </div>
               ) : <span />}
               <div className="flex items-center gap-2">
-                {ttsEnabled && (
-                  speaking ? (
-                    <Button variant="ghost" size="sm" onClick={stopAudio}>
-                      <Square className="size-3 mr-2" /> Stop
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" size="sm" onClick={() => speak(response)}>
-                      <Volume2 className="size-3 mr-2" /> Speak
-                    </Button>
-                  )
+                {speaking ? (
+                  <Button variant="ghost" size="sm" onClick={stopAudio}>
+                    <Square className="size-3 mr-2" /> Stop
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={() => speak(response)}>
+                    <Volume2 className="size-3 mr-2" /> Speak
+                  </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={copyPlan}>
                   <Copy className="size-3 mr-2" /> Copy plan
