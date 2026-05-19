@@ -172,6 +172,11 @@ function AdminLogin() {
           <Button type="submit" className="w-full rounded-full h-11" disabled={loading || isLocked}>
             {isLocked ? "Locked" : loading ? "Verifying…" : "Enter Admin Console"}
           </Button>
+          <div className="text-center">
+            <button type="button" onClick={sendReset} className="text-xs text-primary underline underline-offset-4">
+              Forgot password?
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground text-center">
             Access logged. After {MAX_ATTEMPTS} failed attempts, this device is locked for 15 minutes.
           </p>
