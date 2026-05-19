@@ -33,23 +33,12 @@ function Coach() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<Resp | null>(null);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const run = useServerFn(runCoaching);
   const tts = useServerFn(synthesizeSpeech);
   const historyFn = useServerFn(getCoachingHistory);
   const qc = useQueryClient();
-
-  // Persist toggle
-  useEffect(() => {
-    const saved = localStorage.getItem("pd_tts_enabled");
-    if (saved === "1") setTtsEnabled(true);
-  }, []);
-  useEffect(() => {
-    localStorage.setItem("pd_tts_enabled", ttsEnabled ? "1" : "0");
-    if (!ttsEnabled) stopAudio();
-  }, [ttsEnabled]);
 
   const stopAudio = () => {
     if (audioRef.current) {
