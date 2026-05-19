@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import loginPortrait from "@/assets/prima-donna-login.jpeg";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -35,7 +36,10 @@ function Login() {
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-primary/10 via-rose-soft/20 to-background">
         <Link to="/" className="font-display text-2xl">Prima Donna AI™</Link>
-        <blockquote className="font-display text-3xl leading-tight max-w-md">
+        <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
+          <img src={loginPortrait} alt="Founder of Prima Donna AI™" className="size-full object-cover" loading="eager" />
+        </div>
+        <blockquote className="font-display text-2xl leading-tight max-w-md">
           "Owners who treat their center like a business build empires. The rest run daycare."
         </blockquote>
       </div>
