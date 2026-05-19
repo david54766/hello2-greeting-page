@@ -106,6 +106,16 @@ function AdminLogin() {
     nav({ to: "/admin" });
   };
 
+  const sendReset = async () => {
+    const target = email.trim();
+    if (!target) return toast.error("Enter your admin email above first.");
+    const { error } = await supabase.auth.resetPasswordForEmail(target, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("If that account exists, a reset link is on its way.");
+  };
+
   useEffect(() => {
     const tick = () => {
       const s = readState();
