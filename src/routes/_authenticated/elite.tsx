@@ -37,68 +37,31 @@ function Elite() {
 function ApplicationFlow() {
   const { user } = useAuth();
   const getAppFn = useServerFn(getMyEliteApplication);
-  const submitFn = useServerFn(submitEliteApplication);
   const qc = useQueryClient();
 
   const myApp = useQuery({
     queryKey: ["my-elite-application", user?.id],
     queryFn: () => getAppFn(),
     enabled: !!user,
+    staleTime: 60_000,
   });
 
   const app = myApp.data?.application;
-
-  const [form, setForm] = useState({
-    full_name: "",
-    email: user?.email ?? "",
-    business_name: "",
-    state: "",
-    role: "",
-    centers_count: "" as string,
-    annual_revenue: "" as "" | "under_250k" | "250k_1m" | "1m_5m" | "over_5m",
-    goals: "",
-    referral: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-
-  const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
-    setForm((s) => ({ ...s, [k]: v }));
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (form.goals.trim().length < 20) {
-      toast.error("Tell us a bit more about your goals (at least 20 characters).");
-      return;
-    }
-    setSubmitting(true);
-    const r = await submitFn({
-      data: {
-        full_name: form.full_name.trim(),
-        email: form.email.trim(),
-        business_name: form.business_name.trim(),
-        state: form.state.trim() || undefined,
-        role: form.role.trim() || undefined,
-        centers_count: form.centers_count ? Number(form.centers_count) : undefined,
-        annual_revenue: form.annual_revenue || undefined,
-        goals: form.goals.trim(),
-        referral: form.referral.trim() || undefined,
-      },
-    });
-    setSubmitting(false);
-    if (r.ok) {
-      toast.success(r.message);
-      qc.invalidateQueries({ queryKey: ["my-elite-application", user?.id] });
-    } else {
-      toast.error(r.message);
-    }
-  };
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <div className="text-center">
         <Crown className="size-10 text-elite mx-auto" />
         <h1 className="mt-6 font-display text-4xl md:text-5xl">The Elite Circle is by application.</h1>
-        <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+        <div className="mx-auto mt-10 w-56 md:w-64 aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/10">
+          <img
+            src={founderPortrait}
+            alt="Founder of Prima Donna AI™"
+            className="size-full object-cover"
+            loading="eager"
+          />
+        </div>
+        <p className="mt-8 text-muted-foreground max-w-xl mx-auto">
           Live coaching, vault content reserved for the Circle, and priority strategic guidance. Tell us
           where you are and where you're going — we review every application personally.
         </p>
@@ -106,7 +69,7 @@ function ApplicationFlow() {
 
       <div className="gold-divider mt-10" />
 
-      {myApp.isLoading ? (
+      {myApp.isLoading && !app ? (
         <p className="mt-12 text-center text-sm text-muted-foreground">Loading your status…</p>
       ) : app?.status === "pending" ? (
         <StatusCard
@@ -145,114 +108,233 @@ function ApplicationFlow() {
           }
         />
       ) : (
-        <form
-          onSubmit={submit}
-          className="mt-10 rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/5 to-transparent p-8 space-y-5"
-        >
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Full name" required>
-              <Input
-                value={form.full_name}
-                onChange={(e) => update("full_name", e.target.value)}
-                required
-                maxLength={120}
-              />
-            </Field>
-            <Field label="Email" required>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => update("email", e.target.value)}
-                required
-                maxLength={255}
-              />
-            </Field>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Business name" required>
-              <Input
-                value={form.business_name}
-                onChange={(e) => update("business_name", e.target.value)}
-                required
-                maxLength={160}
-              />
-            </Field>
-            <Field label="Your role">
-              <Input
-                value={form.role}
-                onChange={(e) => update("role", e.target.value)}
-                placeholder="Owner, Director, COO…"
-                maxLength={120}
-              />
-            </Field>
-          </div>
-
-          <div className="grid sm:grid-cols-3 gap-4">
-            <Field label="State">
-              <Input
-                value={form.state}
-                onChange={(e) => update("state", e.target.value)}
-                placeholder="TX"
-                maxLength={60}
-              />
-            </Field>
-            <Field label="Number of centers">
-              <Input
-                type="number"
-                min={1}
-                max={500}
-                value={form.centers_count}
-                onChange={(e) => update("centers_count", e.target.value)}
-              />
-            </Field>
-            <Field label="Annual revenue">
-              <select
-                value={form.annual_revenue}
-                onChange={(e) => update("annual_revenue", e.target.value as typeof form.annual_revenue)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Select…</option>
-                <option value="under_250k">Under $250k</option>
-                <option value="250k_1m">$250k – $1M</option>
-                <option value="1m_5m">$1M – $5M</option>
-                <option value="over_5m">$5M+</option>
-              </select>
-            </Field>
-          </div>
-
-          <Field label="What do you want to accomplish in the Circle?" required>
-            <Textarea
-              rows={4}
-              value={form.goals}
-              onChange={(e) => update("goals", e.target.value)}
-              placeholder="The one transformation you want this year, the bottleneck blocking it, and where you need a higher-altitude perspective."
-              required
-              maxLength={2000}
-            />
-          </Field>
-
-          <Field label="How did you hear about us? (optional)">
-            <Input
-              value={form.referral}
-              onChange={(e) => update("referral", e.target.value)}
-              maxLength={500}
-            />
-          </Field>
-
-          <div className="pt-2">
-            <Button type="submit" disabled={submitting} className="rounded-full">
-              {submitting ? "Submitting…" : "Submit application"}
-            </Button>
-            <p className="mt-3 text-xs text-muted-foreground">
-              We review every application personally. You'll receive an email decision typically within 2 business days.
-            </p>
-          </div>
-        </form>
+        <ApplicationForm
+          defaultEmail={user?.email ?? ""}
+          onSubmitted={() =>
+            qc.invalidateQueries({ queryKey: ["my-elite-application", user?.id] })
+          }
+        />
       )}
     </div>
   );
 }
+
+type ApplicationFormState = {
+  full_name: string;
+  email: string;
+  business_name: string;
+  state: string;
+  role: string;
+  centers_count: string;
+  annual_revenue: "" | "under_250k" | "250k_1m" | "1m_5m" | "over_5m";
+  goals: string;
+  referral: string;
+};
+
+const EMPTY_FORM: ApplicationFormState = {
+  full_name: "",
+  email: "",
+  business_name: "",
+  state: "",
+  role: "",
+  centers_count: "",
+  annual_revenue: "",
+  goals: "",
+  referral: "",
+};
+
+const STORAGE_KEY = "elite-application-draft-v1";
+
+function ApplicationForm({
+  defaultEmail,
+  onSubmitted,
+}: {
+  defaultEmail: string;
+  onSubmitted: () => void;
+}) {
+  const submitFn = useServerFn(submitEliteApplication);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Initialize from localStorage so the draft survives any remount/refetch.
+  const [form, setForm] = useState<ApplicationFormState>(() => {
+    if (typeof window === "undefined") return { ...EMPTY_FORM, email: defaultEmail };
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<ApplicationFormState>;
+        return { ...EMPTY_FORM, email: defaultEmail, ...parsed };
+      }
+    } catch {}
+    return { ...EMPTY_FORM, email: defaultEmail };
+  });
+
+  // Seed the email once it loads (without clobbering a user-edited value).
+  const seededEmail = useRef(form.email.length > 0);
+  useEffect(() => {
+    if (!seededEmail.current && defaultEmail) {
+      setForm((s) => ({ ...s, email: defaultEmail }));
+      seededEmail.current = true;
+    }
+  }, [defaultEmail]);
+
+  // Persist on every change.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    } catch {}
+  }, [form]);
+
+  const update = <K extends keyof ApplicationFormState>(k: K, v: ApplicationFormState[K]) =>
+    setForm((s) => ({ ...s, [k]: v }));
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (form.goals.trim().length < 20) {
+      toast.error("Tell us a bit more about your goals (at least 20 characters).");
+      return;
+    }
+    setSubmitting(true);
+    const r = await submitFn({
+      data: {
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        business_name: form.business_name.trim(),
+        state: form.state.trim() || undefined,
+        role: form.role.trim() || undefined,
+        centers_count: form.centers_count ? Number(form.centers_count) : undefined,
+        annual_revenue: form.annual_revenue || undefined,
+        goals: form.goals.trim(),
+        referral: form.referral.trim() || undefined,
+      },
+    });
+    setSubmitting(false);
+    if (r.ok) {
+      toast.success(r.message);
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {}
+      onSubmitted();
+    } else {
+      toast.error(r.message);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mt-10 rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/5 to-transparent p-8 space-y-5"
+    >
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Field label="Full name" required>
+          <Input
+            value={form.full_name}
+            onChange={(e) => update("full_name", e.target.value)}
+            required
+            maxLength={120}
+            autoComplete="name"
+          />
+        </Field>
+        <Field label="Email" required>
+          <Input
+            type="email"
+            value={form.email}
+            onChange={(e) => update("email", e.target.value)}
+            required
+            maxLength={255}
+            autoComplete="email"
+          />
+        </Field>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Field label="Business name" required>
+          <Input
+            value={form.business_name}
+            onChange={(e) => update("business_name", e.target.value)}
+            required
+            maxLength={160}
+            autoComplete="organization"
+          />
+        </Field>
+        <Field label="Your role">
+          <Input
+            value={form.role}
+            onChange={(e) => update("role", e.target.value)}
+            placeholder="Owner, Director, COO…"
+            maxLength={120}
+            autoComplete="organization-title"
+          />
+        </Field>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Field label="State">
+          <Input
+            value={form.state}
+            onChange={(e) => update("state", e.target.value)}
+            placeholder="TX"
+            maxLength={60}
+            autoComplete="address-level1"
+          />
+        </Field>
+        <Field label="Number of centers">
+          <Input
+            type="number"
+            min={1}
+            max={500}
+            value={form.centers_count}
+            onChange={(e) => update("centers_count", e.target.value)}
+          />
+        </Field>
+        <Field label="Annual revenue">
+          <select
+            value={form.annual_revenue}
+            onChange={(e) =>
+              update("annual_revenue", e.target.value as ApplicationFormState["annual_revenue"])
+            }
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="">Select…</option>
+            <option value="under_250k">Under $250k</option>
+            <option value="250k_1m">$250k – $1M</option>
+            <option value="1m_5m">$1M – $5M</option>
+            <option value="over_5m">$5M+</option>
+          </select>
+        </Field>
+      </div>
+
+      <Field label="What do you want to accomplish in the Circle?" required>
+        <Textarea
+          rows={4}
+          value={form.goals}
+          onChange={(e) => update("goals", e.target.value)}
+          placeholder="The one transformation you want this year, the bottleneck blocking it, and where you need a higher-altitude perspective."
+          required
+          maxLength={2000}
+        />
+      </Field>
+
+      <Field label="How did you hear about us? (optional)">
+        <Input
+          value={form.referral}
+          onChange={(e) => update("referral", e.target.value)}
+          maxLength={500}
+        />
+      </Field>
+
+      <div className="pt-2">
+        <Button type="submit" disabled={submitting} className="rounded-full">
+          {submitting ? "Submitting…" : "Submit application"}
+        </Button>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Your draft auto-saves as you type. We review every application personally — you'll receive an
+          email decision typically within 2 business days.
+        </p>
+      </div>
+    </form>
+  );
+}
+
 
 function Field({
   label,
