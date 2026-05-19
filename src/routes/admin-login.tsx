@@ -1,11 +1,14 @@
 import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, CheckCircle2, AlertTriangle } from "lucide-react";
+import { verifySuperAdminConfigured } from "@/lib/admin-status.functions";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({ meta: [{ title: "Super Admin — Prima Donna AI™" }] }),
@@ -156,6 +159,8 @@ function AdminLogin() {
               Members sign in at the <Link to="/login" className="text-primary underline">member portal</Link>.
             </p>
           </div>
+          <SuperAdminStatus />
+
           <div className="space-y-2">
             <Label htmlFor="email">Admin email</Label>
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" disabled={isLocked} />
@@ -181,6 +186,53 @@ function AdminLogin() {
             Access logged. After {MAX_ATTEMPTS} failed attempts, this device is locked for 15 minutes.
           </p>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function SuperAdminStatus() {
+  const verify = useServerFn(verifySuperAdminConfigured);
+  const { data, isLoading } = useQuery({
+    queryKey: ["super-admin-status"],
+    queryFn: () => verify(),
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="rounded-md border border-border/60 bg-card p-3 text-xs text-muted-foreground">
+        Checking super admin configuration…
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  if (data.ok) {
+    return (
+      <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
+        <CheckCircle2 className="size-4 mt-0.5 shrink-0" />
+        <div>
+          <div className="font-medium">Super admin verified</div>
+          <div className="text-xs opacity-80">{data.email} holds the admin role.</div>
+        </div>
+      </div>
+    );
+  }
+
+  const msg =
+    data.reason === "no_account"
+      ? "Account not found. Create the account, then re-check."
+      : data.reason === "no_role"
+      ? "Account exists but does not have the admin role."
+      : "Could not verify super admin status.";
+
+  return (
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2">
+      <AlertTriangle className="size-4 mt-0.5 shrink-0" />
+      <div>
+        <div className="font-medium">Super admin not configured</div>
+        <div className="text-xs opacity-80">{msg}</div>
       </div>
     </div>
   );
