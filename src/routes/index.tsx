@@ -48,7 +48,7 @@ function Landing() {
       <section className="relative px-6 py-24 md:py-36 overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-rose-soft/20 via-background to-background" />
         <div className="mx-auto max-w-5xl text-center">
-          <div className="mx-auto mb-12 w-48 md:w-56 aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/10">
+          <div className="mx-auto mb-12 w-64 md:w-80 aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/10">
             <img
               src={ravenPortrait}
               alt="Founder of Prima Donna AI™"
