@@ -1,64 +1,51 @@
-## Super-Admin Analytics Dashboard
 
-A new admin-only page at `/admin/analytics` (linked from the existing admin panel) that surfaces platform-wide activity metrics. Read-only — no schema changes required; pulls from existing tables (`profiles`, `subscriptions`, `coaching_sessions`, `usage_events`, `daily_recommendations`, `elite_applications`, `elite_requests`, `templates`, `user_roles`).
+## 1. Add founder portrait to /signup
 
-### Sections
+- Copy the uploaded photo to `src/assets/prima-donna-signup.jpeg`.
+- Update `src/routes/signup.tsx` left panel (currently just a quote on a gradient) to mirror the `/login` layout: brand link at top, portrait in a `rounded-[2rem]` frame in the middle, italic centered quote at the bottom.
 
-1. **Overview KPIs** (top cards)
-   - Total users, new users (7d / 30d)
-   - Active users (DAU / WAU / MAU based on `usage_events`)
-   - Total coaching sessions, daily recommendations generated, elite applications
-   - Average sessions per active user
+## 2. Clarify and enforce the signup rules
 
-2. **Active tiers**
-   - Stacked bar / donut: user count by `subscriptions.tier` (essentials / pro / elite)
-   - Tier mix over time (new signups per tier per week)
-   - Conversion funnel: essentials → pro → elite (counts + %)
+**Current state**: anyone who signs up lands on the Essentials tier automatically (DB trigger). Elite has a separate in-app application flow (`elite_applications`) that only runs *after* a user is already signed in.
 
-3. **Usage over time**
-   - Line chart of daily active users (last 30 / 90 days, toggle)
-   - Line chart of coaching sessions per day, split by `mode`
-   - "Usage time" proxy: sessions per user per day + busiest hours heatmap (hour × weekday from `coaching_sessions.created_at`, in admin's timezone)
+**New rule from you**:
+- **Essentials** — open self-serve signup.
+- **Pro** — open self-serve signup (upgrade path; payment will be wired when Paddle/Stripe is enabled).
+- **Elite Circle** — NOT a self-serve signup. Requires an application + admin approval before an account can be created at that tier.
 
-4. **Most actively used features**
-   - Bar chart of `usage_events.event_type` counts (last 30d)
-   - Coaching `mode` breakdown (which coaching modes get used most)
-   - Template engagement: top templates by view/download events (from `usage_events.metadata`)
-   - Elite request topics frequency
+### Changes
 
-5. **Common questions asked**
-   - Top coaching prompts (last 30 / 90d) — grouped by normalized prompt (lowercased + trimmed, top 25)
-   - Quick keyword cloud derived from prompts (client-side tokenization, stop-word filter)
-   - Searchable, paginated table of recent prompts with user (full_name), tier, mode, timestamp; click row to view full response JSON in a drawer
+**Signup page (`/signup`)**
+- Add a tier selector (Essentials / Pro) at the top of the form.
+- Remove any path to "Sign up as Elite". Instead show a third card: *"Elite Circle — Invitation only. Apply for access →"* linking to a new public `/apply-elite` route.
+- On submit, store the chosen tier in `auth.signUp` user metadata (`intended_tier: 'essentials' | 'pro'`).
 
-6. **Filters (top of page)**
-   - Date range (7d / 30d / 90d / custom)
-   - Tier filter
-   - Mode filter (where applicable)
+**Database / trigger**
+- Update the `handle_new_user` trigger so the new `subscriptions` row reads `intended_tier` from `raw_user_meta_data` and defaults to `essentials`. Hard cap: trigger will refuse to set `elite` from metadata — Elite can only be granted by an admin action.
 
-### Technical Implementation
+**Public Elite application route (`/apply-elite`)**
+- New public route (no auth required) with the same fields as the existing in-app `elite_applications` form, plus email.
+- Submits via a new public server route `src/routes/api/public/elite-apply.ts` that inserts into a lightweight `elite_signup_requests` table (separate from the existing `elite_applications` which is for already-signed-in users).
+- Shows confirmation: "We'll review and email you a signup link once approved."
 
-- **Route**: `src/routes/_authenticated/_admin/admin.analytics.tsx` (sibling of `admin.tsx`, under existing admin guard). Add nav link in `admin.tsx` header.
-- **Server functions** in `src/lib/admin-analytics.functions.ts`, each `.middleware([requireSupabaseAuth])` and gated by `has_role(userId, 'admin')` — return 403 if not admin. Functions:
-  - `getAnalyticsOverview({ from, to })` — KPI counts via parallel `supabase` count queries.
-  - `getTierBreakdown({ from, to })` — group `subscriptions` by tier; weekly new-signup series.
-  - `getActivityTimeseries({ from, to })` — DAU + sessions/day (group in JS after fetching `usage_events` and `coaching_sessions` rows in range).
-  - `getFeatureUsage({ from, to })` — `usage_events.event_type` counts + coaching `mode` counts + top templates from metadata.
-  - `getTopPrompts({ from, to, limit })` — fetch prompts in range, normalize + group in JS, return top N with counts and last-asked timestamp.
-  - `listRecentPrompts({ from, to, page, search })` — paginated joined view (prompt, mode, created_at, user full_name, tier).
-- **Client**: TanStack Query for each function; charts via `recharts` (already a common shadcn pairing — install if missing). Heatmap rendered as a CSS grid. Drawer uses existing shadcn `Sheet` for full-response inspection.
-- **Performance**: cap fetches at 5k rows per function; add date-range guard. Aggregations done server-side where possible (count queries) and in JS for grouping prompts/modes.
-- **Security**: every analytics server function checks `has_role(userId, 'admin')` server-side; no service-role client needed since RLS already grants admins SELECT on these tables.
+**Admin approval flow**
+- Admin panel gets a new "Elite Signup Requests" card alongside existing Elite Applications.
+- On approve: admin clicks "Send invite" → server fn uses `supabaseAdmin.auth.admin.inviteUserByEmail` and pre-seeds `intended_tier: 'elite'` in user metadata so the trigger provisions them at Elite tier on first sign-in.
+- On decline: status update + decision email (reuses existing `sendDecisionEmail` helper).
 
-### Out of scope (call out, don't build)
+**Pro tier note**
+- Since Paddle/Stripe isn't wired yet, Pro signup will create the account at Pro tier immediately. Once payments are enabled, we'll gate the Pro tier behind successful checkout. Flag this as a known follow-up.
 
-- True "session duration" — not currently tracked; "usage time" is approximated by event frequency and busiest-hours heatmap. If you want real duration, we'd add a `session_duration_ms` column or page-view ping events later.
-- CSV export — can add in a follow-up.
+## Files touched
 
-### Files to add / edit
+- `src/assets/prima-donna-signup.jpeg` (new)
+- `src/routes/signup.tsx` (layout + tier selector)
+- `src/routes/apply-elite.tsx` (new public route)
+- `src/routes/api/public/elite-apply.ts` (new)
+- `src/routes/_authenticated/_admin/admin.tsx` (new request review card)
+- `src/lib/elite-signup.functions.ts` (new — list/approve/decline + invite)
+- One Supabase migration: `elite_signup_requests` table + RLS + updated `handle_new_user` trigger.
 
-```text
-src/lib/admin-analytics.functions.ts        (new)
-src/routes/_authenticated/_admin/admin.analytics.tsx   (new)
-src/routes/_authenticated/_admin/admin.tsx  (add nav link to /admin/analytics)
-```
+## Open question
+
+Should the **Pro** tier on the signup page be available right now (no payment), or hidden until Paddle/Stripe is enabled so users don't get Pro features without paying? I'd recommend hiding it until checkout exists — confirm before I build.
