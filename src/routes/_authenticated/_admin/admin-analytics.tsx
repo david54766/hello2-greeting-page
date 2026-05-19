@@ -176,9 +176,12 @@ function AnalyticsPage() {
               {Array.from({ length: 24 }, (_, h) => (
                 <div key={h} className="text-[10px] text-center text-muted-foreground">{h}</div>
               ))}
-              {DAY_LABELS.map((dayLabel, day) => (
-                <FragmentRow key={day} dayLabel={dayLabel} day={day} heatmap={activity.data?.heatmap ?? []} max={heatmapMax} />
-              ))}
+              {DAY_LABELS.map((dayLabel, day) => {
+                const heatmap = activity.data?.heatmap ?? [];
+                return (
+                  <FragmentRow key={day} dayLabel={dayLabel} day={day} heatmap={heatmap} max={heatmapMax} />
+                );
+              })}
             </div>
           </div>
         </Card>
