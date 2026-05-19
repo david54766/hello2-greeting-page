@@ -1,11 +1,14 @@
 import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, CheckCircle2, AlertTriangle } from "lucide-react";
+import { verifySuperAdminConfigured } from "@/lib/admin-status.functions";
 
 export const Route = createFileRoute("/admin-login")({
   head: () => ({ meta: [{ title: "Super Admin — Prima Donna AI™" }] }),
@@ -156,6 +159,8 @@ function AdminLogin() {
               Members sign in at the <Link to="/login" className="text-primary underline">member portal</Link>.
             </p>
           </div>
+          <SuperAdminStatus />
+
           <div className="space-y-2">
             <Label htmlFor="email">Admin email</Label>
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" disabled={isLocked} />
