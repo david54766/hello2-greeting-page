@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Link } from "@tanstack/react-router";
 import { Crown, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import founderPortrait from "@/assets/prima-donna-founder.jpeg";
+
 
 export const Route = createFileRoute("/_authenticated/elite")({
   head: () => ({ meta: [{ title: "Elite Circle — Prima Donna AI™" }] }),
