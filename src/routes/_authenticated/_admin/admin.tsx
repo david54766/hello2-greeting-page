@@ -43,11 +43,14 @@ function Admin() {
   const deleteDocFn = useServerFn(deleteRagDocument);
   const listAppsFn = useServerFn(listEliteApplications);
   const decideAppFn = useServerFn(decideEliteApplication);
+  const listSignupReqFn = useServerFn(listEliteSignupRequests);
+  const decideSignupReqFn = useServerFn(decideEliteSignupRequest);
   const qc = useQueryClient();
 
   const users = useQuery({ queryKey: ["admin-users"], queryFn: () => usersFn() });
   const eliteReqs = useQuery({ queryKey: ["admin-elite-requests"], queryFn: () => eliteFn() });
   const eliteApps = useQuery({ queryKey: ["admin-elite-applications"], queryFn: () => listAppsFn() });
+  const signupReqs = useQuery({ queryKey: ["admin-elite-signup-requests"], queryFn: () => listSignupReqFn() });
 
   const loadStats = async () => {
     const [s, sessions, d] = await Promise.all([
