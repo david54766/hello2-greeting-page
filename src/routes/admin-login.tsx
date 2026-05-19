@@ -148,17 +148,22 @@ function AdminLogin() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Admin email</Label>
-            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" disabled={isLocked} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" disabled={isLocked} />
           </div>
-          <Button type="submit" className="w-full rounded-full h-11" disabled={loading}>
-            {loading ? "Verifying…" : "Enter Admin Console"}
+          {lockMsg && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              {lockMsg}
+            </div>
+          )}
+          <Button type="submit" className="w-full rounded-full h-11" disabled={loading || isLocked}>
+            {isLocked ? "Locked" : loading ? "Verifying…" : "Enter Admin Console"}
           </Button>
           <p className="text-xs text-muted-foreground text-center">
-            Access logged. Unauthorized attempts are signed out automatically.
+            Access logged. After {MAX_ATTEMPTS} failed attempts, this device is locked for 15 minutes.
           </p>
         </form>
       </div>
