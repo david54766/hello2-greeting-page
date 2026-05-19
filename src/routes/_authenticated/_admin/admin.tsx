@@ -299,9 +299,11 @@ function Stat({ label, value }: { label: string; value: number }) {
 function ApplicationCard({
   app,
   onDecide,
+  approveLabel = "Approve",
 }: {
   app: any;
   onDecide: (id: string, decision: "approved" | "declined", admin_notes?: string) => Promise<void>;
+  approveLabel?: string;
 }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
