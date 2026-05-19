@@ -177,21 +177,7 @@ function AnalyticsPage() {
                 <div key={h} className="text-[10px] text-center text-muted-foreground">{h}</div>
               ))}
               {DAY_LABELS.map((dayLabel, day) => (
-                <>
-                  <div key={`l-${day}`} className="text-[10px] pr-2 text-muted-foreground self-center">{dayLabel}</div>
-                  {Array.from({ length: 24 }, (_, hour) => {
-                    const cell = activity.data?.heatmap.find((c) => c.day === day && c.hour === hour);
-                    const intensity = (cell?.count ?? 0) / heatmapMax;
-                    return (
-                      <div
-                        key={`${day}-${hour}`}
-                        title={`${dayLabel} ${hour}:00 — ${cell?.count ?? 0} sessions`}
-                        className="aspect-square rounded-sm"
-                        style={{ background: `hsl(var(--primary) / ${0.08 + intensity * 0.85})` }}
-                      />
-                    );
-                  })}
-                </>
+                <FragmentRow key={day} dayLabel={dayLabel} day={day} heatmap={activity.data?.heatmap ?? []} max={heatmapMax} />
               ))}
             </div>
           </div>
