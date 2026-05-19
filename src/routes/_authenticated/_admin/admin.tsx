@@ -110,8 +110,15 @@ function Admin() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
-      <p className="text-xs uppercase tracking-[0.25em] text-primary">Admin</p>
-      <h1 className="mt-2 font-display text-4xl">Platform overview</h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-primary">Admin</p>
+          <h1 className="mt-2 font-display text-4xl">Platform overview</h1>
+        </div>
+        <Link to="/admin-analytics" className="text-sm rounded-md border border-border px-3 py-1.5 hover:bg-muted">
+          View analytics →
+        </Link>
+      </div>
 
       <section className="mt-10 grid sm:grid-cols-4 gap-4">
         <Stat label="Essentials" value={counts.essentials} />
