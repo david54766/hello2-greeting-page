@@ -14,6 +14,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2 } from "lucide-react";
 import { exportCoachingPlanPDF } from "@/lib/export-pdf";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
@@ -70,6 +80,8 @@ function Coach() {
   // ---------- Realtime STT (live dictation) ----------
   const [recording, setRecording] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const promptRef = useRef(prompt);
   useEffect(() => { promptRef.current = prompt; }, [prompt]);
 
@@ -432,13 +444,9 @@ function Coach() {
                 <p className="mt-2 text-sm line-clamp-2">{s.response?.diagnosis ?? s.response?.insight ?? s.prompt}</p>
               </button>
               <button
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.stopPropagation();
-                  if (!confirm("Delete this session?")) return;
-                  const { error } = await supabase.from("coaching_sessions").delete().eq("id", s.id);
-                  if (error) { toast.error(error.message); return; }
-                  toast.success("Session deleted");
-                  qc.invalidateQueries({ queryKey: ["coaching-history", user?.id] });
+                  setPendingDelete(s);
                 }}
                 className="absolute top-2 right-2 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition"
                 aria-label="Delete session"
@@ -448,6 +456,43 @@ function Coach() {
             </div>
           ))}
         </div>
+
+        <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {pendingDelete ? (
+                  <>
+                    This will permanently remove your{" "}
+                    <span className="uppercase tracking-wider text-primary">{pendingDelete.mode}</span> session
+                    from {new Date(pendingDelete.created_at).toLocaleDateString()}. This cannot be undone.
+                  </>
+                ) : null}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (!pendingDelete) return;
+                  setDeleting(true);
+                  const { error } = await supabase.from("coaching_sessions").delete().eq("id", pendingDelete.id);
+                  setDeleting(false);
+                  if (error) { toast.error(error.message); return; }
+                  toast.success("Session deleted");
+                  qc.invalidateQueries({ queryKey: ["coaching-history", user?.id] });
+                  setPendingDelete(null);
+                }}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </aside>
     </div>
   );
