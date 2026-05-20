@@ -7,7 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getTodayRecommendation } from "@/lib/coaching.functions";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, FileText, TrendingUp, Sparkles } from "lucide-react";
+import { MessageSquare, FileText, TrendingUp, Sparkles, Play } from "lucide-react";
+import { RavenInsightsDialog } from "@/components/RavenInsightsDialog";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Command Center — Prima Donna AI™" }] }),
@@ -25,6 +26,7 @@ type Profile = {
 function Dashboard() {
   const { user, tier } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const dailyFn = useServerFn(getTodayRecommendation);
   const daily = useQuery({ queryKey: ["daily", user?.id], queryFn: () => dailyFn(), enabled: !!user, staleTime: 60 * 60 * 1000 });
 
@@ -51,8 +53,15 @@ function Dashboard() {
             {profile?.business_name ?? "Your center"} · <span className="capitalize text-primary">{tier} tier</span>
           </p>
         </div>
-        <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary">Update business profile →</Link>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => setInsightsOpen(true)} className="gap-2">
+            <Play className="size-4" /> Get daily insights from Raven
+          </Button>
+          <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary">Update business profile →</Link>
+        </div>
       </div>
+
+      <RavenInsightsDialog open={insightsOpen} onOpenChange={setInsightsOpen} />
 
       <div className="gold-divider mt-8" />
 

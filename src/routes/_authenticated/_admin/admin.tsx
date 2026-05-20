@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { RavenVideosAdmin } from "@/components/admin/RavenVideosAdmin";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — Prima Donna AI™" }] }),
@@ -282,6 +283,10 @@ function Admin() {
             </ul>
           )}
         </div>
+      </section>
+
+      <section className="mt-10">
+        <RavenVideosAdmin />
       </section>
     </div>
   );
