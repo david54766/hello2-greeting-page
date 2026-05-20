@@ -371,13 +371,12 @@ function Coach() {
                 </div>
               ) : <span />}
               <div className="flex items-center gap-2">
-                {speaking ? (
+                <Button variant="ghost" size="sm" onClick={() => speak(response)} title={speaking ? "Restart from beginning" : "Speak"}>
+                  <Volume2 className="size-3 mr-2" /> {speaking ? "Restart" : "Speak"}
+                </Button>
+                {speaking && (
                   <Button variant="ghost" size="sm" onClick={stopAudio}>
                     <Square className="size-3 mr-2" /> Stop
-                  </Button>
-                ) : (
-                  <Button variant="ghost" size="sm" onClick={() => speak(response)}>
-                    <Volume2 className="size-3 mr-2" /> Speak
                   </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={copyPlan}>
