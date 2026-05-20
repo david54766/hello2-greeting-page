@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Play, Video as VideoIcon } from "lucide-react";
@@ -11,6 +11,7 @@ type RavenVideo = {
   thumbnail_path: string | null;
   duration_seconds: number | null;
   sort_order: number;
+  category: string;
 };
 
 export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
