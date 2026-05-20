@@ -2,12 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const TIER_DAILY_LIMITS: Record<string, number> = {
-  essentials: 3,
-  pro: 15,
-  elite: 50,
-};
-
 const SYSTEM_VISUAL = `You are a visual asset generator for Prima Donna AI™, an executive childcare business coach. Generate ONE clean, branded illustration that helps a childcare center owner understand a concept (e.g. a sample marketing flyer, a simple org chart, a tuition tier card, a classroom layout sketch, a workflow diagram).
 
 Style rules:
@@ -15,34 +9,7 @@ Style rules:
 - Realistic and usable — NOT cartoonish or generic clipart.
 - Any text in the image MUST be spelled correctly and legible.
 - No real children's faces. No copyrighted logos.
-- If the user asks for something off-topic (memes, unrelated art, people portraits), refuse by generating a plain card that says "Visual examples are limited to childcare business concepts."`;
-
-async function getDailyImageUsage(supabase: any, userId: string): Promise<number> {
-  const since = new Date();
-  since.setUTCHours(0, 0, 0, 0);
-  const { count } = await supabase
-    .from("usage_events")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("event_type", "coach_image")
-    .gte("created_at", since.toISOString());
-  return count ?? 0;
-}
-
-export const getImageQuota = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("tier")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const tier = (sub?.tier as string) ?? "essentials";
-    const limit = TIER_DAILY_LIMITS[tier] ?? TIER_DAILY_LIMITS.essentials;
-    const used = await getDailyImageUsage(supabase, userId);
-    return { tier, used, limit, remaining: Math.max(0, limit - used) };
-  });
+- Only generate when the concept is genuinely clarified by a visual (flyer, layout, chart, diagram, card). If the request is off-topic or doesn't benefit from a visual, generate a plain card that says "Visual examples are reserved for concepts that benefit from a diagram or sample asset."`;
 
 export const generateCoachImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -54,23 +21,7 @@ export const generateCoachImage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { error: "Image service not configured." as const, image: null, remaining: 0 };
-
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("tier")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const tier = (sub?.tier as string) ?? "essentials";
-    const limit = TIER_DAILY_LIMITS[tier] ?? TIER_DAILY_LIMITS.essentials;
-    const used = await getDailyImageUsage(supabase, userId);
-    if (used >= limit) {
-      return {
-        error: `Daily image limit reached (${limit}/day for ${tier}). Resets at midnight UTC.` as const,
-        image: null,
-        remaining: 0,
-      };
-    }
+    if (!apiKey) return { error: "Image service not configured." as const, image: null };
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -85,12 +36,12 @@ export const generateCoachImage = createServerFn({ method: "POST" })
       }),
     });
 
-    if (res.status === 429) return { error: "Rate limit reached. Try again shortly." as const, image: null, remaining: limit - used };
-    if (res.status === 402) return { error: "AI credits exhausted." as const, image: null, remaining: limit - used };
+    if (res.status === 429) return { error: "Rate limit reached. Try again shortly." as const, image: null };
+    if (res.status === 402) return { error: "AI credits exhausted." as const, image: null };
     if (!res.ok) {
       const t = await res.text();
       console.error("Image gateway error", res.status, t);
-      return { error: "Image generator temporarily unavailable." as const, image: null, remaining: limit - used };
+      return { error: "Image generator temporarily unavailable." as const, image: null };
     }
 
     const json = await res.json();
@@ -100,7 +51,7 @@ export const generateCoachImage = createServerFn({ method: "POST" })
 
     if (!imageUrl) {
       console.error("No image returned", JSON.stringify(json).slice(0, 500));
-      return { error: "No image returned." as const, image: null, remaining: limit - used };
+      return { error: "No image returned." as const, image: null };
     }
 
     await supabase.from("usage_events").insert({
@@ -109,9 +60,5 @@ export const generateCoachImage = createServerFn({ method: "POST" })
       metadata: { prompt_preview: data.prompt.slice(0, 120) },
     });
 
-    return {
-      error: null,
-      image: imageUrl,
-      remaining: Math.max(0, limit - used - 1),
-    };
+    return { error: null, image: imageUrl };
   });
