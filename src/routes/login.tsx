@@ -63,7 +63,7 @@ function Login() {
           <div>
             <h1 className="font-display text-4xl">Sign in</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              New here? <Link to="/signup" className="text-primary underline">Apply for access</Link>
+              New here? <Link to="/signup" className="text-primary underline">Sign up</Link>
             </p>
           </div>
           <div className="space-y-2">
