@@ -113,7 +113,7 @@ function Dashboard() {
         <div className="mt-5 grid md:grid-cols-3 gap-4">
           <ActionCard to="/coach" icon={<MessageSquare className="size-5" />} title="Ask the strategist" desc="Open a structured coaching session." />
           <ActionCard to="/templates" icon={<FileText className="size-5" />} title="Open the Vault" desc="Hiring, enrollment, operations templates." />
-          <ActionCard to="/coach" icon={<TrendingUp className="size-5" />} title="Build a growth plan" desc="Run Revenue Mode for a 90-day move." />
+          <ActionCard to="/coach" search={{ mode: "revenue" }} icon={<TrendingUp className="size-5" />} title="Build a growth plan" desc="Run Revenue Mode for a 90-day move." />
         </div>
       </section>
     </div>
@@ -143,9 +143,9 @@ function SnapshotCard({ label, value, hint }: { label: string; value: string; hi
   );
 }
 
-function ActionCard({ to, icon, title, desc }: { to: string; icon: React.ReactNode; title: string; desc: string }) {
+function ActionCard({ to, search, icon, title, desc }: { to: string; search?: Record<string, any>; icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <Link to={to as any} className="group rounded-xl border border-border/60 bg-card p-6 hover:border-primary/50 transition block">
+    <Link to={to as any} search={search as any} className="group rounded-xl border border-border/60 bg-card p-6 hover:border-primary/50 transition block">
       <div className="flex items-center gap-3">
         <div className="size-10 rounded-full bg-primary/10 text-primary grid place-items-center">{icon}</div>
         <div className="font-display text-xl">{title}</div>

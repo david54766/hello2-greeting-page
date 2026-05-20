@@ -30,6 +30,11 @@ import {
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const m = search.mode;
+    const allowed = ["ceo", "revenue", "marketing", "compliance", "systems"] as const;
+    return { mode: allowed.includes(m as any) ? (m as (typeof allowed)[number]) : undefined };
+  },
   component: Coach,
 });
 
@@ -66,7 +71,8 @@ function normalizeResp(r: any): Resp {
 
 function Coach() {
   const { tier, user } = useAuth();
-  const [mode, setMode] = useState<Mode>("ceo");
+  const { mode: initialMode } = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(initialMode ?? "ceo");
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<Resp | null>(null);
