@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, ArrowRight } from "lucide-react";
 import ravenPortrait from "@/assets/raven.jpeg";
+import logoImg from "@/assets/prima-donna-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
