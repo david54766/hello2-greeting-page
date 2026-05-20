@@ -86,7 +86,8 @@ function Scheduler() {
   };
 
   const cancel = async (id: string) => {
-    if (!confirm("Cancel this booking?")) return;
+    if (!window.confirm("Cancel this booking?")) return;
+
     const r = await cancelFn({ data: { id } });
     if (!r.ok) return toast.error(r.message);
     toast.success("Booking cancelled.");
