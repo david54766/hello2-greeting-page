@@ -294,6 +294,9 @@ function Coach() {
                 <Button variant="ghost" size="sm" onClick={copyPlan}>
                   <Copy className="size-3 mr-2" /> Copy plan
                 </Button>
+                <Button variant="ghost" size="sm" onClick={() => exportCoachingPlanPDF(prompt, mode, response)}>
+                  <Download className="size-3 mr-2" /> Export PDF
+                </Button>
               </div>
             </div>
             <Section label="Diagnosis">{response.diagnosis}</Section>
