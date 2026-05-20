@@ -390,36 +390,33 @@ function StatusCard({
 }
 
 // ---------------------------------------------------------------------------
-// Existing Elite member view (1:1 session requests)
+// Elite member view
 // ---------------------------------------------------------------------------
-function EliteMemberView({ userId }: { userId?: string }) {
-  const [topic, setTopic] = useState("");
-  const [times, setTimes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+type VaultPick = {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  storage_path: string;
+};
 
-  const submitFn = useServerFn(submitEliteRequest);
-  const listFn = useServerFn(getMyEliteRequests);
-  const qc = useQueryClient();
-  const myReqs = useQuery({
-    queryKey: ["my-elite-requests", userId],
-    queryFn: () => listFn(),
-    enabled: !!userId,
-  });
+function EliteMemberView({ userId: _userId }: { userId?: string }) {
+  const [picks, setPicks] = useState<VaultPick[] | null>(null);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (topic.trim().length < 5) return;
-    setSubmitting(true);
-    const r = await submitFn({ data: { topic, preferred_times: times || undefined } });
-    setSubmitting(false);
-    if (r.ok) {
-      toast.success(r.message);
-      setTopic("");
-      setTimes("");
-      qc.invalidateQueries({ queryKey: ["my-elite-requests", userId] });
-    } else {
-      toast.error(r.message);
-    }
+  useEffect(() => {
+    supabase
+      .from("templates")
+      .select("id,title,description,category,storage_path")
+      .eq("tier_required", "elite")
+      .order("created_at", { ascending: false })
+      .limit(6)
+      .then(({ data }) => setPicks((data ?? []) as VaultPick[]));
+  }, []);
+
+  const download = async (path: string) => {
+    const { data, error } = await supabase.storage.from("templates").createSignedUrl(path, 60);
+    if (error || !data) return toast.error("Could not generate download link.");
+    window.open(data.signedUrl, "_blank");
   };
 
   return (
@@ -448,74 +445,50 @@ function EliteMemberView({ userId }: { userId?: string }) {
 
       <div className="gold-divider mt-10" />
 
-
-      <section className="mt-10 rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/10 to-transparent p-8">
-        <div className="flex items-center gap-3">
-          <Calendar className="size-5 text-elite-foreground" />
-          <h2 className="font-display text-2xl">Request a 1:1 strategy session</h2>
-        </div>
-        <p className="mt-3 text-muted-foreground">
-          Tell us the situation. The Circle team will follow up within 1 business day.
-        </p>
-        <form onSubmit={submit} className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <Label>What do you want to work on?</Label>
-            <Textarea
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              rows={3}
-              placeholder="e.g. Building a 90-day enrollment plan for my second location."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Preferred times (optional)</Label>
-            <Input
-              value={times}
-              onChange={(e) => setTimes(e.target.value)}
-              placeholder="e.g. Weekday mornings CT"
-            />
-          </div>
-          <Button type="submit" disabled={submitting || topic.trim().length < 5} className="rounded-full">
-            {submitting ? "Submitting…" : "Request session"}
-          </Button>
-        </form>
-      </section>
-
       <section className="mt-10">
-        <h2 className="font-display text-2xl">Your requests</h2>
-        <div className="mt-4 space-y-3">
-          {myReqs.data?.requests?.length === 0 && (
-            <p className="text-sm text-muted-foreground">No requests yet.</p>
-          )}
-          {myReqs.data?.requests?.map((r: any) => (
-            <div
-              key={r.id}
-              className="rounded-xl border border-border/60 bg-card p-5 flex justify-between items-start gap-4"
-            >
-              <div>
-                <p className="text-sm">{r.topic}</p>
-                {r.preferred_times && (
-                  <p className="text-xs text-muted-foreground mt-1">Preferred: {r.preferred_times}</p>
-                )}
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  {new Date(r.created_at).toLocaleString()}
-                </p>
-              </div>
-              <span className="text-xs uppercase tracking-wider text-elite-foreground capitalize">{r.status}</span>
-            </div>
-          ))}
+        <div className="flex items-end justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-elite-foreground">Curated for the Circle</p>
+            <h2 className="mt-1 font-display text-2xl">Vault picks</h2>
+          </div>
+          <Link to="/templates" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
+            View full vault <ArrowRight className="size-3" />
+          </Link>
         </div>
-      </section>
 
-      <section className="mt-12">
-        <h2 className="font-display text-2xl">Circle Vault</h2>
-        <p className="mt-2 text-muted-foreground">
-          Curated content reserved for Elite members lives in the{" "}
-          <Link to="/templates" className="text-primary underline">
-            Template Vault
-          </Link>{" "}
-          — Elite-only items unlock automatically.
-        </p>
+        {picks === null ? (
+          <div className="mt-5 grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-32 rounded-xl border border-border/60 bg-card/40 animate-pulse" />
+            ))}
+          </div>
+        ) : picks.length === 0 ? (
+          <p className="mt-5 text-sm text-muted-foreground">
+            New Circle-only drops land here weekly.{" "}
+            <Link to="/templates" className="text-primary underline">Browse the vault</Link>.
+          </p>
+        ) : (
+          <div className="mt-5 grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {picks.map((p) => (
+              <div key={p.id} className="rounded-xl border border-elite/30 bg-gradient-to-br from-elite/5 to-transparent p-5 flex flex-col">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{p.category}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-elite-foreground">Elite</span>
+                </div>
+                <h3 className="mt-2 font-display text-lg leading-tight">{p.title}</h3>
+                {p.description && <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">{p.description}</p>}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-auto pt-3 rounded-full self-start"
+                  onClick={() => download(p.storage_path)}
+                >
+                  <FileText className="size-3 mr-1.5" /> Download
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
