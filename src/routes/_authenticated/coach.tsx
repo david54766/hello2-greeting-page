@@ -171,10 +171,14 @@ function Coach() {
         return;
       }
 
+      const abort = new AbortController();
+      ttsAbortRef.current = abort;
+
       const res = await fetch("/api/tts-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ text }),
+        signal: abort.signal,
       });
       if (!res.ok || !res.body) {
         const msg = await res.text().catch(() => "");
@@ -192,16 +196,18 @@ function Coach() {
       const mime = "audio/mpeg";
       if (MSE && MSE.isTypeSupported(mime)) {
         const ms = new MSE();
+        mediaSourceRef.current = ms;
         audio.src = URL.createObjectURL(ms);
         await audio.play().catch(() => { /* will start when buffered */ });
         ms.addEventListener("sourceopen", async () => {
           const sb = ms.addSourceBuffer(mime);
           const reader = res.body!.getReader();
+          ttsReaderRef.current = reader;
           const queue: Uint8Array[] = [];
           let done = false;
           const pump = () => {
-            if (sb.updating || queue.length === 0) return;
-            sb.appendBuffer(queue.shift()! as unknown as ArrayBuffer);
+            if (sb.updating || queue.length === 0 || ms.readyState !== "open") return;
+            try { sb.appendBuffer(queue.shift()! as unknown as ArrayBuffer); } catch {}
           };
           sb.addEventListener("updateend", () => {
             pump();
@@ -228,6 +234,7 @@ function Coach() {
         await audio.play();
       }
     } catch (e: any) {
+      if (e?.name === "AbortError") return;
       toast.error(e?.message ?? "Voice unavailable");
       setSpeaking(false);
     }
