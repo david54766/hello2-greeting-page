@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function Settings() {
   const { user, tier, isAdmin, refresh } = useAuth();
-  const [form, setForm] = useState({ full_name: "", business_name: "", state: "", enrollment_size: "", tuition_range: "", staff_count: "", timezone: "America/New_York" });
+  const [form, setForm] = useState({ full_name: "", business_name: "", state: "", timezone: "America/New_York" });
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
@@ -37,9 +37,6 @@ function Settings() {
         full_name: data.full_name ?? "",
         business_name: data.business_name ?? "",
         state: data.state ?? "",
-        enrollment_size: data.enrollment_size?.toString() ?? "",
-        tuition_range: data.tuition_range ?? "",
-        staff_count: data.staff_count?.toString() ?? "",
         timezone: (data as any).timezone ?? "America/New_York",
       });
     });
@@ -53,9 +50,6 @@ function Settings() {
       full_name: form.full_name,
       business_name: form.business_name,
       state: form.state,
-      enrollment_size: form.enrollment_size ? parseInt(form.enrollment_size) : null,
-      tuition_range: form.tuition_range,
-      staff_count: form.staff_count ? parseInt(form.staff_count) : null,
       timezone: form.timezone,
     }).eq("id", user.id);
     setSaving(false);
@@ -87,11 +81,8 @@ function Settings() {
 
       <form onSubmit={save} className="mt-8 grid sm:grid-cols-2 gap-5">
         <Field label="Your name"><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
-        <Field label="Center name"><Input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} /></Field>
+        <Field label="Business name"><Input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} placeholder="Your company or brand" /></Field>
         <Field label="State"><Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="e.g. TX" /></Field>
-        <Field label="Enrollment count"><Input type="number" value={form.enrollment_size} onChange={(e) => setForm({ ...form, enrollment_size: e.target.value })} /></Field>
-        <Field label="Tuition range"><Input value={form.tuition_range} onChange={(e) => setForm({ ...form, tuition_range: e.target.value })} placeholder="e.g. $1200-1800/mo" /></Field>
-        <Field label="Staff count"><Input type="number" value={form.staff_count} onChange={(e) => setForm({ ...form, staff_count: e.target.value })} /></Field>
         <Field label="Timezone (for daily AI brief)">
           <select
             value={form.timezone}

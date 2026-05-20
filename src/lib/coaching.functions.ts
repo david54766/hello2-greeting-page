@@ -90,12 +90,12 @@ export const runCoaching = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const [{ data: profile }, { data: centers }] = await Promise.all([
-      supabase.from("profiles").select("full_name, business_name, state, enrollment_size, tuition_range, staff_count").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("full_name, business_name, state").eq("id", userId).maybeSingle(),
       supabase.from("centers").select("name, city, state, enrollment_size, capacity, tuition_range, staff_count, ages_served, notes").eq("user_id", userId).order("created_at", { ascending: true }),
     ]);
 
     const ownerLine = profile
-      ? `Owner: ${profile.full_name ?? "(unnamed)"}. Primary center on file: ${profile.business_name ?? "(unnamed)"}.`
+      ? `Owner: ${profile.full_name ?? "(unnamed)"}. Business: ${profile.business_name ?? "(unnamed)"}${profile.state ? ` (${profile.state})` : ""}.`
       : "No owner profile on file yet.";
 
     const centerBlock = centers && centers.length
