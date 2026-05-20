@@ -327,15 +327,6 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
             </Button>
           </div>
         ) : (
-          <div className="py-8 text-center space-y-4">
-            <p className="text-muted-foreground">
-              Add at least one center before setting up Revenue mode. Center metrics (capacity, enrollment, tuition) anchor every recommendation.
-            </p>
-            <Button asChild>
-              <Link to="/settings">Go to Settings → Centers</Link>
-            </Button>
-          </div>
-        ) : (
           <div className="py-4 space-y-4">
             {step === 0 && (
               <div className="space-y-4">
