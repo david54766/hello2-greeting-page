@@ -118,11 +118,13 @@ export const runCoaching = createServerFn({ method: "POST" })
           parameters: {
             type: "object",
             properties: {
-              insight: { type: "string", description: "Sharp diagnostic observation, 1-3 sentences." },
-              recommendation: { type: "string", description: "The strategic move, decisive and specific." },
+              diagnosis: { type: "string", description: "What is actually broken. 1-3 sharp sentences naming the system failure." },
+              impact: { type: "string", description: "What this is costing the business (money, staff, families, reputation) if unaddressed." },
+              strategic_move: { type: "string", description: "The decisive, non-optional move. Specific. No hedging." },
+              elevation: { type: "string", description: "The leadership/standard shift required, tied to a core principle." },
               action_steps: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 5 },
             },
-            required: ["insight", "recommendation", "action_steps"],
+            required: ["diagnosis", "impact", "strategic_move", "elevation", "action_steps"],
             additionalProperties: false,
           },
         },
