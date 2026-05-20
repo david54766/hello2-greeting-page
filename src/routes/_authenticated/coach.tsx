@@ -526,7 +526,7 @@ function Coach() {
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
           <History className="size-3" /> Recent sessions
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-2 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1">
           {history.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
           {history.data?.sessions?.length === 0 && <p className="text-sm text-muted-foreground">No sessions yet.</p>}
           {history.data?.sessions?.map((s: any) => (
@@ -557,6 +557,7 @@ function Coach() {
             </div>
           ))}
         </div>
+
 
         <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
           <AlertDialogContent>
