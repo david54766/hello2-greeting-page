@@ -462,8 +462,22 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
           </div>
         )}
 
+        {saveError && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Save failed</AlertTitle>
+            <AlertDescription>{saveError}</AlertDescription>
+          </Alert>
+        )}
+
+        {saving && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
+            <Loader2 className="size-4 animate-spin" /> Saving your revenue profile…
+          </div>
+        )}
+
         <DialogFooter className="flex sm:justify-between gap-2">
-          <Button variant="ghost" onClick={() => handleSave(true)} disabled={saving || noCenters}>
+          <Button variant="ghost" onClick={() => handleSave(true)} disabled={saving || noCenters || centersQ.isLoading || centersQ.isError}>
             Skip for now
           </Button>
           <div className="flex gap-2">
@@ -473,13 +487,16 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
               </Button>
             )}
             {step < STEPS.length - 1 ? (
-              <Button onClick={goNext} disabled={noCenters || saving}>
+              <Button onClick={goNext} disabled={noCenters || saving || centersQ.isLoading || centersQ.isError}>
                 Next <ArrowRight className="size-4 ml-1" />
               </Button>
             ) : (
-              <Button onClick={() => handleSave(false)} disabled={saving || noCenters}>
-                {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
-                Save profile
+              <Button onClick={() => handleSave(false)} disabled={saving || noCenters || centersQ.isLoading || centersQ.isError}>
+                {saving ? (
+                  <><Loader2 className="size-4 animate-spin mr-2" /> Saving…</>
+                ) : (
+                  <><Check className="size-4 mr-2" /> Save profile</>
+                )}
               </Button>
             )}
           </div>
