@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Crown, MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { EliteSubNav } from "@/components/EliteSubNav";
 
 export const Route = createFileRoute("/_authenticated/elite-circle")({
   head: () => ({ meta: [{ title: "Elite Circle Conversations — Prima Donna AI™" }] }),
