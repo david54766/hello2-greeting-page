@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer } from "lucide-react";
+import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2 } from "lucide-react";
 import { exportCoachingPlanPDF } from "@/lib/export-pdf";
 
 export const Route = createFileRoute("/_authenticated/coach")({
@@ -417,17 +417,35 @@ function Coach() {
           {history.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
           {history.data?.sessions?.length === 0 && <p className="text-sm text-muted-foreground">No sessions yet.</p>}
           {history.data?.sessions?.map((s: any) => (
-            <button
+            <div
               key={s.id}
-              onClick={() => loadFromHistory(s)}
-              className="w-full text-left rounded-lg border border-border/60 bg-card p-3 hover:border-primary/40 transition"
+              className="group relative rounded-lg border border-border/60 bg-card hover:border-primary/40 transition"
             >
-              <div className="flex justify-between items-baseline">
-                <span className="text-xs uppercase tracking-wider text-primary">{s.mode}</span>
-                <span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
-              </div>
-              <p className="mt-2 text-sm line-clamp-2">{s.response?.diagnosis ?? s.response?.insight ?? s.prompt}</p>
-            </button>
+              <button
+                onClick={() => loadFromHistory(s)}
+                className="w-full text-left p-3 pr-9"
+              >
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs uppercase tracking-wider text-primary">{s.mode}</span>
+                  <span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
+                </div>
+                <p className="mt-2 text-sm line-clamp-2">{s.response?.diagnosis ?? s.response?.insight ?? s.prompt}</p>
+              </button>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!confirm("Delete this session?")) return;
+                  const { error } = await supabase.from("coaching_sessions").delete().eq("id", s.id);
+                  if (error) { toast.error(error.message); return; }
+                  toast.success("Session deleted");
+                  qc.invalidateQueries({ queryKey: ["coaching-history", user?.id] });
+                }}
+                className="absolute top-2 right-2 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition"
+                aria-label="Delete session"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
           ))}
         </div>
       </aside>

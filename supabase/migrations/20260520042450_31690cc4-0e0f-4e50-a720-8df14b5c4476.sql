@@ -1,0 +1,1 @@
+CREATE POLICY "Users delete own sessions" ON public.coaching_sessions FOR DELETE USING (auth.uid() = user_id);
