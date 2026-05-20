@@ -329,6 +329,48 @@ export type Database = {
         }
         Relationships: []
       }
+      raven_videos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          published: boolean
+          sort_order: number
+          storage_path: string
+          thumbnail_path: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          published?: boolean
+          sort_order?: number
+          storage_path: string
+          thumbnail_path?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          published?: boolean
+          sort_order?: number
+          storage_path?: string
+          thumbnail_path?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
