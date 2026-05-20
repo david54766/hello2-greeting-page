@@ -16,6 +16,7 @@ import { Route as ApplyEliteRouteImport } from './routes/apply-elite'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTtsStreamRouteImport } from './routes/api/tts-stream'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
@@ -62,6 +63,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTtsStreamRoute = ApiTtsStreamRouteImport.update({
+  id: '/api/tts-stream',
+  path: '/api/tts-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/elite': typeof AuthenticatedEliteRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
+  '/api/tts-stream': typeof ApiTtsStreamRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/elite': typeof AuthenticatedEliteRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
+  '/api/tts-stream': typeof ApiTtsStreamRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/_authenticated/elite': typeof AuthenticatedEliteRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
+  '/api/tts-stream': typeof ApiTtsStreamRoute
   '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
   '/_authenticated/_admin/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/_authenticated/_elite-gate/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
@@ -207,6 +216,7 @@ export interface FileRouteTypes {
     | '/elite'
     | '/settings'
     | '/templates'
+    | '/api/tts-stream'
     | '/admin'
     | '/admin-analytics'
     | '/elite-circle'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/elite'
     | '/settings'
     | '/templates'
+    | '/api/tts-stream'
     | '/admin'
     | '/admin-analytics'
     | '/elite-circle'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/elite'
     | '/_authenticated/settings'
     | '/_authenticated/templates'
+    | '/api/tts-stream'
     | '/_authenticated/_admin/admin'
     | '/_authenticated/_admin/admin-analytics'
     | '/_authenticated/_elite-gate/elite-circle'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  ApiTtsStreamRoute: typeof ApiTtsStreamRoute
   ApiPublicEliteApplyRoute: typeof ApiPublicEliteApplyRoute
   ApiPublicHooksGenerateDailyRecommendationsRoute: typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tts-stream': {
+      id: '/api/tts-stream'
+      path: '/api/tts-stream'
+      fullPath: '/api/tts-stream'
+      preLoaderRoute: typeof ApiTtsStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/templates': {
@@ -476,6 +496,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  ApiTtsStreamRoute: ApiTtsStreamRoute,
   ApiPublicEliteApplyRoute: ApiPublicEliteApplyRoute,
   ApiPublicHooksGenerateDailyRecommendationsRoute:
     ApiPublicHooksGenerateDailyRecommendationsRoute,

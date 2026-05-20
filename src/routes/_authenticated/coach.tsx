@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
-import { synthesizeSpeech } from "@/lib/tts.functions";
-import { transcribeAudio } from "@/lib/stt.functions";
+import { createScribeToken } from "@/lib/stt.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -58,108 +60,160 @@ function Coach() {
   const [speaking, setSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const run = useServerFn(runCoaching);
-  const tts = useServerFn(synthesizeSpeech);
-  const stt = useServerFn(transcribeAudio);
+  const mintScribeToken = useServerFn(createScribeToken);
   const historyFn = useServerFn(getCoachingHistory);
   const qc = useQueryClient();
 
+  // ---------- Realtime STT (live dictation) ----------
   const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const [connecting, setConnecting] = useState(false);
+  const promptRef = useRef(prompt);
+  useEffect(() => { promptRef.current = prompt; }, [prompt]);
 
-  const startRecording = async () => {
-    if (recording || transcribing) return;
+  const scribe = useScribe({
+    modelId: "scribe_v2_realtime",
+    commitStrategy: CommitStrategy.VAD,
+    onCommittedTranscript: (data: any) => {
+      const text = (data?.text ?? "").trim();
+      if (!text) return;
+      const base = promptRef.current.trimEnd();
+      const next = base ? `${base} ${text}` : text;
+      promptRef.current = next;
+      setPrompt(next);
+    },
+  });
+
+  const partial = (scribe as any).partialTranscript as string | undefined;
+  const isConnected = (scribe as any).isConnected as boolean;
+
+  const startRecording = useCallback(async () => {
+    if (recording || connecting) return;
+    setConnecting(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : "";
-      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
-      mr.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
-        if (blob.size < 1000) {
-          setRecording(false);
-          return toast.error("Recording too short.");
-        }
-        setTranscribing(true);
-        try {
-          const buf = await blob.arrayBuffer();
-          const bytes = new Uint8Array(buf);
-          let bin = "";
-          const CHUNK = 0x8000;
-          for (let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-          const b64 = btoa(bin);
-          const result = await stt({ data: { audioBase64: b64, mimeType: mr.mimeType || "audio/webm" } });
-          if (result.error || !result.text) {
-            toast.error(result.error || "Could not transcribe.");
-          } else {
-            setPrompt((prev) => (prev ? prev.trimEnd() + " " + result.text : result.text!));
-            toast.success("Transcribed.");
-          }
-        } catch (e: any) {
-          toast.error(e?.message ?? "Transcription failed");
-        } finally {
-          setTranscribing(false);
-          setRecording(false);
-        }
-      };
-      recorderRef.current = mr;
-      mr.start();
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const { token, error } = await mintScribeToken();
+      if (!token) {
+        toast.error(error || "Voice unavailable");
+        return;
+      }
+      await (scribe as any).connect({
+        token,
+        microphone: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
       setRecording(true);
     } catch (e: any) {
       toast.error(e?.message ?? "Microphone unavailable");
-      setRecording(false);
+    } finally {
+      setConnecting(false);
     }
-  };
+  }, [recording, connecting, mintScribeToken, scribe]);
 
-  const stopRecording = () => {
-    if (recorderRef.current && recorderRef.current.state !== "inactive") {
-      recorderRef.current.stop();
+  const stopRecording = useCallback(async () => {
+    try {
+      await (scribe as any).disconnect();
+    } catch {}
+    // Flush any straggling partial
+    if (partial && partial.trim()) {
+      const base = promptRef.current.trimEnd();
+      const next = base ? `${base} ${partial.trim()}` : partial.trim();
+      promptRef.current = next;
+      setPrompt(next);
     }
-  };
+    setRecording(false);
+  }, [scribe, partial]);
 
+  useEffect(() => {
+    return () => {
+      try { (scribe as any).disconnect?.(); } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---------- Streaming TTS ----------
   const stopAudio = () => {
     if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
+      try { audioRef.current.pause(); } catch {}
+      audioRef.current.removeAttribute("src");
+      audioRef.current.load();
       audioRef.current = null;
     }
     setSpeaking(false);
   };
 
   useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-        audioRef.current = null;
-      }
-    };
+    return () => stopAudio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   const speak = async (r: Resp) => {
     stopAudio();
     const text = `Diagnosis. ${r.diagnosis} Impact. ${r.impact} Strategic move. ${r.strategic_move} Elevation. ${r.elevation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
     setSpeaking(true);
     try {
-      const result = await tts({ data: { text } });
-      if (result.error || !result.audio) {
-        toast.error(result.error || "Voice unavailable");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        toast.error("Sign in to enable voice");
         setSpeaking(false);
         return;
       }
-      const audio = new Audio(`data:audio/mpeg;base64,${result.audio}`);
+
+      const res = await fetch("/api/tts-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok || !res.body) {
+        const msg = await res.text().catch(() => "");
+        toast.error(msg.slice(0, 120) || "Voice unavailable");
+        setSpeaking(false);
+        return;
+      }
+
+      const audio = new Audio();
       audioRef.current = audio;
       audio.onended = () => setSpeaking(false);
       audio.onerror = () => setSpeaking(false);
-      await audio.play();
+
+      const MSE: typeof MediaSource | undefined = (window as any).MediaSource;
+      const mime = "audio/mpeg";
+      if (MSE && MSE.isTypeSupported(mime)) {
+        const ms = new MSE();
+        audio.src = URL.createObjectURL(ms);
+        await audio.play().catch(() => { /* will start when buffered */ });
+        ms.addEventListener("sourceopen", async () => {
+          const sb = ms.addSourceBuffer(mime);
+          const reader = res.body!.getReader();
+          const queue: Uint8Array[] = [];
+          let done = false;
+          const pump = () => {
+            if (sb.updating || queue.length === 0) return;
+            sb.appendBuffer(queue.shift()! as unknown as ArrayBuffer);
+          };
+          sb.addEventListener("updateend", () => {
+            pump();
+            if (done && queue.length === 0 && !sb.updating) {
+              try { ms.endOfStream(); } catch {}
+            }
+          });
+          try {
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+              const { value, done: d } = await reader.read();
+              if (d) { done = true; pump(); break; }
+              if (value) { queue.push(value); pump(); }
+              if (audio.paused) audio.play().catch(() => {});
+            }
+          } catch {
+            try { ms.endOfStream("network" as any); } catch {}
+          }
+        });
+      } else {
+        // Fallback: buffer then play
+        const blob = await res.blob();
+        audio.src = URL.createObjectURL(blob);
+        await audio.play();
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Voice unavailable");
       setSpeaking(false);
@@ -245,29 +299,44 @@ function Coach() {
 
         <div className="mt-6">
           <Textarea
-            value={prompt}
+            value={recording && partial ? (prompt ? prompt.trimEnd() + " " + partial : partial) : prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="What's the situation? Be specific. The more context, the sharper the move."
             rows={5}
             className="text-base"
+            readOnly={recording}
           />
+
+          {(recording || connecting) && (
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-primary">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-primary" />
+                </span>
+                {connecting ? "Connecting to Raven…" : partial ? "Transcribing…" : "Listening…"}
+              </div>
+              <Progress value={connecting ? 15 : partial ? 65 : 35} className="h-1" />
+            </div>
+          )}
+
           <div className="mt-3 flex justify-between items-center gap-3">
             <Button
               type="button"
               variant={recording ? "destructive" : "outline"}
               onClick={recording ? stopRecording : startRecording}
-              disabled={transcribing || loading}
+              disabled={connecting || loading}
               className="rounded-full"
             >
-              {transcribing ? (
-                <><Loader2 className="size-4 animate-spin mr-2" /> Transcribing…</>
+              {connecting ? (
+                <><Loader2 className="size-4 animate-spin mr-2" /> Connecting…</>
               ) : recording ? (
-                <><MicOff className="size-4 mr-2" /> Stop & transcribe</>
+                <><MicOff className="size-4 mr-2" /> Stop</>
               ) : (
                 <><Mic className="size-4 mr-2" /> Speak your question</>
               )}
             </Button>
-            <Button onClick={submit} disabled={loading || recording || transcribing || prompt.trim().length < 3} className="rounded-full px-6">
+            <Button onClick={submit} disabled={loading || recording || connecting || prompt.trim().length < 3} className="rounded-full px-6">
               {loading ? <><Loader2 className="size-4 animate-spin mr-2" /> Thinking</> : "Get the move"}
             </Button>
           </div>
