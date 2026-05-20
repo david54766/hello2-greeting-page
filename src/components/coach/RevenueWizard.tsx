@@ -185,13 +185,38 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopeMode, activeCenterId, centers.length]);
 
-  const canNext = useMemo(() => {
-    if (step === 0) {
-      if (scopeMode === "center" && !activeCenterId) return false;
-      return true;
+  const [errors, setErrors] = useState<FieldErrors>({});
+
+  const validateStep = (s: number): FieldErrors => {
+    if (s === 0) {
+      const r = scopeSchema.safeParse({ scopeMode, activeCenterId });
+      return r.success ? {} : zodErrors(r.error);
     }
-    return true;
-  }, [step, scopeMode, activeCenterId]);
+    if (s === 1) {
+      const r = snapshotSchema.safeParse(snapshot);
+      return r.success ? {} : zodErrors(r.error);
+    }
+    if (s === 2) {
+      const r = modelSchema.safeParse(model);
+      return r.success ? {} : zodErrors(r.error);
+    }
+    if (s === 3) {
+      const r = goalsSchema.safeParse(goals);
+      return r.success ? {} : zodErrors(r.error);
+    }
+    return {};
+  };
+
+  const goNext = () => {
+    const e = validateStep(step);
+    setErrors(e);
+    if (Object.keys(e).length) {
+      toast.error("Please fix the highlighted fields");
+      return;
+    }
+    setStep((s) => s + 1);
+  };
+
 
   const handleSave = async (markSkipped = false) => {
     setSaving(true);
