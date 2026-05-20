@@ -1,43 +1,44 @@
-## Goal
+## Elite Circle Conversations Board + Raven Meeting Scheduler
 
-Give admins a full file manager for the Template Vault inside the Admin dashboard, with per-template tier gating (Essentials / Pro / Elite Circle).
+### 1. Database (one migration)
 
-## What gets built
+**`elite_threads`** — id, user_id (author), title, body, pinned (bool), created_at, updated_at
+**`elite_thread_replies`** — id, thread_id, user_id, body, created_at
+**`raven_availability`** — id, weekday (0–6), start_time (time), end_time (time), slot_minutes (int), active (bool) — admin-managed
+**`raven_meeting_settings`** — single-row table: room_url, timezone, buffer_minutes, advance_days (how far out users can book)
+**`raven_bookings`** — id, user_id, starts_at (timestamptz), ends_at, status ('booked'|'cancelled'), topic, created_at; unique index on (starts_at) where status='booked' to prevent double-booking
 
-A new `TemplateVaultManager` component mounted as a section in `/admin` (alongside existing Users, Elite, RAG, Raven Videos sections).
+**RLS**
+- Threads/replies: SELECT + INSERT for Elite tier OR admin; UPDATE/DELETE own or admin. Helper `is_elite(uid)` checking `subscriptions.tier='elite'`.
+- `raven_availability` + `raven_meeting_settings`: SELECT authenticated, ALL admin only.
+- `raven_bookings`: user SELECT/INSERT/UPDATE own (cancel), admin SELECT all.
 
-### Features
+### 2. Routes
 
-1. **List view** — table of all templates grouped by category (Hiring, Enrollment, Operations), showing title, tier badge, description preview, upload date, file size.
-2. **Upload** — file picker + form fields:
-   - Title (required)
-   - Description (optional)
-   - Category: Hiring / Enrollment / Operations
-   - **Tier required**: Essentials / Pro / Elite Circle (radio)
-   - File upload → `templates` storage bucket at path `{category}/{uuid}-{filename}`
-3. **Edit inline** — change title, description, category, and tier without re-uploading; optionally replace file.
-4. **Delete** — removes DB row + storage object (with confirmation).
-5. **Preview/download** — signed URL action per row.
+- `/elite-circle` (under `_authenticated`, gated to Elite tier or admin) — Conversations board: thread list (pinned first), new-thread composer, thread detail with replies.
+- `/elite-circle/schedule` — Calendar view of next N days, generated client-side from `raven_availability` − existing bookings. Click slot → confirm dialog with topic field → insert booking → show standing Raven room URL + "Add to calendar" (.ics download generated client-side).
+- Admin panel additions (`/admin`):
+  - **Raven Availability Manager** — weekday rows with start/end/slot-duration, toggle active.
+  - **Raven Meeting Settings** — single form: room URL, timezone, buffer, advance-days window.
+  - **Bookings list** — view/cancel upcoming bookings.
 
-### Tier logic
+### 3. Server functions (`src/lib/elite.functions.ts`, `src/lib/raven-schedule.functions.ts`)
 
-- `tier_required` is the single source of truth (`essentials` | `pro` | `elite`).
-- `is_elite` boolean is kept in sync (`true` when tier=`elite`) so the existing client `/templates` page (which splits Pro vs Elite via `is_elite`) keeps working.
-- Optional: add `essentials` rendering on `/templates` if you want Essentials-tier docs visible to all tiers — flagged for a follow-up, not in this scope.
+All `requireSupabaseAuth`. Key ones:
+- `listThreads`, `createThread`, `getThread`, `replyToThread`
+- `getAvailabilityWindows`, `getUpcomingBookings(userId)`, `bookSlot({starts_at, topic})` — server-side double-book check + Elite gate
+- `cancelBooking(id)`
+- Admin-only: `upsertAvailability`, `updateMeetingSettings`, `listAllBookings`, `adminCancelBooking`
 
-### Access control
+Slot generation lives server-side in `getAvailabilityWindows` so timezone/exclusion logic is authoritative; client just renders.
 
-- Already covered: `templates` table has `Admins manage templates` (ALL) policy; `templates` bucket is private with admin-managed access. No migration needed.
+### 4. UI
 
-## Technical notes
+- Reuse existing rose/crimson tokens, Instrument Serif headings, shadcn Card/Dialog/Button.
+- Elite gate component shared with existing Elite vault — if non-Elite hits route, show "Apply to Elite Circle" CTA linking to `/elite`.
+- Add sidebar/dashboard links for "Elite Circle" and "Schedule with Raven" (visible to Elite + admin only).
 
-- New file: `src/components/admin/TemplateVaultManager.tsx`.
-- Mount inside `src/routes/_authenticated/_admin/admin.tsx` as a new card section "Template Vault".
-- Uses `supabase.storage.from('templates').upload(...)` and `createSignedUrl` for preview.
-- All CRUD via the browser supabase client (RLS enforces admin-only).
+### 5. Out of scope
+- Email reminders, Google Calendar sync, video chat embed, reactions/likes, threaded sub-replies, file attachments. Can be added later.
 
-## Out of scope
-
-- Bulk upload / drag-and-drop (can add later).
-- Versioning / file history.
-- Surfacing Essentials-tier templates on the client `/templates` page (existing UI only renders Pro and Elite buckets).
+Ready to implement on approval.

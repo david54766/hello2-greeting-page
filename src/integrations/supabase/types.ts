@@ -263,6 +263,68 @@ export type Database = {
         }
         Relationships: []
       }
+      elite_thread_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "elite_thread_replies_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "elite_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elite_threads: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          pinned: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           business_name: string | null
@@ -326,6 +388,105 @@ export type Database = {
           storage_path?: string
           title?: string
           uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      raven_availability: {
+        Row: {
+          active: boolean
+          created_at: string
+          end_time: string
+          id: string
+          slot_minutes: number
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          end_time: string
+          id?: string
+          slot_minutes?: number
+          start_time: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          end_time?: string
+          id?: string
+          slot_minutes?: number
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
+      raven_bookings: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          starts_at: string
+          status: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          starts_at: string
+          status?: string
+          topic?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          starts_at?: string
+          status?: string
+          topic?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      raven_meeting_settings: {
+        Row: {
+          advance_days: number
+          buffer_minutes: number
+          created_at: string
+          id: string
+          room_url: string
+          singleton: boolean
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          advance_days?: number
+          buffer_minutes?: number
+          created_at?: string
+          id?: string
+          room_url?: string
+          singleton?: boolean
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          advance_days?: number
+          buffer_minutes?: number
+          created_at?: string
+          id?: string
+          room_url?: string
+          singleton?: boolean
+          timezone?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -502,6 +663,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_elite: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
