@@ -47,6 +47,15 @@ function Scheduler() {
   const [chosen, setChosen] = useState<{ starts_at: string; ends_at: string } | null>(null);
   const [topic, setTopic] = useState("");
   const [busy, setBusy] = useState(false);
+  const [density, setDensity] = useState<"comfortable" | "compact">(() => {
+    if (typeof window === "undefined") return "comfortable";
+    return (window.localStorage.getItem("elite-schedule-density") as any) === "compact" ? "compact" : "comfortable";
+  });
+  const setDensityPersist = (d: "comfortable" | "compact") => {
+    setDensity(d);
+    try { window.localStorage.setItem("elite-schedule-density", d); } catch {}
+  };
+  const isCompact = density === "compact";
 
   const grouped = useMemo(() => {
     const tz = slots.data?.timezone ?? "America/New_York";
