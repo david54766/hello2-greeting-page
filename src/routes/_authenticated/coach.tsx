@@ -134,6 +134,16 @@ function Coach() {
 
   // ---------- Streaming TTS ----------
   const stopAudio = () => {
+    try { ttsAbortRef.current?.abort(); } catch {}
+    ttsAbortRef.current = null;
+    try { ttsReaderRef.current?.cancel(); } catch {}
+    ttsReaderRef.current = null;
+    if (mediaSourceRef.current) {
+      try {
+        if (mediaSourceRef.current.readyState === "open") mediaSourceRef.current.endOfStream();
+      } catch {}
+      mediaSourceRef.current = null;
+    }
     if (audioRef.current) {
       try { audioRef.current.pause(); } catch {}
       audioRef.current.removeAttribute("src");
