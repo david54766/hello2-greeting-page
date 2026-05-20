@@ -30,6 +30,11 @@ import {
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const m = search.mode;
+    const allowed = ["ceo", "revenue", "marketing", "compliance", "systems"] as const;
+    return { mode: allowed.includes(m as any) ? (m as (typeof allowed)[number]) : undefined };
+  },
   component: Coach,
 });
 
