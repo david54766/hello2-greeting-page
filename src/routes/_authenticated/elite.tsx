@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "@tanstack/react-router";
-import { Crown, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Crown, Calendar, CheckCircle2, Clock, XCircle, MessageSquare } from "lucide-react";
+import { EliteSubNav } from "@/components/EliteSubNav";
 import { toast } from "sonner";
 import founderPortrait from "@/assets/prima-donna-founder.jpeg";
 
