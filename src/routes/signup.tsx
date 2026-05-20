@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import signupPortrait from "@/assets/prima-donna-signup.jpeg";
+import logoImg from "@/assets/prima-donna-logo.png";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 
@@ -72,7 +73,7 @@ function Signup() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-primary/10 via-rose-soft/20 to-background">
-        <Link to="/" className="font-display text-2xl">Prima Donna AI™</Link>
+        <Link to="/" className="flex items-center gap-2"><img src={logoImg} alt="The Preschool Prima Donna" className="h-16 w-auto" /><span className="font-display text-xl text-primary self-end pb-2">AI™</span></Link>
         <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
           <img src={signupPortrait} alt="Founder of Prima Donna AI™" className="size-full object-cover" loading="eager" />
         </div>

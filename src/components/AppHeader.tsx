@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/prima-donna-logo.png";
 
 export function AppHeader() {
   const { user, signOut, isAdmin } = useAuth();
@@ -8,10 +9,11 @@ export function AppHeader() {
 
   return (
     <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-40">
-      <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-baseline gap-2">
-          <span className="font-display text-2xl tracking-tight">Prima Donna</span>
-          <span className="text-primary font-display text-xl">AI™</span>
+      <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <img src={logo} alt="The Preschool Prima Donna" className="h-12 w-auto" />
+          <span className="sr-only">Prima Donna AI</span>
+          <span className="font-display text-base text-primary -ml-1 self-end pb-2">AI™</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm">
           {user ? (
