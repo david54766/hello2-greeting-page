@@ -286,6 +286,14 @@ function Admin() {
         </div>
       </section>
 
+      <div className="gold-divider mt-12" />
+
+      <section className="mt-10">
+        <TemplateVaultManager />
+      </section>
+
+      <div className="gold-divider mt-12" />
+
       <section className="mt-10">
         <RavenVideosAdmin />
       </section>
