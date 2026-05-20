@@ -242,7 +242,9 @@ export function RavenVideosAdmin() {
                   <ImageIcon className="size-5 text-muted-foreground" />
                 )}
                 <input
-                  ref={(el) => (replaceThumbInputs.current[r.id] = el)}
+                  ref={(el) => {
+                    replaceThumbInputs.current[r.id] = el;
+                  }}
                   type="file"
                   accept="image/*"
                   className="hidden"
