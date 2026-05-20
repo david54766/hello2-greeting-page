@@ -219,6 +219,19 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
 
 
   const handleSave = async (markSkipped = false) => {
+    if (!markSkipped) {
+      // Validate every step before final save.
+      for (let s = 0; s <= 3; s++) {
+        const e = validateStep(s);
+        if (Object.keys(e).length) {
+          setErrors(e);
+          setStep(s);
+          toast.error("Please complete the highlighted fields before saving");
+          return;
+        }
+      }
+      setErrors({});
+    }
     setSaving(true);
     try {
       const res = await save({
