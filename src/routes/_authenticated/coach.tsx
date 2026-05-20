@@ -210,7 +210,14 @@ function Coach() {
 
   const speak = async (r: Resp) => {
     stopAudio();
-    const text = `Diagnosis. ${r.diagnosis} Impact. ${r.impact} Strategic move. ${r.strategic_move} Elevation. ${r.elevation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
+    const parts = [
+      r.diagnosis,
+      r.impact,
+      r.strategic_move,
+      r.elevation,
+      r.action_steps?.length ? `Here's where to start. ${r.action_steps.join(" Then, ")}` : "",
+    ].filter(Boolean).map(s => s.trim().replace(/\s+/g, " "));
+    const text = parts.join(" ");
 
     // Create the Audio element synchronously within the click gesture so
     // browsers don't block playback after the async fetch resolves.
