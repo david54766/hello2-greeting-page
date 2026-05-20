@@ -86,7 +86,43 @@ function Coach() {
   const mintScribeToken = useServerFn(createScribeToken);
   const historyFn = useServerFn(getCoachingHistory);
   const fetchRevenueProfile = useServerFn(getRevenueProfile);
+  const generateImage = useServerFn(generateCoachImage);
+  const fetchImageQuota = useServerFn(getImageQuota);
   const qc = useQueryClient();
+
+  // ---------- Visual example generator ----------
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const quotaQ = useQuery({
+    queryKey: ["coach-image-quota", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchImageQuota(),
+  });
+  const handleGenerateImage = async () => {
+    const seed = (prompt || response?.strategic_move || "").trim();
+    if (seed.length < 4) {
+      toast.error("Type a question or run a session first so I know what to visualize.");
+      return;
+    }
+    setImageLoading(true);
+    setImageUrl(null);
+    try {
+      const visualPrompt = response
+        ? `Based on this childcare business coaching context: "${seed}". Generate a clean branded visual example that illustrates the strategic move: "${response.strategic_move}".`
+        : `Generate a clean branded childcare business visual example for: "${seed}".`;
+      const res = await generateImage({ data: { prompt: visualPrompt } });
+      if (res.error) {
+        toast.error(res.error);
+      } else if (res.image) {
+        setImageUrl(res.image);
+        qc.invalidateQueries({ queryKey: ["coach-image-quota", user?.id] });
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Image generation failed.");
+    } finally {
+      setImageLoading(false);
+    }
+  };
 
   // ---------- Revenue setup wizard ----------
   const [wizardOpen, setWizardOpen] = useState(false);
