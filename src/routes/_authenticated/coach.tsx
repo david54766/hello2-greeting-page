@@ -78,7 +78,26 @@ function Coach() {
   const run = useServerFn(runCoaching);
   const mintScribeToken = useServerFn(createScribeToken);
   const historyFn = useServerFn(getCoachingHistory);
+  const fetchRevenueProfile = useServerFn(getRevenueProfile);
   const qc = useQueryClient();
+
+  // ---------- Revenue setup wizard ----------
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const revenueProfileQ = useQuery({
+    queryKey: ["revenue-profile", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchRevenueProfile(),
+  });
+  const revenueProfile = revenueProfileQ.data?.profile;
+
+  useEffect(() => {
+    if (mode !== "revenue") return;
+    if (revenueProfileQ.isLoading) return;
+    if (!revenueProfile) setWizardOpen(true);
+  }, [mode, revenueProfile, revenueProfileQ.isLoading]);
+
+  const refreshRevenue = () =>
+    qc.invalidateQueries({ queryKey: ["revenue-profile", user?.id] });
 
   // ---------- Realtime STT (live dictation) ----------
   const [recording, setRecording] = useState(false);
