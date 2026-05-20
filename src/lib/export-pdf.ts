@@ -20,7 +20,8 @@ const CRIMSON: [number, number, number] = [159, 18, 57]; // rose-900-ish
 const INK: [number, number, number] = [24, 24, 27];
 const MUTED: [number, number, number] = [113, 113, 122];
 
-export function exportCoachingPlanPDF(prompt: string, mode: string, response: Resp) {
+export function exportCoachingPlanPDF(prompt: string, mode: string, response: Resp, opts: { printFriendly?: boolean } = {}) {
+  const pf = !!opts.printFriendly;
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
