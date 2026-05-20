@@ -86,9 +86,9 @@ function Dashboard() {
       <section className="mt-10">
         <h2 className="font-display text-2xl">Center snapshot</h2>
         <div className="mt-5 grid sm:grid-cols-3 gap-4">
-          <SnapshotCard label="Enrollment" value={enrollment ? String(enrollment) : "Add a center"} />
-          <SnapshotCard label="Est. monthly revenue" value={monthlyRev ? `$${monthlyRev.toLocaleString()}` : "—"} />
-          <SnapshotCard label="Children per staff" value={ratio} />
+          <SnapshotCard label="Enrollment" value={enrollment ? String(enrollment) : "Add a center"} hint="Total enrolled children summed across every center you've added in Settings → Your centers. Not pulled from your business profile." />
+          <SnapshotCard label="Est. monthly revenue" value={monthlyRev ? `$${monthlyRev.toLocaleString()}` : "—"} hint="Enrollment × average tuition midpoint across your centers. Update each center's tuition range in Settings to refine this estimate." />
+          <SnapshotCard label="Children per staff" value={ratio} hint="Total enrollment ÷ total staff across all your centers. Edit staff counts per center in Settings → Your centers." />
         </div>
       </section>
 
