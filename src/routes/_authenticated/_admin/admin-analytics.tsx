@@ -40,9 +40,9 @@ const RANGES = [
 ];
 
 const TIER_COLORS: Record<string, string> = {
-  essentials: "hsl(var(--muted-foreground))",
-  pro: "hsl(var(--primary))",
-  elite: "hsl(var(--accent, var(--primary)))",
+  essentials: "#d4a5c0", // soft rose
+  pro: "#e83e8c",        // hot magenta-pink (brand primary)
+  elite: "#a01a3c",      // deep crimson (brand accent)
 };
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
