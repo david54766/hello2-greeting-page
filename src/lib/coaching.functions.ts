@@ -154,7 +154,7 @@ export const runCoaching = createServerFn({ method: "POST" })
     const call = json.choices?.[0]?.message?.tool_calls?.[0];
     if (!call) return { error: "No structured response returned." as const, response: null };
 
-    let parsed: { insight: string; recommendation: string; action_steps: string[] };
+    let parsed: { diagnosis: string; impact: string; strategic_move: string; elevation: string; action_steps: string[] };
     try {
       parsed = JSON.parse(call.function.arguments);
     } catch {
