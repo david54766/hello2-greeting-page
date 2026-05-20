@@ -295,8 +295,10 @@ function Coach() {
                 </Button>
               </div>
             </div>
-            <Section label="Insight">{response.insight}</Section>
-            <Section label="Recommendation">{response.recommendation}</Section>
+            <Section label="Diagnosis">{response.diagnosis}</Section>
+            {response.impact && <Section label="Impact">{response.impact}</Section>}
+            <Section label="Strategic Move">{response.strategic_move}</Section>
+            {response.elevation && <Section label="Elevation">{response.elevation}</Section>}
             <div className="mt-6">
               <div className="text-xs uppercase tracking-[0.2em] text-primary">Action steps</div>
               <ol className="mt-3 space-y-2">
