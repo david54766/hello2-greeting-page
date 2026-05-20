@@ -16,7 +16,7 @@ export function AppHeader() {
             alt="The Preschool Prima Donna"
             width={48}
             height={48}
-            className="h-9 sm:h-10 md:h-12 w-auto aspect-square"
+            className="h-12 sm:h-14 md:h-16 lg:h-20 w-auto aspect-square"
           />
           <span className="sr-only">Prima Donna AI</span>
           <span className="font-display text-sm sm:text-base text-primary -ml-1 self-end pb-1.5 sm:pb-2">AI™</span>
