@@ -89,9 +89,12 @@ export const runCoaching = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-    const [{ data: profile }, { data: centers }] = await Promise.all([
+    const [{ data: profile }, { data: centers }, { data: revenueProfile }] = await Promise.all([
       supabase.from("profiles").select("full_name, business_name, state").eq("id", userId).maybeSingle(),
-      supabase.from("centers").select("name, city, state, enrollment_size, capacity, tuition_range, staff_count, ages_served, notes").eq("user_id", userId).order("created_at", { ascending: true }),
+      supabase.from("centers").select("id, name, city, state, enrollment_size, capacity, tuition_range, staff_count, ages_served, notes").eq("user_id", userId).order("created_at", { ascending: true }),
+      data.mode === "revenue"
+        ? supabase.from("revenue_profiles").select("*").eq("user_id", userId).maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
     const ownerLine = profile
@@ -104,8 +107,21 @@ export const runCoaching = createServerFn({ method: "POST" })
 
     const memory = `${ownerLine}\n\nPORTFOLIO (${centers?.length ?? 0} center${centers?.length === 1 ? "" : "s"}):\n${centerBlock}`;
 
+    let revenueBlock = "";
+    if (data.mode === "revenue") {
+      if (!revenueProfile || (revenueProfile as any).skipped) {
+        revenueBlock = "\n\nREVENUE CONTEXT: Owner has not completed the Revenue Mode setup wizard. Open every response by telling them to complete it (Coaching Engine → Revenue → wizard) so answers can be grounded in their real numbers, then give general guidance using portfolio data above.";
+      } else {
+        const rp: any = revenueProfile;
+        const scopeName = rp.scope_mode === "portfolio"
+          ? `PORTFOLIO of ${centers?.length ?? 0} center(s)`
+          : `SINGLE CENTER: ${centers?.find((c: any) => c.id === rp.active_center_id)?.name ?? "(selected center)"}`;
+        revenueBlock = `\n\nREVENUE CONTEXT — Scope: ${scopeName}\nSnapshot: ${JSON.stringify(rp.snapshot ?? {})}\nRevenue model: ${JSON.stringify(rp.model ?? {})}\nGoals & constraints: ${JSON.stringify(rp.goals ?? {})}\nTailor your diagnosis, impact math, strategic move, and action steps to THESE numbers and this scope. Quantify everything against the snapshot.`;
+      }
+    }
+
     const messages = [
-      { role: "system", content: `${SYSTEM_BASE}\n\nMODE: ${MODE_PROMPTS[data.mode]}\n\nOWNER CONTEXT:\n${memory}\n\nWhen the owner runs multiple centers, tailor your insight, recommendation, and action steps to the specific center(s) implicated by their question. If unclear, address the portfolio as a whole and call out which center each step applies to.` },
+      { role: "system", content: `${SYSTEM_BASE}\n\nMODE: ${MODE_PROMPTS[data.mode]}\n\nOWNER CONTEXT:\n${memory}${revenueBlock}\n\nWhen the owner runs multiple centers, tailor your insight, recommendation, and action steps to the specific center(s) implicated by their question. If unclear, address the portfolio as a whole and call out which center each step applies to.` },
       { role: "user", content: data.prompt },
     ];
 
