@@ -25,9 +25,20 @@ export function exportCoachingPlanPDF(prompt: string, mode: string, response: Re
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 56;
+  const margin = pf ? 72 : 56;
   const contentW = pageW - margin * 2;
   let y = margin;
+
+  // Type scale
+  const TITLE_SIZE = pf ? 26 : 20;
+  const META_SIZE = pf ? 11 : 9;
+  const LABEL_SIZE = pf ? 12 : 9;
+  const BODY_SIZE = pf ? 14 : 11;
+  const LINE_H = pf ? 20 : 15;
+  const SECTION_GAP = pf ? 18 : 10;
+  const LABEL_GAP = pf ? 20 : 14;
+  const STEP_GAP = pf ? 8 : 4;
+  const FOOTER_SIZE = pf ? 10 : 8;
 
   const ensureSpace = (needed: number) => {
     if (y + needed > pageH - margin) {
@@ -39,42 +50,42 @@ export function exportCoachingPlanPDF(prompt: string, mode: string, response: Re
   // Header
   doc.setTextColor(...CRIMSON);
   doc.setFont("times", "italic");
-  doc.setFontSize(20);
+  doc.setFontSize(TITLE_SIZE);
   doc.text("Prima Donna AI\u2122", margin, y);
-  y += 22;
+  y += TITLE_SIZE + 4;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(META_SIZE);
   doc.setTextColor(...MUTED);
   const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
   doc.text(`Strategic Plan  \u00B7  ${MODE_LABELS[mode] ?? mode}  \u00B7  ${dateStr}`, margin, y);
-  y += 14;
+  y += pf ? 18 : 14;
 
   // Divider
   doc.setDrawColor(...CRIMSON);
   doc.setLineWidth(1);
   doc.line(margin, y, margin + contentW, y);
-  y += 22;
+  y += pf ? 28 : 22;
 
   const writeSection = (label: string, body: string) => {
     if (!body) return;
-    ensureSpace(40);
+    ensureSpace(LINE_H * 2);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(LABEL_SIZE);
     doc.setTextColor(...CRIMSON);
     doc.text(label.toUpperCase(), margin, y);
-    y += 14;
+    y += LABEL_GAP;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    doc.setFontSize(BODY_SIZE);
     doc.setTextColor(...INK);
     const lines = doc.splitTextToSize(body, contentW);
     for (const line of lines) {
-      ensureSpace(16);
+      ensureSpace(LINE_H);
       doc.text(line, margin, y);
-      y += 15;
+      y += LINE_H;
     }
-    y += 10;
+    y += SECTION_GAP;
   };
 
   writeSection("Your Question", prompt);
@@ -84,24 +95,24 @@ export function exportCoachingPlanPDF(prompt: string, mode: string, response: Re
   writeSection("Elevation", response.elevation);
 
   if (response.action_steps?.length) {
-    ensureSpace(40);
+    ensureSpace(LINE_H * 2);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(LABEL_SIZE);
     doc.setTextColor(...CRIMSON);
     doc.text("ACTION STEPS", margin, y);
-    y += 14;
+    y += LABEL_GAP;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    doc.setFontSize(BODY_SIZE);
     doc.setTextColor(...INK);
     response.action_steps.forEach((step, i) => {
       const lines = doc.splitTextToSize(`${i + 1}.  ${step}`, contentW - 16);
       for (const line of lines) {
-        ensureSpace(16);
+        ensureSpace(LINE_H);
         doc.text(line, margin, y);
-        y += 15;
+        y += LINE_H;
       }
-      y += 4;
+      y += STEP_GAP;
     });
   }
 
@@ -110,12 +121,12 @@ export function exportCoachingPlanPDF(prompt: string, mode: string, response: Re
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(FOOTER_SIZE);
     doc.setTextColor(...MUTED);
     doc.text("Prima Donna AI\u2122  \u00B7  Confidential strategic plan", margin, pageH - 24);
     doc.text(`${i} / ${pageCount}`, pageW - margin, pageH - 24, { align: "right" });
   }
 
   const iso = new Date().toISOString().slice(0, 10);
-  doc.save(`prima-donna-plan-${mode}-${iso}.pdf`);
+  doc.save(`prima-donna-plan-${mode}${pf ? "-print" : ""}-${iso}.pdf`);
 }
