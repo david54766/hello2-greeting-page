@@ -59,6 +59,9 @@ function Coach() {
   const [response, setResponse] = useState<Resp | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsAbortRef = useRef<AbortController | null>(null);
+  const ttsReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+  const mediaSourceRef = useRef<MediaSource | null>(null);
   const run = useServerFn(runCoaching);
   const mintScribeToken = useServerFn(createScribeToken);
   const historyFn = useServerFn(getCoachingHistory);
