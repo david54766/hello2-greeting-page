@@ -150,7 +150,7 @@ function Landing() {
 
       <footer className="border-t border-border/60 px-6 py-10">
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <div className="font-display text-lg text-foreground">Prima Donna AI™</div>
+          <img src={logoImg} alt="The Preschool Prima Donna" className="h-14 w-auto" />
           <div>© {new Date().getFullYear()} — Strategy for women who run rooms full of futures.</div>
         </div>
       </footer>
