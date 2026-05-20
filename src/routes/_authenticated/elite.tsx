@@ -25,10 +25,19 @@ export const Route = createFileRoute("/_authenticated/elite")({
 });
 
 function Elite() {
-  const { tier, user } = useAuth();
-  const isElite = tier === "elite";
+  const { user } = useAuth();
+  const accessFn = useServerFn(checkEliteAccess);
+  const access = useQuery({
+    queryKey: ["elite-access", user?.id],
+    queryFn: () => accessFn(),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
 
-  if (!isElite) return <ApplicationFlow />;
+  if (access.isLoading || !access.data) {
+    return <div className="mx-auto max-w-2xl px-6 py-20 text-center text-sm text-muted-foreground">Loading…</div>;
+  }
+  if (!access.data.allowed) return <ApplicationFlow />;
   return <EliteMemberView userId={user?.id} />;
 }
 
