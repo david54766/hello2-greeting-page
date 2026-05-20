@@ -80,10 +80,10 @@
   --sidebar-foreground: oklch(0.2 0.02 20);
   --sidebar-primary: oklch(0.62 0.27 350);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.015 20);
+  --sidebar-accent: oklch(0.96 0.02 350);
   --sidebar-accent-foreground: oklch(0.22 0.02 20);
-  --sidebar-border: oklch(0.9 0.01 30);
-  --sidebar-ring: oklch(0.55 0.22 22);
+  --sidebar-border: oklch(0.9 0.015 350);
+  --sidebar-ring: oklch(0.62 0.27 350);
 }
 
 .dark {
