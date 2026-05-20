@@ -37,7 +37,16 @@ function Dashboard() {
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("full_name,business_name").eq("id", user.id).maybeSingle().then(({ data }) => setProfile(data as Profile));
-    supabase.from("centers").select("enrollment_size,tuition_range,staff_count").eq("user_id", user.id).then(({ data }) => setCenters((data ?? []) as CenterAgg[]));
+
+    const loadCenters = () =>
+      supabase.from("centers").select("enrollment_size,tuition_range,staff_count").eq("user_id", user.id).then(({ data }) => setCenters((data ?? []) as CenterAgg[]));
+    loadCenters();
+
+    const channel = supabase
+      .channel(`centers:${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "centers", filter: `user_id=eq.${user.id}` }, () => loadCenters())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const enrollment = centers.reduce((sum, c) => sum + (c.enrollment_size ?? 0), 0);
