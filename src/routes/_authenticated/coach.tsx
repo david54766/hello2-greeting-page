@@ -211,7 +211,15 @@ function Coach() {
   const speak = async (r: Resp) => {
     stopAudio();
     const text = `Diagnosis. ${r.diagnosis} Impact. ${r.impact} Strategic move. ${r.strategic_move} Elevation. ${r.elevation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
+
+    // Create the Audio element synchronously within the click gesture so
+    // browsers don't block playback after the async fetch resolves.
+    const audio = new Audio();
+    audioRef.current = audio;
+    audio.onended = () => setSpeaking(false);
+    audio.onerror = () => setSpeaking(false);
     setSpeaking(true);
+
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
@@ -237,51 +245,19 @@ function Coach() {
         return;
       }
 
-      const audio = new Audio();
-      audioRef.current = audio;
-      audio.onended = () => setSpeaking(false);
-      audio.onerror = () => setSpeaking(false);
-
-      const MSE: typeof MediaSource | undefined = (window as any).MediaSource;
-      const mime = "audio/mpeg";
-      if (MSE && MSE.isTypeSupported(mime)) {
-        const ms = new MSE();
-        mediaSourceRef.current = ms;
-        audio.src = URL.createObjectURL(ms);
-        await audio.play().catch(() => { /* will start when buffered */ });
-        ms.addEventListener("sourceopen", async () => {
-          const sb = ms.addSourceBuffer(mime);
-          const reader = res.body!.getReader();
-          ttsReaderRef.current = reader;
-          const queue: Uint8Array[] = [];
-          let done = false;
-          const pump = () => {
-            if (sb.updating || queue.length === 0 || ms.readyState !== "open") return;
-            try { sb.appendBuffer(queue.shift()! as unknown as ArrayBuffer); } catch {}
-          };
-          sb.addEventListener("updateend", () => {
-            pump();
-            if (done && queue.length === 0 && !sb.updating) {
-              try { ms.endOfStream(); } catch {}
-            }
-          });
-          try {
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-              const { value, done: d } = await reader.read();
-              if (d) { done = true; pump(); break; }
-              if (value) { queue.push(value); pump(); }
-              if (audio.paused) audio.play().catch(() => {});
-            }
-          } catch {
-            try { ms.endOfStream("network" as any); } catch {}
-          }
-        });
-      } else {
-        // Fallback: buffer then play
-        const blob = await res.blob();
-        audio.src = URL.createObjectURL(blob);
+      // Buffer the MP3 then play. Most browsers can't stream raw audio/mpeg
+      // via MediaSource, so this is the reliable path.
+      const blob = await res.blob();
+      if (abort.signal.aborted) return;
+      const url = URL.createObjectURL(blob);
+      audio.src = url;
+      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
+      try {
         await audio.play();
+      } catch (err: any) {
+        setSpeaking(false);
+        toast.error("Tap Speak again to enable audio playback");
+        return;
       }
     } catch (e: any) {
       if (e?.name === "AbortError") return;
