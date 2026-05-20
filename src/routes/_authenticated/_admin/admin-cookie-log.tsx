@@ -1,20 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { listCookieConsents } from "@/lib/cookie-consent.functions";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin-cookie-log")({
   component: AdminCookieLogPage,
 });
 
+const PAGE_SIZE = 50;
+
 function AdminCookieLogPage() {
   const fetchLog = useServerFn(listCookieConsents);
-  const { data, isLoading, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ["admin-cookie-consents"],
-    queryFn: () => fetchLog(),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      fetchLog({ data: { cursor: pageParam, limit: PAGE_SIZE } }),
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
 
-  const rows = data?.rows ?? [];
+  const rows = data?.pages.flatMap((p) => p.rows) ?? [];
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasNextPage) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && !isFetchingNextPage) fetchNextPage();
+    }, { rootMargin: "200px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -79,6 +103,14 @@ function AdminCookieLogPage() {
                 ))}
               </tbody>
             </table>
+            <div ref={sentinelRef} />
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              {isFetchingNextPage
+                ? "Loading more…"
+                : hasNextPage
+                ? <button onClick={() => fetchNextPage()} className="rounded-md border border-border px-3 py-1.5 hover:bg-muted">Load more</button>
+                : `${rows.length} event${rows.length === 1 ? "" : "s"} · end of log`}
+            </div>
           </div>
         )}
       </section>
