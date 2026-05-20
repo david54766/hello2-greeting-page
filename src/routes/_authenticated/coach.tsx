@@ -526,6 +526,14 @@ function Coach() {
           </AlertDialogContent>
         </AlertDialog>
       </aside>
+
+      <RevenueWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        initial={revenueProfile}
+        userId={user?.id}
+        onSaved={refreshRevenue}
+      />
     </div>
   );
 }
