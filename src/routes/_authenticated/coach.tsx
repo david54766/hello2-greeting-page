@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2, ArrowLeft, ImageIcon, X } from "lucide-react";
 import { exportCoachingPlanPDF } from "@/lib/export-pdf";
 import {
   AlertDialog,
