@@ -341,6 +341,9 @@ function Coach() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-12 grid lg:grid-cols-[1fr_280px] gap-10">
       <div>
+        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition mb-4">
+          <ArrowLeft className="size-4" /> Back to dashboard
+        </Link>
         <p className="text-xs uppercase tracking-[0.25em] text-primary">Coaching engine</p>
         <h1 className="mt-2 font-display text-4xl md:text-5xl">Open a strategic session.</h1>
 
