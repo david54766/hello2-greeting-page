@@ -1,23 +1,86 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  COOKIE_POLICY_VERSION,
+  logCookieConsent,
+} from "@/lib/cookie-consent.functions";
 
 const KEY = "pd_cookie_consent";
+const SESSION_KEY = "pd_cookie_session";
+
+type StoredConsent = {
+  choice: "accepted" | "essential";
+  at: string;
+  policy_version?: string;
+};
+
+function getOrCreateSessionId(): string {
+  try {
+    let id = localStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id =
+        (crypto.randomUUID && crypto.randomUUID()) ||
+        `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return `s_${Date.now()}`;
+  }
+}
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
+  const log = useServerFn(logCookieConsent);
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem(KEY)) setVisible(true);
-    } catch {}
+      const raw = localStorage.getItem(KEY);
+      if (!raw) {
+        setVisible(true);
+        return;
+      }
+      const parsed: StoredConsent = JSON.parse(raw);
+      // Re-prompt only if the policy version changed
+      if (parsed.policy_version !== COOKIE_POLICY_VERSION) {
+        setVisible(true);
+      }
+    } catch {
+      setVisible(true);
+    }
   }, []);
 
-  const respond = (choice: "accepted" | "essential") => {
+  const respond = async (choice: "accepted" | "essential") => {
+    const payload: StoredConsent = {
+      choice,
+      at: new Date().toISOString(),
+      policy_version: COOKIE_POLICY_VERSION,
+    };
     try {
-      localStorage.setItem(KEY, JSON.stringify({ choice, at: new Date().toISOString() }));
+      localStorage.setItem(KEY, JSON.stringify(payload));
     } catch {}
     setVisible(false);
+
+    try {
+      const { data } = await supabase.auth.getUser();
+      await log({
+        data: {
+          choice,
+          policy_version: COOKIE_POLICY_VERSION,
+          session_id: getOrCreateSessionId(),
+          user_id: data.user?.id,
+          user_agent:
+            typeof navigator !== "undefined"
+              ? navigator.userAgent.slice(0, 500)
+              : undefined,
+        },
+      });
+    } catch {
+      // best-effort logging; never block the user
+    }
   };
 
   if (!visible) return null;
