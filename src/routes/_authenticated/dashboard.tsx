@@ -26,6 +26,7 @@ type Profile = {
 function Dashboard() {
   const { user, tier } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const dailyFn = useServerFn(getTodayRecommendation);
   const daily = useQuery({ queryKey: ["daily", user?.id], queryFn: () => dailyFn(), enabled: !!user, staleTime: 60 * 60 * 1000 });
 
