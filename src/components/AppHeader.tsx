@@ -28,12 +28,6 @@ export function AppHeader() {
               <Link to="/elite" className="hover:text-primary transition" activeProps={{ className: "text-primary" }}>
                 Elite Circle
               </Link>
-              <Link to="/elite-circle" className="hover:text-primary transition" activeProps={{ className: "text-primary" }}>
-                Conversations
-              </Link>
-              <Link to="/elite-schedule" className="hover:text-primary transition" activeProps={{ className: "text-primary" }}>
-                Schedule
-              </Link>
               {isAdmin && (
                 <Link to="/admin" className="hover:text-primary transition" activeProps={{ className: "text-primary" }}>
                   Admin

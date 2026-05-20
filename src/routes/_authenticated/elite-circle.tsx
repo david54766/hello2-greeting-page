@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Crown, MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { EliteSubNav } from "@/components/EliteSubNav";
 
 export const Route = createFileRoute("/_authenticated/elite-circle")({
   head: () => ({ meta: [{ title: "Elite Circle Conversations — Prima Donna AI™" }] }),
@@ -81,6 +82,7 @@ function ThreadList({ onOpen, userId }: { onOpen: (id: string) => void; userId?:
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12">
+      <div className="mb-6"><EliteSubNav /></div>
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Elite Circle</p>
