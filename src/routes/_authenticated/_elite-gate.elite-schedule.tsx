@@ -106,7 +106,23 @@ function Scheduler() {
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Elite Circle</p>
           <h1 className="mt-1 font-display text-3xl">Schedule with Raven</h1>
         </div>
-        <p className="text-xs text-muted-foreground">Times shown in {tz}</p>
+        <div className="flex items-center gap-3">
+          <div className="inline-flex rounded-full border border-border p-0.5 text-[11px]">
+            <button
+              onClick={() => setDensityPersist("comfortable")}
+              className={`px-2.5 py-1 rounded-full transition ${!isCompact ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Comfortable
+            </button>
+            <button
+              onClick={() => setDensityPersist("compact")}
+              className={`px-2.5 py-1 rounded-full transition ${isCompact ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Compact
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">{tz}</p>
+        </div>
       </header>
 
       {upcoming.length > 0 && (
