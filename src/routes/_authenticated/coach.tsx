@@ -212,8 +212,23 @@ function Coach() {
             rows={5}
             className="text-base"
           />
-          <div className="mt-3 flex justify-end">
-            <Button onClick={submit} disabled={loading || prompt.trim().length < 3} className="rounded-full px-6">
+          <div className="mt-3 flex justify-between items-center gap-3">
+            <Button
+              type="button"
+              variant={recording ? "destructive" : "outline"}
+              onClick={recording ? stopRecording : startRecording}
+              disabled={transcribing || loading}
+              className="rounded-full"
+            >
+              {transcribing ? (
+                <><Loader2 className="size-4 animate-spin mr-2" /> Transcribing…</>
+              ) : recording ? (
+                <><MicOff className="size-4 mr-2" /> Stop & transcribe</>
+              ) : (
+                <><Mic className="size-4 mr-2" /> Speak your question</>
+              )}
+            </Button>
+            <Button onClick={submit} disabled={loading || recording || transcribing || prompt.trim().length < 3} className="rounded-full px-6">
               {loading ? <><Loader2 className="size-4 animate-spin mr-2" /> Thinking</> : "Get the move"}
             </Button>
           </div>
