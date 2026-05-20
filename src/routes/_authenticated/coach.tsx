@@ -112,6 +112,17 @@ function Coach() {
     setSpeaking(false);
   };
 
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+
   const speak = async (r: Resp) => {
     stopAudio();
     const text = `Insight. ${r.insight} Recommendation. ${r.recommendation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
