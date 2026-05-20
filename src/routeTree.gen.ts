@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
 import { Route as AuthenticatedEliteGateEliteScheduleRouteImport } from './routes/_authenticated/_elite-gate.elite-schedule'
 import { Route as AuthenticatedEliteGateEliteCircleRouteImport } from './routes/_authenticated/_elite-gate.elite-circle'
+import { Route as AuthenticatedAdminAdminCookieLogRouteImport } from './routes/_authenticated/_admin/admin-cookie-log'
 import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin-analytics'
 import { Route as AuthenticatedAdminAdminRouteImport } from './routes/_authenticated/_admin/admin'
 import { Route as ApiPublicHooksGenerateDailyRecommendationsRouteImport } from './routes/api/public/hooks/generate-daily-recommendations'
@@ -138,6 +139,12 @@ const AuthenticatedEliteGateEliteCircleRoute =
     path: '/elite-circle',
     getParentRoute: () => AuthenticatedEliteGateRoute,
   } as any)
+const AuthenticatedAdminAdminCookieLogRoute =
+  AuthenticatedAdminAdminCookieLogRouteImport.update({
+    id: '/admin-cookie-log',
+    path: '/admin-cookie-log',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAdminAnalyticsRoute =
   AuthenticatedAdminAdminAnalyticsRouteImport.update({
     id: '/admin-analytics',
@@ -174,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/api/tts-stream': typeof ApiTtsStreamRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
   '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
@@ -197,6 +205,7 @@ export interface FileRoutesByTo {
   '/api/tts-stream': typeof ApiTtsStreamRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
   '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
@@ -224,6 +233,7 @@ export interface FileRoutesById {
   '/api/tts-stream': typeof ApiTtsStreamRoute
   '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
   '/_authenticated/_admin/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/_authenticated/_admin/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/_authenticated/_elite-gate/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
   '/_authenticated/_elite-gate/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/api/tts-stream'
     | '/admin'
     | '/admin-analytics'
+    | '/admin-cookie-log'
     | '/elite-circle'
     | '/elite-schedule'
     | '/api/public/elite-apply'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/api/tts-stream'
     | '/admin'
     | '/admin-analytics'
+    | '/admin-cookie-log'
     | '/elite-circle'
     | '/elite-schedule'
     | '/api/public/elite-apply'
@@ -298,6 +310,7 @@ export interface FileRouteTypes {
     | '/api/tts-stream'
     | '/_authenticated/_admin/admin'
     | '/_authenticated/_admin/admin-analytics'
+    | '/_authenticated/_admin/admin-cookie-log'
     | '/_authenticated/_elite-gate/elite-circle'
     | '/_authenticated/_elite-gate/elite-schedule'
     | '/api/public/elite-apply'
@@ -469,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEliteGateEliteCircleRouteImport
       parentRoute: typeof AuthenticatedEliteGateRoute
     }
+    '/_authenticated/_admin/admin-cookie-log': {
+      id: '/_authenticated/_admin/admin-cookie-log'
+      path: '/admin-cookie-log'
+      fullPath: '/admin-cookie-log'
+      preLoaderRoute: typeof AuthenticatedAdminAdminCookieLogRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/_admin/admin-analytics': {
       id: '/_authenticated/_admin/admin-analytics'
       path: '/admin-analytics'
@@ -496,11 +516,13 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAdminRoute: typeof AuthenticatedAdminAdminRoute
   AuthenticatedAdminAdminAnalyticsRoute: typeof AuthenticatedAdminAdminAnalyticsRoute
+  AuthenticatedAdminAdminCookieLogRoute: typeof AuthenticatedAdminAdminCookieLogRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAdminRoute: AuthenticatedAdminAdminRoute,
   AuthenticatedAdminAdminAnalyticsRoute: AuthenticatedAdminAdminAnalyticsRoute,
+  AuthenticatedAdminAdminCookieLogRoute: AuthenticatedAdminAdminCookieLogRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =

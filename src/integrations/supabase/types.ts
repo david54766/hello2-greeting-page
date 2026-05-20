@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cookie_consents: {
+        Row: {
+          choice: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          policy_version: string
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          choice: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          policy_version: string
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          choice?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          policy_version?: string
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       daily_recommendations: {
         Row: {
           created_at: string
