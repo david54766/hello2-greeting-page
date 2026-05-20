@@ -26,10 +26,10 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
     setLoading(true);
     supabase
       .from("raven_videos")
-      .select("id,title,description,storage_path,thumbnail_path,duration_seconds,sort_order")
+      .select("id,title,description,storage_path,thumbnail_path,duration_seconds,sort_order,category")
       .eq("published", true)
+      .order("category", { ascending: true })
       .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false })
       .then(async ({ data }) => {
         const list = (data ?? []) as RavenVideo[];
         setVideos(list);
