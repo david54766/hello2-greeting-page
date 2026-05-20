@@ -299,29 +299,44 @@ function Coach() {
 
         <div className="mt-6">
           <Textarea
-            value={prompt}
+            value={recording && partial ? (prompt ? prompt.trimEnd() + " " + partial : partial) : prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="What's the situation? Be specific. The more context, the sharper the move."
             rows={5}
             className="text-base"
+            readOnly={recording}
           />
+
+          {(recording || connecting) && (
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-primary">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-primary" />
+                </span>
+                {connecting ? "Connecting to Raven…" : partial ? "Transcribing…" : "Listening…"}
+              </div>
+              <Progress value={connecting ? 15 : partial ? 65 : 35} className="h-1" />
+            </div>
+          )}
+
           <div className="mt-3 flex justify-between items-center gap-3">
             <Button
               type="button"
               variant={recording ? "destructive" : "outline"}
               onClick={recording ? stopRecording : startRecording}
-              disabled={transcribing || loading}
+              disabled={connecting || loading}
               className="rounded-full"
             >
-              {transcribing ? (
-                <><Loader2 className="size-4 animate-spin mr-2" /> Transcribing…</>
+              {connecting ? (
+                <><Loader2 className="size-4 animate-spin mr-2" /> Connecting…</>
               ) : recording ? (
-                <><MicOff className="size-4 mr-2" /> Stop & transcribe</>
+                <><MicOff className="size-4 mr-2" /> Stop</>
               ) : (
                 <><Mic className="size-4 mr-2" /> Speak your question</>
               )}
             </Button>
-            <Button onClick={submit} disabled={loading || recording || transcribing || prompt.trim().length < 3} className="rounded-full px-6">
+            <Button onClick={submit} disabled={loading || recording || connecting || prompt.trim().length < 3} className="rounded-full px-6">
               {loading ? <><Loader2 className="size-4 animate-spin mr-2" /> Thinking</> : "Get the move"}
             </Button>
           </div>
