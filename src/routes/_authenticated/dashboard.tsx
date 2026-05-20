@@ -113,7 +113,7 @@ function Dashboard() {
         <div className="mt-5 grid md:grid-cols-3 gap-4">
           <ActionCard to="/coach" icon={<MessageSquare className="size-5" />} title="Ask the strategist" desc="Open a structured coaching session." />
           <ActionCard to="/templates" icon={<FileText className="size-5" />} title="Open the Vault" desc="Hiring, enrollment, operations templates." />
-          <ActionCard to="/coach" icon={<TrendingUp className="size-5" />} title="Build a growth plan" desc="Run Revenue Mode for a 90-day move." />
+          <ActionCard to="/coach" search={{ mode: "revenue" }} icon={<TrendingUp className="size-5" />} title="Build a growth plan" desc="Run Revenue Mode for a 90-day move." />
         </div>
       </section>
     </div>
