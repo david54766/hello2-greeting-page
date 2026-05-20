@@ -145,7 +145,7 @@ function Coach() {
 
   const speak = async (r: Resp) => {
     stopAudio();
-    const text = `Insight. ${r.insight} Recommendation. ${r.recommendation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
+    const text = `Diagnosis. ${r.diagnosis} Impact. ${r.impact} Strategic move. ${r.strategic_move} Elevation. ${r.elevation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
     setSpeaking(true);
     try {
       const result = await tts({ data: { text } });
