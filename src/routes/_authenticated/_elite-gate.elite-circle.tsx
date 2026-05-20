@@ -146,15 +146,16 @@ function ThreadView({ id, onBack, userId }: { id: string; onBack: () => void; us
   const qc = useQueryClient();
   const thread = useQuery({ queryKey: ["elite-thread", id], queryFn: () => getFn({ data: { id } }) });
   const [body, setBody] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     if (!body.trim()) return;
     setBusy(true);
-    const r = await replyFn({ data: { thread_id: id, body: body.trim() } });
+    const r = await replyFn({ data: { thread_id: id, body: body.trim(), image_urls: images } });
     setBusy(false);
     if (!r.ok) return toast.error(r.message);
-    setBody("");
+    setBody(""); setImages([]);
     qc.invalidateQueries({ queryKey: ["elite-thread", id] });
     qc.invalidateQueries({ queryKey: ["elite-threads"] });
   };
@@ -173,6 +174,7 @@ function ThreadView({ id, onBack, userId }: { id: string; onBack: () => void; us
           </p>
           <div className="mt-6 rounded-xl border border-border bg-card p-5 whitespace-pre-wrap">
             {thread.data.thread.body}
+            <AttachmentGallery urls={thread.data.thread.image_urls} />
           </div>
 
           <div className="gold-divider mt-10" />
@@ -183,12 +185,14 @@ function ThreadView({ id, onBack, userId }: { id: string; onBack: () => void; us
               <div key={r.id} className="rounded-lg border border-border/60 bg-card/50 p-4">
                 <p className="text-xs text-muted-foreground">{r.author_name} · {new Date(r.created_at).toLocaleString()}</p>
                 <p className="mt-2 whitespace-pre-wrap">{r.body}</p>
+                <AttachmentGallery urls={r.image_urls} />
               </div>
             ))}
           </div>
 
           <div className="mt-6 rounded-xl border border-border bg-card p-5 space-y-3">
             <Textarea placeholder="Add to the conversation…" rows={4} value={body} onChange={(e) => setBody(e.target.value)} maxLength={10000} />
+            {userId && <ImageAttachments userId={userId} value={images} onChange={setImages} disabled={busy} />}
             <div className="flex justify-end">
               <Button onClick={submit} disabled={busy || !body.trim()} className="rounded-full">
                 {busy ? "Posting…" : "Reply"}
