@@ -266,10 +266,10 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
     }
   };
 
-  const noCenters = !centersQ.isLoading && centers.length === 0;
+  const noCenters = !centersQ.isLoading && !centersQ.isError && centers.length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!saving) onOpenChange(o); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Revenue Mode Setup</DialogTitle>
@@ -278,7 +278,7 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-2 flex gap-1">
+        <div className="mt-2 flex gap-1" aria-hidden>
           {STEPS.map((_, i) => (
             <div
               key={i}
@@ -287,7 +287,46 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
           ))}
         </div>
 
-        {noCenters ? (
+        {centersQ.isLoading ? (
+          <div className="py-8 space-y-4" role="status" aria-live="polite">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Loading your centers…
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-10 w-1/2" />
+            </div>
+          </div>
+        ) : centersQ.isError ? (
+          <div className="py-6 space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="size-4" />
+              <AlertTitle>Couldn't load your centers</AlertTitle>
+              <AlertDescription>
+                {(centersQ.error as any)?.message || "Something went wrong fetching your centers."}
+              </AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={() => centersQ.refetch()} disabled={centersQ.isFetching}>
+              {centersQ.isFetching ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="size-4 mr-2" />
+              )}
+              Try again
+            </Button>
+          </div>
+        ) : noCenters ? (
+          <div className="py-8 text-center space-y-4">
+            <Building2 className="size-10 mx-auto text-muted-foreground" />
+            <p className="text-muted-foreground">
+              Add at least one center before setting up Revenue mode. Center metrics (capacity, enrollment, tuition) anchor every recommendation.
+            </p>
+            <Button asChild>
+              <Link to="/settings">Go to Settings → Centers</Link>
+            </Button>
+          </div>
+        ) : (
           <div className="py-8 text-center space-y-4">
             <p className="text-muted-foreground">
               Add at least one center before setting up Revenue mode. Center metrics (capacity, enrollment, tuition) anchor every recommendation.
