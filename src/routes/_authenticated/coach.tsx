@@ -87,17 +87,11 @@ function Coach() {
   const historyFn = useServerFn(getCoachingHistory);
   const fetchRevenueProfile = useServerFn(getRevenueProfile);
   const generateImage = useServerFn(generateCoachImage);
-  const fetchImageQuota = useServerFn(getImageQuota);
   const qc = useQueryClient();
 
   // ---------- Visual example generator ----------
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
-  const quotaQ = useQuery({
-    queryKey: ["coach-image-quota", user?.id],
-    enabled: !!user,
-    queryFn: () => fetchImageQuota(),
-  });
   const handleGenerateImage = async () => {
     const seed = (prompt || response?.strategic_move || "").trim();
     if (seed.length < 4) {
@@ -115,7 +109,6 @@ function Coach() {
         toast.error(res.error);
       } else if (res.image) {
         setImageUrl(res.image);
-        qc.invalidateQueries({ queryKey: ["coach-image-quota", user?.id] });
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Image generation failed.");
