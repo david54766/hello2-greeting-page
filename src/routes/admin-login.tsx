@@ -136,7 +136,7 @@ function AdminLogin() {
   return (
     <div className="min-h-screen grid md:grid-cols-2 bg-background">
       <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-foreground via-foreground/95 to-primary/40 text-background">
-        <Link to="/" className="flex items-center gap-2 bg-background/95 rounded-xl px-3 py-2 w-fit"><img src={logoImg} alt="The Preschool Prima Donna" className="h-12 w-auto" /><span className="font-display text-lg text-primary self-end pb-1">AI™</span></Link>
+        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 bg-background/95 rounded-xl px-3 py-2 w-fit shrink-0"><img src={logoImg} alt="The Preschool Prima Donna" width={48} height={48} className="h-9 sm:h-10 md:h-12 w-auto aspect-square" /><span className="font-display text-base sm:text-lg text-primary self-end pb-1">AI™</span></Link>
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-background/20 px-3 py-1 text-xs uppercase tracking-[0.25em]">
             <ShieldCheck className="size-3" /> Restricted Access
