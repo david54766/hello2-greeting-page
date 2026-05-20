@@ -61,6 +61,16 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
     });
   }, [selected]);
 
+  const grouped = useMemo(() => {
+    const map = new Map<string, RavenVideo[]>();
+    videos.forEach((v) => {
+      const arr = map.get(v.category) ?? [];
+      arr.push(v);
+      map.set(v.category, arr);
+    });
+    return Array.from(map.entries());
+  }, [videos]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl p-0 overflow-hidden">
