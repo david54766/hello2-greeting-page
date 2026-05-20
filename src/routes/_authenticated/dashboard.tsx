@@ -7,8 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getTodayRecommendation } from "@/lib/coaching.functions";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, FileText, TrendingUp, Sparkles, Play } from "lucide-react";
+import { MessageSquare, FileText, TrendingUp, Sparkles, Play, Info } from "lucide-react";
 import { RavenInsightsDialog } from "@/components/RavenInsightsDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Command Center — Prima Donna AI™" }] }),
