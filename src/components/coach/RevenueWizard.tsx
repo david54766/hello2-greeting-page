@@ -156,6 +156,23 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
   const [model, setModel] = useState<any>(initial?.model ?? {});
   const [goals, setGoals] = useState<any>(initial?.goals ?? {});
 
+  // When the dialog opens (e.g. via "Edit"), rehydrate the form from the
+  // latest saved profile so users see their existing values, not stale state.
+  useEffect(() => {
+    if (!open) return;
+    setStep(0);
+    setSaveError(null);
+    setErrors({});
+    setScopeMode(initial?.scope_mode ?? "portfolio");
+    setActiveCenterId(initial?.active_center_id ?? null);
+    setSnapshot(initial?.snapshot ?? {});
+    setModel(initial?.model ?? {});
+    setGoals(initial?.goals ?? {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initial?.id, initial?.updated_at]);
+
+
+
   // Pre-fill snapshot when scope/center changes (only if fields are empty)
   useEffect(() => {
     if (!centers.length) return;
