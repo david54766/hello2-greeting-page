@@ -83,6 +83,7 @@ function Coach() {
 
   // ---------- Revenue setup wizard ----------
   const [wizardOpen, setWizardOpen] = useState(false);
+  const autoOpenedRef = useRef(false);
   const revenueProfileQ = useQuery({
     queryKey: ["revenue-profile", user?.id],
     enabled: !!user,
@@ -93,7 +94,16 @@ function Coach() {
   useEffect(() => {
     if (mode !== "revenue") return;
     if (revenueProfileQ.isLoading) return;
-    if (!revenueProfile) setWizardOpen(true);
+    if (autoOpenedRef.current) return;
+    // Only auto-open on the very first Revenue-mode use when no saved
+    // revenue profile exists. After this, the user opens it from the
+    // RevenueScopeBar "Edit" action in the profile section.
+    if (!revenueProfile) {
+      autoOpenedRef.current = true;
+      setWizardOpen(true);
+    } else {
+      autoOpenedRef.current = true;
+    }
   }, [mode, revenueProfile, revenueProfileQ.isLoading]);
 
   const refreshRevenue = () =>
