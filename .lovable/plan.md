@@ -1,34 +1,49 @@
-## 1. Density toggle on the Schedule page
+# ElevenLabs custom voice fix
 
-File: `src/routes/_authenticated/_elite-gate.elite-schedule.tsx`
+## What I found
 
-- Add a small segmented control in the header (next to the timezone line): `Comfortable` / `Compact`.
-- Persist the choice in `localStorage` under `elite-schedule-density` so it sticks across visits.
-- Drive layout from the choice:
-  - **Comfortable** (default): current 3‑column day‑card grid, current chip size, current paddings.
-  - **Compact**: 4 columns on `lg`, smaller card padding (`p-2`), tighter chip padding (`px-2 py-0.5`), `gap-1` between chips, smaller day heading.
-- Upcoming‑session row and dialog are untouched.
+The plumbing is already correct:
+- `src/routes/api/tts-stream.ts` (used by the coach) and `src/lib/tts.functions.ts` both POST to `https://api.elevenlabs.io/v1/text-to-speech/{voiceId}/stream?output_format=mp3_44100_128` with the voice ID in the URL path.
+- The voice ID `EcNmy6NxONUCla9ZNPCn` is wired in correctly (env override `ELEVENLABS_RAVEN_VOICE_ID`, fallback to that exact ID).
+- The API key is read from `process.env.ELEVENLABS_API_KEY` server-side only — never exposed to the frontend.
+- The response is consumed as a stream / `blob()` (not `response.json()`), returned with `Content-Type: audio/mpeg`, and played via `new Audio()` + `URL.createObjectURL` inside the click gesture.
+- Server logs show recent `/api/tts-stream` calls returning **HTTP 200** — so ElevenLabs is accepting the request and returning audio.
 
-## 2. Remove the standalone 1:1 request form
+## The actual bug
 
-File: `src/routes/_authenticated/elite.tsx`
+Both files send `model_id: "eleven_turbo_v2_5"` with `style: 0.35`.
 
-- Delete the **"Request a 1:1 strategy session"** `<section>` (the `submitEliteRequest` form) and the **"Your requests"** list that pairs with it.
-- Remove the now‑unused imports/state: `submitEliteRequest`, `getMyEliteRequests`, the `topic` / `times` / `submitting` state, the `submit` handler, and the `myReqs` query.
-- The two link tiles at the top (Conversations + Schedule with Raven) remain — Schedule is the single canonical booking path.
+- `eleven_turbo_v2_5` does NOT faithfully reproduce many cloned/custom voices — ElevenLabs effectively renders them with a generic-sounding fallback timbre on Turbo. That matches the symptom: "voice is not speaking correctly" while the request still succeeds with 200.
+- The `style` parameter is also only meaningful on the multilingual v2 family; on Turbo it's ignored/clamped, which further pushes the output toward a default delivery.
 
-## 3. Curated Vault picks on the Elite landing page
+This is why nothing in logs looks broken but the voice sounds wrong.
 
-File: `src/routes/_authenticated/elite.tsx` (replaces the current "Circle Vault" stub section)
+## Fix
 
-- Query Supabase directly (same pattern as `templates.tsx`):
-  `supabase.from("templates").select("id,title,description,category,storage_path").eq("tier_required","elite").order("created_at", { ascending: false }).limit(6)`.
-- Render a 3‑column responsive grid of compact cards, each showing category, title, one‑line description, and a **Download** button that uses `supabase.storage.from("templates").createSignedUrl(path, 60)` — same helper used in the Template Vault page.
-- Section heading: "Curated for the Circle" with a "View full vault" link to `/templates`.
-- Empty / loading states: skeleton row while loading; if zero rows, show "New Circle‑only drops land here weekly." with the link to the full vault.
+Switch both server entry points to `eleven_multilingual_v2` and align `voice_settings` to the spec you provided (`similarity_boost: 0.85`, `style: 0.2`). Also add a safe, non-secret-leaking error log so future issues surface in worker logs.
 
-## Technical notes
+### Files to change
 
-- No DB changes — `templates.tier_required = 'elite'` already exists and is used by the Template Vault.
-- Density toggle is purely visual, no schema or server impact.
-- Removing the 1:1 form doesn't touch `elite_requests` data or `submitEliteRequest` server fn (admins may still review historical rows); we just stop exposing the entry point.
+1. **`src/routes/api/tts-stream.ts`** (the one the coach UI actually calls)
+   - `model_id: "eleven_multilingual_v2"`
+   - `voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.2, use_speaker_boost: true }`
+   - On `!upstream.ok`, log `console.error("ElevenLabs TTS error:", upstream.status, errText.slice(0, 300))` before returning (no key in the message).
+
+2. **`src/lib/tts.functions.ts`** (kept in sync so any other caller behaves identically)
+   - Same `model_id` and `voice_settings` change.
+   - Same safe error log.
+
+3. **No env var changes required.** `ELEVENLABS_API_KEY` is already set; `ELEVENLABS_RAVEN_VOICE_ID` is optional and the hardcoded fallback is already `EcNmy6NxONUCla9ZNPCn`. The frontend never reads either — confirmed (no `VITE_ELEVENLABS_*` anywhere).
+
+### Things intentionally NOT changed
+
+- Endpoint URL, path-parameter voice ID, `output_format`, response handling (`blob()` / streamed body), `Content-Type: audio/mpeg`, and the auth gate on the server route — all already correct.
+- The `/stream` suffix on `tts-stream.ts` stays (it streams MP3 chunks; the client buffers via `res.blob()` which works identically to non-stream for `audio/mpeg`).
+
+## Test after the change
+
+1. Open `/coach`, submit any prompt, click **Speak**.
+2. Expect: audible Raven voice (custom clone), not the generic default.
+3. Check worker logs: `POST /api/tts-stream → 200`. If it ever fails, you'll now see `ElevenLabs TTS error: <status> <body excerpt>` in logs (no key leaked).
+
+If the voice still sounds wrong after this fix, the most likely remaining cause is that the voice ID `EcNmy6NxONUCla9ZNPCn` doesn't exist in the ElevenLabs account that owns the `ELEVENLABS_API_KEY` secret — verify the key and the cloned voice live in the same ElevenLabs workspace.

@@ -40,14 +40,15 @@ export const Route = createFileRoute("/api/tts-stream")({
             headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
             body: JSON.stringify({
               text: parsed.data.text,
-              model_id: "eleven_turbo_v2_5",
-              voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true },
+              model_id: "eleven_multilingual_v2",
+              voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.2, use_speaker_boost: true },
             }),
           },
         );
 
         if (!upstream.ok || !upstream.body) {
           const errText = await upstream.text().catch(() => "");
+          console.error("ElevenLabs TTS error:", upstream.status, errText.slice(0, 300));
           return new Response(errText.slice(0, 200) || `TTS upstream failed (${upstream.status})`, {
             status: upstream.status || 502,
           });
