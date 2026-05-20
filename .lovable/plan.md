@@ -1,40 +1,63 @@
 ## Goal
 
-Make every AI Coach response speak as Prima Donna AI™ per the doctrine you pasted — confident, direct, no fluff — and follow the required 4-part structure: **Diagnosis → Impact → Strategic Move → Elevation**. Keep the 5 mode lenses (CEO, Revenue, Marketing, Compliance, Systems) layered on top.
+Enforce role/tier gating server-side so only **Elite Circle subscribers** (`subscriptions.tier='elite'` AND `status='active'`) and **admins** (`user_roles.role='admin'`) can reach `/elite-circle` and `/elite-schedule`. `/elite` stays accessible to all signed-in users because it doubles as the application flow for non-Elite owners — but its private Elite hub view must be gated the same way.
+
+The current implementation only does client-side `tier === "elite" || isAdmin` checks inside the component body, which means: (a) protected UI flashes briefly before the gate, (b) any data fetched in a loader runs before the gate, (c) RLS is the only real backstop.
 
 ## Changes
 
-### 1. `src/lib/coaching.functions.ts` — rewrite the prompt + structured tool
+### 1. New shared gate — `src/lib/elite-access.functions.ts`
 
-- Replace `SYSTEM_BASE` with the full Prima Donna doctrine: identity, tone rules, what she does/does not do, core principles (Systems over chaos, Structure creates scale, Profit must be controlled, Leadership defines outcomes, Excellence is non-negotiable), and the topic doctrines (Enrollment, Pricing, Staffing, Operations, Profitability, Marketing, Growth, Leadership) condensed into a single authoritative system message.
-- Embed the explicit rules: never validate low standards, never advise underpricing, never excuse poor performance, never recommend early expansion, no medical/legal advice, no "maybe" language, no emotional reassurance.
-- Keep the existing `MODE_PROMPTS` lens for each of the 5 modes but reframe each as Prima Donna's specialty within the doctrine (CEO lens, Revenue lens, etc.) so the doctrine is always primary and mode is the focusing aperture.
-- Change the `structured_response` tool schema from `insight / recommendation / action_steps` to:
-  - `diagnosis` — what is actually broken (1–3 sharp sentences)
-  - `impact` — what this is costing the business if unaddressed
-  - `strategic_move` — the decisive move, specific and non-optional
-  - `elevation` — the leadership/standard shift required, tied to a core principle; reference Preschool Prima Donna teachings where natural
-  - `action_steps` — 3–5 concrete actions for this week (kept so owners still get tactical output)
-- Keep portfolio/center context injection as-is.
+A `createServerFn` (`checkEliteAccess`) protected by `requireSupabaseAuth` that returns:
 
-### 2. `src/routes/_authenticated/coach.tsx` — render the new structure
+```ts
+{ allowed: boolean; reason: "elite" | "admin" | "denied" }
+```
 
-- Update the `Resp` type and the rendered sections to: Diagnosis, Impact, Strategic Move, Elevation, Action Steps (in that order).
-- Update the TTS string and the copy/export string to read the four labeled sections plus action steps.
-- Update the history sidebar preview line to fall back to `diagnosis` instead of `insight`.
+It calls Postgres helpers already in the DB:
+- `is_elite(auth.uid())` → active Elite subscription
+- `has_role(auth.uid(), 'admin')` → admin
 
-### 3. History compatibility
+`allowed = is_elite OR is_admin`. No client-side trust; the answer comes from the DB through the authenticated supabase client.
 
-- Old `coaching_sessions` rows store `{ insight, recommendation, action_steps }`. In the UI, fall back: if a row has `insight` and not `diagnosis`, render `insight → Diagnosis`, `recommendation → Strategic Move`, blank Impact/Elevation. No DB migration needed.
+### 2. Pathless layout — `src/routes/_authenticated/_elite-gate.tsx`
 
-## Out of scope
+A new pathless layout route that:
+- Calls `checkEliteAccess` in `beforeLoad`.
+- If `!allowed`, throws `redirect({ to: "/elite" })` (so non-Elite users land on the application flow, admins/Elite proceed).
+- Renders `<Outlet />`.
 
-- No DB schema changes, no auth changes, no Daily Recommendation prompt changes (separate cron prompt — flag if you want that aligned next).
-- No UI restyling beyond the section labels.
+This is the standard TanStack pattern: gate runs before any child loader or render, no flash of protected content.
+
+### 3. Move gated routes under the new layout
+
+Rename to put them under the gate (TanStack flat naming):
+- `src/routes/_authenticated/elite-circle.tsx` → `src/routes/_authenticated/_elite-gate.elite-circle.tsx` (URL stays `/elite-circle`)
+- `src/routes/_authenticated/elite-schedule.tsx` → `src/routes/_authenticated/_elite-gate.elite-schedule.tsx` (URL stays `/elite-schedule`)
+
+Update the `createFileRoute(...)` path strings to match the new file names. Strip the now-redundant in-component `if (!allowed) return <Locked/>` guards (keep the components clean; gate is upstream).
+
+### 4. `/elite` page stays public-to-authenticated, but split its rendering
+
+`src/routes/_authenticated/elite.tsx` keeps current behavior:
+- Non-Elite (and non-admin): show `ApplicationFlow` (apply / status).
+- Elite or admin: show the Elite hub (links to Conversations + Schedule).
+
+Replace the local `tier === "elite"` boolean with a call to `checkEliteAccess` via `useServerFn` + `useQuery` so the same source of truth drives the decision. While the query is loading, render a skeleton (no protected content).
+
+### 5. Defense in depth — RLS already correct
+
+Verified: `elite_threads`, `elite_thread_replies`, `raven_bookings` all use `is_elite(auth.uid()) OR has_role(auth.uid(), 'admin')`. No DB changes needed.
+
+### 6. Out of scope
+
+- No changes to admin-only routes (already covered by `_admin` layout).
+- No changes to subscription provisioning, billing, or invitations.
+- No new tables, no auth changes.
 
 ## Acceptance
 
-- New coach responses always return Diagnosis / Impact / Strategic Move / Elevation / Action Steps.
-- Tone matches the doctrine: no hedging, no "maybe", no reassurance.
-- Mode still steers the topical focus (compliance still goes per-state, revenue still quantifies, etc.).
-- Older sessions still render without crashing.
+- Non-Elite, non-admin user visiting `/elite-circle` or `/elite-schedule` is redirected to `/elite` (application flow) before any protected component renders or data loads.
+- Elite users and admins reach both pages normally.
+- `/elite` still shows the application flow to non-Elite users and the hub to Elite/admins, with no flash.
+- Removing Elite tier from a signed-in user (or revoking admin) blocks access on next navigation, since the gate re-queries via the server fn.
