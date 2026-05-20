@@ -26,14 +26,26 @@ export const logCookieConsent = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const listCookieConsents = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const { data, error } = await supabaseAdmin
+const ListSchema = z.object({
+  cursor: z.string().datetime().optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+export const listCookieConsents = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => ListSchema.parse(input ?? {}))
+  .handler(async ({ data }) => {
+    const limit = data.limit ?? 50;
+    let query = supabaseAdmin
       .from("cookie_consents")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(limit + 1);
+    if (data.cursor) query = query.lt("created_at", data.cursor);
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    return { rows: data ?? [] };
-  },
-);
+    const list = rows ?? [];
+    const hasMore = list.length > limit;
+    const page = hasMore ? list.slice(0, limit) : list;
+    const nextCursor = hasMore ? page[page.length - 1].created_at : null;
+    return { rows: page, nextCursor };
+  });
