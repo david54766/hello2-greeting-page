@@ -23,9 +23,83 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
+import { z } from "zod";
+
+// Per-step validation: non-negative finite numbers, reasonable ranges, required fields.
+const num = (max: number, label: string) =>
+  z
+    .union([z.number(), z.null(), z.undefined()])
+    .refine((v) => v == null || (Number.isFinite(v) && (v as number) >= 0), {
+      message: `${label} must be 0 or greater`,
+    })
+    .refine((v) => v == null || (v as number) <= max, {
+      message: `${label} must be ≤ ${max.toLocaleString()}`,
+    });
+
+const scopeSchema = z
+  .object({
+    scopeMode: z.enum(["portfolio", "center"]),
+    activeCenterId: z.string().nullable(),
+  })
+  .refine((d) => d.scopeMode !== "center" || !!d.activeCenterId, {
+    path: ["activeCenterId"],
+    message: "Pick a center to deep-dive",
+  });
+
+const snapshotSchema = z
+  .object({
+    capacity: num(100000, "Capacity"),
+    enrollment: num(100000, "Enrollment"),
+    waitlist: num(100000, "Waitlist"),
+    avg_weekly_tuition: num(5000, "Avg weekly tuition"),
+    tuition_range: z.string().max(120).optional().nullable(),
+    collection_rate: num(100, "Collection rate"),
+    past_due_ar: num(10_000_000, "Past-due AR"),
+  })
+  .refine((d) => d.capacity != null && (d.capacity as number) > 0, {
+    path: ["capacity"],
+    message: "Capacity is required",
+  })
+  .refine((d) => d.enrollment != null, {
+    path: ["enrollment"],
+    message: "Enrollment is required",
+  })
+  .refine(
+    (d) =>
+      d.capacity == null ||
+      d.enrollment == null ||
+      (d.enrollment as number) <= (d.capacity as number),
+    { path: ["enrollment"], message: "Enrollment cannot exceed capacity" },
+  );
+
+const modelSchema = z.object({
+  tuition_structure: z.string().min(1, "Pick a tuition structure"),
+  sibling_discount: z.string().max(200).optional().nullable(),
+  registration_fee: z.string().max(200).optional().nullable(),
+  subsidy_pct: num(100, "Subsidy %"),
+  ancillary: z.string().max(1000).optional().nullable(),
+});
+
+const goalsSchema = z.object({
+  revenue_goal: z.string().trim().min(1, "Set a revenue goal").max(200),
+  raise_tuition: z.enum(["yes", "maybe", "no"], { message: "Select an option" }),
+  staffing_constraints: z.string().max(1000).optional().nullable(),
+  target_margin: num(100, "Target margin"),
+});
+
+type FieldErrors = Record<string, string>;
+
+function zodErrors(err: z.ZodError): FieldErrors {
+  const out: FieldErrors = {};
+  for (const issue of err.issues) {
+    const key = issue.path.join(".") || "_";
+    if (!out[key]) out[key] = issue.message;
+  }
+  return out;
+}
 
 type Center = {
   id: string;
