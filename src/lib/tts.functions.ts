@@ -3,7 +3,7 @@ import { z } from "zod";
 
 // "Raven" voice. If you have a custom Raven voice cloned in your ElevenLabs
 // account, replace this ID. Default falls back to "Brian" — deep, grounded.
-const RAVEN_VOICE_ID = process.env.ELEVENLABS_RAVEN_VOICE_ID || "nPczCjzI2devNBz1zQrb";
+const RAVEN_VOICE_ID = process.env.ELEVENLABS_RAVEN_VOICE_ID || "EcNmy6NxONUCla9ZNPCn";
 
 const Schema = z.object({
   text: z.string().min(1).max(5000),
