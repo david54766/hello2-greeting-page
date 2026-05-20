@@ -69,6 +69,17 @@ export function RavenVideosAdmin() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (!previewRow) {
+      setPreviewUrl(null);
+      return;
+    }
+    supabase.storage
+      .from("raven-videos")
+      .createSignedUrl(previewRow.storage_path, 3600)
+      .then(({ data }) => setPreviewUrl(data?.signedUrl ?? null));
+  }, [previewRow]);
+
   const categories = useMemo(() => {
     const set = new Set<string>(DEFAULT_CATEGORIES);
     rows.forEach((r) => r.category && set.add(r.category));
