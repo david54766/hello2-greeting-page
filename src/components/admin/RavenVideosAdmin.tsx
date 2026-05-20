@@ -158,23 +158,50 @@ export function RavenVideosAdmin() {
 
       <div className="mt-6 space-y-2">
         {rows.length === 0 && <div className="text-sm text-muted-foreground">No videos yet.</div>}
-        {rows.map((r) => (
-          <div key={r.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{r.title}</div>
-              <div className="text-xs text-muted-foreground truncate">
-                Order {r.sort_order}{r.duration_seconds ? ` · ${r.duration_seconds}s` : ""}
+        {rows.map((r) => {
+          const isEditing = editingId === r.id;
+          return (
+            <div key={r.id} className="flex items-start gap-3 rounded-lg border border-border/60 p-3">
+              <div className="flex-1 min-w-0 space-y-2">
+                {isEditing ? (
+                  <>
+                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title" />
+                    <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Description (optional)" rows={2} />
+                  </>
+                ) : (
+                  <>
+                    <div className="font-medium truncate">{r.title}</div>
+                    {r.description && <div className="text-xs text-muted-foreground line-clamp-2">{r.description}</div>}
+                    <div className="text-xs text-muted-foreground truncate">
+                      Order {r.sort_order}{r.duration_seconds ? ` · ${r.duration_seconds}s` : ""}
+                    </div>
+                  </>
+                )}
               </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Published</span>
+                <Switch checked={r.published} onCheckedChange={() => togglePublished(r)} />
+              </div>
+              {isEditing ? (
+                <>
+                  <Button variant="ghost" size="icon" onClick={() => saveEdit(r)} disabled={savingEdit}>
+                    <Check className="size-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={cancelEdit} disabled={savingEdit}>
+                    <X className="size-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button variant="ghost" size="icon" onClick={() => startEdit(r)}>
+                  <Pencil className="size-4" />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" onClick={() => remove(r)} disabled={isEditing}>
+                <Trash2 className="size-4" />
+              </Button>
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Published</span>
-              <Switch checked={r.published} onCheckedChange={() => togglePublished(r)} />
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => remove(r)}>
-              <Trash2 className="size-4" />
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
