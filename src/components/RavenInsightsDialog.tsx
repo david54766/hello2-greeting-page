@@ -8,6 +8,7 @@ type RavenVideo = {
   title: string;
   description: string | null;
   storage_path: string;
+  thumbnail_path: string | null;
   duration_seconds: number | null;
   sort_order: number;
 };
@@ -16,6 +17,7 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
   const [videos, setVideos] = useState<RavenVideo[]>([]);
   const [selected, setSelected] = useState<RavenVideo | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -23,14 +25,27 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
     setLoading(true);
     supabase
       .from("raven_videos")
-      .select("id,title,description,storage_path,duration_seconds,sort_order")
+      .select("id,title,description,storage_path,thumbnail_path,duration_seconds,sort_order")
       .eq("published", true)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const list = (data ?? []) as RavenVideo[];
         setVideos(list);
         if (list.length && !selected) setSelected(list[0]);
+
+        const map: Record<string, string> = {};
+        await Promise.all(
+          list
+            .filter((v) => v.thumbnail_path)
+            .map(async (v) => {
+              const { data: s } = await supabase.storage
+                .from("raven-videos")
+                .createSignedUrl(v.thumbnail_path!, 3600);
+              if (s?.signedUrl) map[v.id] = s.signedUrl;
+            }),
+        );
+        setThumbUrls(map);
         setLoading(false);
       });
   }, [open]);
@@ -62,26 +77,33 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
               </div>
             )}
             <ul>
-              {videos.map((v) => (
-                <li key={v.id}>
-                  <button
-                    onClick={() => setSelected(v)}
-                    className={`w-full text-left px-4 py-3 border-b border-border/40 hover:bg-primary/5 transition ${
-                      selected?.id === v.id ? "bg-primary/10" : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <Play className="size-4 text-primary mt-0.5 shrink-0" />
-                      <div className="min-w-0">
+              {videos.map((v) => {
+                const thumb = thumbUrls[v.id];
+                return (
+                  <li key={v.id}>
+                    <button
+                      onClick={() => setSelected(v)}
+                      className={`w-full text-left px-3 py-3 border-b border-border/40 hover:bg-primary/5 transition flex items-start gap-3 ${
+                        selected?.id === v.id ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <div className="w-14 h-20 shrink-0 rounded-md overflow-hidden bg-muted grid place-items-center">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <Play className="size-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
                         <div className="font-medium truncate">{v.title}</div>
                         {v.duration_seconds ? (
                           <div className="text-xs text-muted-foreground">{formatDuration(v.duration_seconds)}</div>
                         ) : null}
                       </div>
-                    </div>
-                  </button>
-                </li>
-              ))}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </aside>
           <div className="p-6 bg-card flex flex-col items-center">
@@ -89,7 +111,15 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
               <>
                 <div className="aspect-[9/16] w-full max-w-[320px] bg-black rounded-lg overflow-hidden">
                   {signedUrl ? (
-                    <video key={signedUrl} src={signedUrl} controls autoPlay playsInline className="w-full h-full object-contain" />
+                    <video
+                      key={signedUrl}
+                      src={signedUrl}
+                      poster={thumbUrls[selected.id]}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
                   ) : (
                     <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">Loading video…</div>
                   )}
