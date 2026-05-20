@@ -188,7 +188,7 @@ function Coach() {
           let done = false;
           const pump = () => {
             if (sb.updating || queue.length === 0) return;
-            sb.appendBuffer(queue.shift()!);
+            sb.appendBuffer(queue.shift()! as unknown as ArrayBuffer);
           };
           sb.addEventListener("updateend", () => {
             pump();
