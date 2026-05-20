@@ -18,13 +18,14 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedEliteScheduleRouteImport } from './routes/_authenticated/elite-schedule'
-import { Route as AuthenticatedEliteCircleRouteImport } from './routes/_authenticated/elite-circle'
 import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCoachRouteImport } from './routes/_authenticated/coach'
+import { Route as AuthenticatedEliteGateRouteImport } from './routes/_authenticated/_elite-gate'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
 import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
+import { Route as AuthenticatedEliteGateEliteScheduleRouteImport } from './routes/_authenticated/_elite-gate.elite-schedule'
+import { Route as AuthenticatedEliteGateEliteCircleRouteImport } from './routes/_authenticated/_elite-gate.elite-circle'
 import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin-analytics'
 import { Route as AuthenticatedAdminAdminRouteImport } from './routes/_authenticated/_admin/admin'
 import { Route as ApiPublicHooksGenerateDailyRecommendationsRouteImport } from './routes/api/public/hooks/generate-daily-recommendations'
@@ -73,18 +74,6 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedEliteScheduleRoute =
-  AuthenticatedEliteScheduleRouteImport.update({
-    id: '/elite-schedule',
-    path: '/elite-schedule',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedEliteCircleRoute =
-  AuthenticatedEliteCircleRouteImport.update({
-    id: '/elite-circle',
-    path: '/elite-circle',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedEliteRoute = AuthenticatedEliteRouteImport.update({
   id: '/elite',
   path: '/elite',
@@ -100,6 +89,10 @@ const AuthenticatedCoachRoute = AuthenticatedCoachRouteImport.update({
   path: '/coach',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedEliteGateRoute = AuthenticatedEliteGateRouteImport.update({
+  id: '/_elite-gate',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/_admin',
   getParentRoute: () => AuthenticatedRoute,
@@ -109,6 +102,18 @@ const ApiPublicEliteApplyRoute = ApiPublicEliteApplyRouteImport.update({
   path: '/api/public/elite-apply',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedEliteGateEliteScheduleRoute =
+  AuthenticatedEliteGateEliteScheduleRouteImport.update({
+    id: '/elite-schedule',
+    path: '/elite-schedule',
+    getParentRoute: () => AuthenticatedEliteGateRoute,
+  } as any)
+const AuthenticatedEliteGateEliteCircleRoute =
+  AuthenticatedEliteGateEliteCircleRouteImport.update({
+    id: '/elite-circle',
+    path: '/elite-circle',
+    getParentRoute: () => AuthenticatedEliteGateRoute,
+  } as any)
 const AuthenticatedAdminAdminAnalyticsRoute =
   AuthenticatedAdminAdminAnalyticsRouteImport.update({
     id: '/admin-analytics',
@@ -137,12 +142,12 @@ export interface FileRoutesByFullPath {
   '/coach': typeof AuthenticatedCoachRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/elite': typeof AuthenticatedEliteRoute
-  '/elite-circle': typeof AuthenticatedEliteCircleRoute
-  '/elite-schedule': typeof AuthenticatedEliteScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
+  '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
@@ -156,12 +161,12 @@ export interface FileRoutesByTo {
   '/coach': typeof AuthenticatedCoachRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/elite': typeof AuthenticatedEliteRoute
-  '/elite-circle': typeof AuthenticatedEliteCircleRoute
-  '/elite-schedule': typeof AuthenticatedEliteScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
+  '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
@@ -175,15 +180,16 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/_elite-gate': typeof AuthenticatedEliteGateRouteWithChildren
   '/_authenticated/coach': typeof AuthenticatedCoachRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/elite': typeof AuthenticatedEliteRoute
-  '/_authenticated/elite-circle': typeof AuthenticatedEliteCircleRoute
-  '/_authenticated/elite-schedule': typeof AuthenticatedEliteScheduleRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
   '/_authenticated/_admin/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
+  '/_authenticated/_elite-gate/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
+  '/_authenticated/_elite-gate/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
@@ -199,12 +205,12 @@ export interface FileRouteTypes {
     | '/coach'
     | '/dashboard'
     | '/elite'
-    | '/elite-circle'
-    | '/elite-schedule'
     | '/settings'
     | '/templates'
     | '/admin'
     | '/admin-analytics'
+    | '/elite-circle'
+    | '/elite-schedule'
     | '/api/public/elite-apply'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesByTo: FileRoutesByTo
@@ -218,12 +224,12 @@ export interface FileRouteTypes {
     | '/coach'
     | '/dashboard'
     | '/elite'
-    | '/elite-circle'
-    | '/elite-schedule'
     | '/settings'
     | '/templates'
     | '/admin'
     | '/admin-analytics'
+    | '/elite-circle'
+    | '/elite-schedule'
     | '/api/public/elite-apply'
     | '/api/public/hooks/generate-daily-recommendations'
   id:
@@ -236,15 +242,16 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_authenticated/_admin'
+    | '/_authenticated/_elite-gate'
     | '/_authenticated/coach'
     | '/_authenticated/dashboard'
     | '/_authenticated/elite'
-    | '/_authenticated/elite-circle'
-    | '/_authenticated/elite-schedule'
     | '/_authenticated/settings'
     | '/_authenticated/templates'
     | '/_authenticated/_admin/admin'
     | '/_authenticated/_admin/admin-analytics'
+    | '/_authenticated/_elite-gate/elite-circle'
+    | '/_authenticated/_elite-gate/elite-schedule'
     | '/api/public/elite-apply'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesById: FileRoutesById
@@ -326,20 +333,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/elite-schedule': {
-      id: '/_authenticated/elite-schedule'
-      path: '/elite-schedule'
-      fullPath: '/elite-schedule'
-      preLoaderRoute: typeof AuthenticatedEliteScheduleRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/elite-circle': {
-      id: '/_authenticated/elite-circle'
-      path: '/elite-circle'
-      fullPath: '/elite-circle'
-      preLoaderRoute: typeof AuthenticatedEliteCircleRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/elite': {
       id: '/_authenticated/elite'
       path: '/elite'
@@ -361,6 +354,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCoachRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/_elite-gate': {
+      id: '/_authenticated/_elite-gate'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedEliteGateRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/_admin': {
       id: '/_authenticated/_admin'
       path: ''
@@ -374,6 +374,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/elite-apply'
       preLoaderRoute: typeof ApiPublicEliteApplyRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_elite-gate/elite-schedule': {
+      id: '/_authenticated/_elite-gate/elite-schedule'
+      path: '/elite-schedule'
+      fullPath: '/elite-schedule'
+      preLoaderRoute: typeof AuthenticatedEliteGateEliteScheduleRouteImport
+      parentRoute: typeof AuthenticatedEliteGateRoute
+    }
+    '/_authenticated/_elite-gate/elite-circle': {
+      id: '/_authenticated/_elite-gate/elite-circle'
+      path: '/elite-circle'
+      fullPath: '/elite-circle'
+      preLoaderRoute: typeof AuthenticatedEliteGateEliteCircleRouteImport
+      parentRoute: typeof AuthenticatedEliteGateRoute
     }
     '/_authenticated/_admin/admin-analytics': {
       id: '/_authenticated/_admin/admin-analytics'
@@ -412,24 +426,40 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedEliteGateRouteChildren {
+  AuthenticatedEliteGateEliteCircleRoute: typeof AuthenticatedEliteGateEliteCircleRoute
+  AuthenticatedEliteGateEliteScheduleRoute: typeof AuthenticatedEliteGateEliteScheduleRoute
+}
+
+const AuthenticatedEliteGateRouteChildren: AuthenticatedEliteGateRouteChildren =
+  {
+    AuthenticatedEliteGateEliteCircleRoute:
+      AuthenticatedEliteGateEliteCircleRoute,
+    AuthenticatedEliteGateEliteScheduleRoute:
+      AuthenticatedEliteGateEliteScheduleRoute,
+  }
+
+const AuthenticatedEliteGateRouteWithChildren =
+  AuthenticatedEliteGateRoute._addFileChildren(
+    AuthenticatedEliteGateRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedEliteGateRoute: typeof AuthenticatedEliteGateRouteWithChildren
   AuthenticatedCoachRoute: typeof AuthenticatedCoachRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEliteRoute: typeof AuthenticatedEliteRoute
-  AuthenticatedEliteCircleRoute: typeof AuthenticatedEliteCircleRoute
-  AuthenticatedEliteScheduleRoute: typeof AuthenticatedEliteScheduleRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedEliteGateRoute: AuthenticatedEliteGateRouteWithChildren,
   AuthenticatedCoachRoute: AuthenticatedCoachRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEliteRoute: AuthenticatedEliteRoute,
-  AuthenticatedEliteCircleRoute: AuthenticatedEliteCircleRoute,
-  AuthenticatedEliteScheduleRoute: AuthenticatedEliteScheduleRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
 }

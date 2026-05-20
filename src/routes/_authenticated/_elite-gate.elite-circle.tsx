@@ -13,34 +13,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crown, MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react";
+import { MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { EliteSubNav } from "@/components/EliteSubNav";
 
-export const Route = createFileRoute("/_authenticated/elite-circle")({
+export const Route = createFileRoute("/_authenticated/_elite-gate/elite-circle")({
   head: () => ({ meta: [{ title: "Elite Circle Conversations — Prima Donna AI™" }] }),
   component: EliteCircleBoard,
 });
 
 function EliteCircleBoard() {
-  const { tier, isAdmin, user } = useAuth();
-  const allowed = tier === "elite" || isAdmin;
-
-  if (!allowed) {
-    return (
-      <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-        <Crown className="size-10 text-primary mx-auto" />
-        <h1 className="font-display text-4xl mt-4">Elite Circle</h1>
-        <p className="mt-3 text-muted-foreground">
-          The Conversations board is reserved for Elite Circle members.
-        </p>
-        <Button asChild className="mt-6 rounded-full">
-          <Link to="/elite">Apply to Elite Circle</Link>
-        </Button>
-      </div>
-    );
-  }
-
+  const { user } = useAuth();
   return <Board userId={user?.id} />;
 }
 

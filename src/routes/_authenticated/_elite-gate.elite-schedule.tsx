@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
@@ -19,27 +19,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Crown, Calendar, ExternalLink } from "lucide-react";
+import { Calendar, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { EliteSubNav } from "@/components/EliteSubNav";
 
-export const Route = createFileRoute("/_authenticated/elite-schedule")({
+export const Route = createFileRoute("/_authenticated/_elite-gate/elite-schedule")({
   head: () => ({ meta: [{ title: "Schedule with Raven — Prima Donna AI™" }] }),
   component: EliteSchedule,
 });
 
 function EliteSchedule() {
-  const { tier, isAdmin } = useAuth();
-  if (!(tier === "elite" || isAdmin)) {
-    return (
-      <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-        <Crown className="size-10 text-primary mx-auto" />
-        <h1 className="font-display text-4xl mt-4">Elite Scheduling</h1>
-        <p className="mt-3 text-muted-foreground">Booking Raven 1:1 is reserved for Elite Circle members.</p>
-        <Button asChild className="mt-6 rounded-full"><Link to="/elite">Apply to Elite Circle</Link></Button>
-      </div>
-    );
-  }
   return <Scheduler />;
 }
 
