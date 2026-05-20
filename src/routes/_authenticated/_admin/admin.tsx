@@ -284,6 +284,10 @@ function Admin() {
           )}
         </div>
       </section>
+
+      <section className="mt-10">
+        <RavenVideosAdmin />
+      </section>
     </div>
   );
 }
