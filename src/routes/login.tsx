@@ -70,7 +70,12 @@ function Login() {
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <button type="button" onClick={handleForgot} disabled={resetting} className="text-xs text-primary underline underline-offset-4 disabled:opacity-50">
+                {resetting ? "Sending…" : "Forgot password?"}
+              </button>
+            </div>
             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <Button type="submit" className="w-full rounded-full h-11" disabled={loading}>
