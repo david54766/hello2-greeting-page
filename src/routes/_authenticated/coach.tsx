@@ -4,12 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
 import { synthesizeSpeech } from "@/lib/tts.functions";
+import { transcribeAudio } from "@/lib/stt.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Copy, History, Volume2, Square } from "lucide-react";
+import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
@@ -37,8 +38,70 @@ function Coach() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const run = useServerFn(runCoaching);
   const tts = useServerFn(synthesizeSpeech);
+  const stt = useServerFn(transcribeAudio);
   const historyFn = useServerFn(getCoachingHistory);
   const qc = useQueryClient();
+
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    if (recording || transcribing) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "";
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+        if (blob.size < 1000) {
+          setRecording(false);
+          return toast.error("Recording too short.");
+        }
+        setTranscribing(true);
+        try {
+          const buf = await blob.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          let bin = "";
+          const CHUNK = 0x8000;
+          for (let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+          const b64 = btoa(bin);
+          const result = await stt({ data: { audioBase64: b64, mimeType: mr.mimeType || "audio/webm" } });
+          if (result.error || !result.text) {
+            toast.error(result.error || "Could not transcribe.");
+          } else {
+            setPrompt((prev) => (prev ? prev.trimEnd() + " " + result.text : result.text!));
+            toast.success("Transcribed.");
+          }
+        } catch (e: any) {
+          toast.error(e?.message ?? "Transcription failed");
+        } finally {
+          setTranscribing(false);
+          setRecording(false);
+        }
+      };
+      recorderRef.current = mr;
+      mr.start();
+      setRecording(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Microphone unavailable");
+      setRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
+    }
+  };
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -149,8 +212,23 @@ function Coach() {
             rows={5}
             className="text-base"
           />
-          <div className="mt-3 flex justify-end">
-            <Button onClick={submit} disabled={loading || prompt.trim().length < 3} className="rounded-full px-6">
+          <div className="mt-3 flex justify-between items-center gap-3">
+            <Button
+              type="button"
+              variant={recording ? "destructive" : "outline"}
+              onClick={recording ? stopRecording : startRecording}
+              disabled={transcribing || loading}
+              className="rounded-full"
+            >
+              {transcribing ? (
+                <><Loader2 className="size-4 animate-spin mr-2" /> Transcribing…</>
+              ) : recording ? (
+                <><MicOff className="size-4 mr-2" /> Stop & transcribe</>
+              ) : (
+                <><Mic className="size-4 mr-2" /> Speak your question</>
+              )}
+            </Button>
+            <Button onClick={submit} disabled={loading || recording || transcribing || prompt.trim().length < 3} className="rounded-full px-6">
               {loading ? <><Loader2 className="size-4 animate-spin mr-2" /> Thinking</> : "Get the move"}
             </Button>
           </div>
