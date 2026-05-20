@@ -81,11 +81,8 @@ function Settings() {
 
       <form onSubmit={save} className="mt-8 grid sm:grid-cols-2 gap-5">
         <Field label="Your name"><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></Field>
-        <Field label="Center name"><Input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} /></Field>
+        <Field label="Business name"><Input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} placeholder="Your company or brand" /></Field>
         <Field label="State"><Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} placeholder="e.g. TX" /></Field>
-        <Field label="Enrollment count"><Input type="number" value={form.enrollment_size} onChange={(e) => setForm({ ...form, enrollment_size: e.target.value })} /></Field>
-        <Field label="Tuition range"><Input value={form.tuition_range} onChange={(e) => setForm({ ...form, tuition_range: e.target.value })} placeholder="e.g. $1200-1800/mo" /></Field>
-        <Field label="Staff count"><Input type="number" value={form.staff_count} onChange={(e) => setForm({ ...form, staff_count: e.target.value })} /></Field>
         <Field label="Timezone (for daily AI brief)">
           <select
             value={form.timezone}
