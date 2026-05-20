@@ -1,55 +1,34 @@
-# Revenue Mode Setup Wizard
+## 1. Density toggle on the Schedule page
 
-Add a guided onboarding wizard that fires the first time a user enters **Revenue** mode in the Coaching Engine. It pulls in the user's business profile + registered centers, fills any missing revenue-relevant gaps, captures goals, and saves a **Revenue Profile** that primes every future Revenue coaching response. Users can re-scope (all centers vs. one) at any time and reset the whole thing.
+File: `src/routes/_authenticated/_elite-gate.elite-schedule.tsx`
 
-## User Flow
+- Add a small segmented control in the header (next to the timezone line): `Comfortable` / `Compact`.
+- Persist the choice in `localStorage` under `elite-schedule-density` so it sticks across visits.
+- Drive layout from the choice:
+  - **Comfortable** (default): current 3‑column day‑card grid, current chip size, current paddings.
+  - **Compact**: 4 columns on `lg`, smaller card padding (`p-2`), tighter chip padding (`px-2 py-0.5`), `gap-1` between chips, smaller day heading.
+- Upcoming‑session row and dialog are untouched.
 
-1. User clicks **Revenue** mode in `/coach`.
-2. If no `revenue_profile` row exists → wizard dialog opens automatically (cannot be dismissed without "Skip for now").
-3. After completion, Revenue mode shows a compact **scope bar** above the prompt box:
-   - Scope: `All Centers (3)` ▼  ·  Goal: `Grow tuition revenue 20%`  ·  `Edit` `Reset`
-4. Subsequent Revenue questions inject the saved profile + active scope into the system prompt.
+## 2. Remove the standalone 1:1 request form
 
-## Wizard Steps (single dialog, stepper)
+File: `src/routes/_authenticated/elite.tsx`
 
-1. **Scope** — Analyze *all centers as a portfolio* or *one specific center*? (radio + center picker if applicable; if user has 0 centers, prompt them to add one in Settings first.)
-2. **Current snapshot** (per scope) — pre-filled from `centers` / `profiles`, editable:
-   - Capacity, current enrollment, waitlist size
-   - Tuition range / average weekly tuition
-   - Collection rate (%), past-due AR
-3. **Revenue model** — tuition structure (weekly/monthly), sibling discounts, registration fees, subsidy/voucher mix (%), ancillary revenue (camps, late fees, etc.).
-4. **Goals & constraints** — 6-month revenue goal ($ or %), willingness to raise tuition, hiring/staffing constraints, target margin.
-5. **Review** — summary + save.
+- Delete the **"Request a 1:1 strategy session"** `<section>` (the `submitEliteRequest` form) and the **"Your requests"** list that pairs with it.
+- Remove the now‑unused imports/state: `submitEliteRequest`, `getMyEliteRequests`, the `topic` / `times` / `submitting` state, the `submit` handler, and the `myReqs` query.
+- The two link tiles at the top (Conversations + Schedule with Raven) remain — Schedule is the single canonical booking path.
 
-Each step validates before "Next". "Back" preserves entries. "Skip for now" stores a stub `{ skipped: true }` so wizard doesn't re-open every visit but a yellow banner reminds the user to complete it.
+## 3. Curated Vault picks on the Elite landing page
 
-## Scope Switching & Reset
+File: `src/routes/_authenticated/elite.tsx` (replaces the current "Circle Vault" stub section)
 
-- **Scope dropdown** on the Revenue tab lets user flip between *Portfolio* and any individual center on the fly. Selected scope is persisted per user.
-- **Edit** reopens the wizard pre-filled.
-- **Reset** (with confirm dialog) deletes the `revenue_profile` row + scope preference; next Revenue click re-runs the wizard from scratch.
+- Query Supabase directly (same pattern as `templates.tsx`):
+  `supabase.from("templates").select("id,title,description,category,storage_path").eq("tier_required","elite").order("created_at", { ascending: false }).limit(6)`.
+- Render a 3‑column responsive grid of compact cards, each showing category, title, one‑line description, and a **Download** button that uses `supabase.storage.from("templates").createSignedUrl(path, 60)` — same helper used in the Template Vault page.
+- Section heading: "Curated for the Circle" with a "View full vault" link to `/templates`.
+- Empty / loading states: skeleton row while loading; if zero rows, show "New Circle‑only drops land here weekly." with the link to the full vault.
 
-## Coaching Prompt Integration
+## Technical notes
 
-In `src/lib/coaching.functions.ts`, when `mode === "revenue"`:
-- Load `revenue_profile` for the user.
-- Resolve active scope → either aggregated portfolio metrics or single-center metrics.
-- Append a `REVENUE CONTEXT` block to the system prompt: snapshot numbers, revenue model, goals, constraints, and explicit instruction "Tailor diagnosis, impact, and action steps to these numbers."
-- If no profile exists, return a structured nudge response asking the user to complete the wizard (with no LLM call).
-
-## Technical Details
-
-**New table** `revenue_profiles`:
-- `user_id` (unique), `scope_mode` ('portfolio' | 'center'), `active_center_id` (nullable FK-ish uuid), `snapshot` jsonb, `model` jsonb, `goals` jsonb, `skipped` boolean, `created_at`, `updated_at`
-- RLS: users CRUD own row; admins read-all.
-
-**New files**
-- `src/lib/revenue-profile.functions.ts` — `getRevenueProfile`, `upsertRevenueProfile`, `resetRevenueProfile`, `setRevenueScope` server functions.
-- `src/components/coach/RevenueWizard.tsx` — multi-step dialog (uses existing `Dialog`, `Input`, `Select`, `RadioGroup`).
-- `src/components/coach/RevenueScopeBar.tsx` — compact scope/edit/reset bar shown only when Revenue mode is active.
-
-**Edits**
-- `src/routes/_authenticated/coach.tsx` — on mode change to `revenue`, query profile; auto-open wizard if missing; render `RevenueScopeBar` above prompt.
-- `src/lib/coaching.functions.ts` — inject Revenue context block into system prompt when applicable.
-
-No changes to other coaching modes, no UI changes outside the Revenue tab.
+- No DB changes — `templates.tier_required = 'elite'` already exists and is used by the Template Vault.
+- Density toggle is purely visual, no schema or server impact.
+- Removing the 1:1 form doesn't touch `elite_requests` data or `submitEliteRequest` server fn (admins may still review historical rows); we just stop exposing the entry point.
