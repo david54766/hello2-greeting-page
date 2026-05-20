@@ -447,6 +447,34 @@ export function RavenVideosAdmin() {
           </div>
         ))}
       </div>
+
+      <Dialog open={!!previewRow} onOpenChange={(o) => !o && setPreviewRow(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle className="font-display text-lg">{previewRow?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="p-6 pt-4 flex flex-col items-center">
+            <div className="aspect-[9/16] w-full max-w-[320px] bg-black rounded-lg overflow-hidden">
+              {previewUrl ? (
+                <video
+                  key={previewUrl}
+                  src={previewUrl}
+                  poster={previewRow ? thumbUrls[previewRow.id] : undefined}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">Loading…</div>
+              )}
+            </div>
+            {previewRow?.description && (
+              <p className="mt-3 text-sm text-muted-foreground text-center whitespace-pre-wrap">{previewRow.description}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
