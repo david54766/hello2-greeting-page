@@ -29,13 +29,14 @@ export const synthesizeSpeech = createServerFn({ method: "POST" })
           },
           body: JSON.stringify({
             text: data.text,
-            model_id: "eleven_turbo_v2_5",
-            voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true },
+            model_id: "eleven_multilingual_v2",
+            voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.2, use_speaker_boost: true },
           }),
         }
       );
       if (!res.ok) {
         const errText = await res.text();
+        console.error("ElevenLabs TTS error:", res.status, errText.slice(0, 300));
         return { audio: null, error: errText.slice(0, 200) || `TTS failed (${res.status})` };
       }
       const buf = await res.arrayBuffer();
