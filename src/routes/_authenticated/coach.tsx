@@ -468,12 +468,12 @@ function Coach() {
                   variant="ghost"
                   size="sm"
                   onClick={handleGenerateImage}
-                  disabled={imageLoading || (quotaQ.data?.remaining ?? 1) <= 0}
-                  title={quotaQ.data ? `${quotaQ.data.remaining}/${quotaQ.data.limit} visuals left today` : "Generate visual example"}
+                  disabled={imageLoading}
+                  title="Generate a visual example when it helps clarify the strategic move"
                 >
                   {imageLoading
                     ? <><Loader2 className="size-3 mr-2 animate-spin" /> Generating…</>
-                    : <><ImageIcon className="size-3 mr-2" /> Visual example {quotaQ.data ? `(${quotaQ.data.remaining}/${quotaQ.data.limit})` : ""}</>}
+                    : <><ImageIcon className="size-3 mr-2" /> Visual example</>}
                 </Button>
               </div>
             </div>
