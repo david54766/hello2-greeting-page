@@ -47,6 +47,15 @@ function Scheduler() {
   const [chosen, setChosen] = useState<{ starts_at: string; ends_at: string } | null>(null);
   const [topic, setTopic] = useState("");
   const [busy, setBusy] = useState(false);
+  const [density, setDensity] = useState<"comfortable" | "compact">(() => {
+    if (typeof window === "undefined") return "comfortable";
+    return (window.localStorage.getItem("elite-schedule-density") as any) === "compact" ? "compact" : "comfortable";
+  });
+  const setDensityPersist = (d: "comfortable" | "compact") => {
+    setDensity(d);
+    try { window.localStorage.setItem("elite-schedule-density", d); } catch {}
+  };
+  const isCompact = density === "compact";
 
   const grouped = useMemo(() => {
     const tz = slots.data?.timezone ?? "America/New_York";
@@ -97,7 +106,23 @@ function Scheduler() {
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Elite Circle</p>
           <h1 className="mt-1 font-display text-3xl">Schedule with Raven</h1>
         </div>
-        <p className="text-xs text-muted-foreground">Times shown in {tz}</p>
+        <div className="flex items-center gap-3">
+          <div className="inline-flex rounded-full border border-border p-0.5 text-[11px]">
+            <button
+              onClick={() => setDensityPersist("comfortable")}
+              className={`px-2.5 py-1 rounded-full transition ${!isCompact ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Comfortable
+            </button>
+            <button
+              onClick={() => setDensityPersist("compact")}
+              className={`px-2.5 py-1 rounded-full transition ${isCompact ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Compact
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">{tz}</p>
+        </div>
       </header>
 
       {upcoming.length > 0 && (
@@ -134,16 +159,16 @@ function Scheduler() {
         {!slots.isLoading && grouped.length === 0 && (
           <p className="mt-4 text-sm text-muted-foreground">No open slots available right now.</p>
         )}
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`mt-4 grid gap-3 sm:grid-cols-2 ${isCompact ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
           {grouped.map(([day, items]) => (
-            <div key={day} className="rounded-lg border border-border bg-card/50 p-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{day}</h3>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+            <div key={day} className={`rounded-lg border border-border bg-card/50 ${isCompact ? "p-2" : "p-3"}`}>
+              <h3 className={`font-semibold uppercase tracking-wider text-muted-foreground ${isCompact ? "text-[10px]" : "text-xs"}`}>{day}</h3>
+              <div className={`flex flex-wrap ${isCompact ? "mt-1.5 gap-1" : "mt-2 gap-1.5"}`}>
                 {items.map((s) => (
                   <button
                     key={s.starts_at}
                     onClick={() => setChosen(s)}
-                    className="rounded-md border border-border bg-background px-2.5 py-1 text-xs hover:border-primary hover:text-primary transition"
+                    className={`rounded-md border border-border bg-background hover:border-primary hover:text-primary transition ${isCompact ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs"}`}
                   >
                     {new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(s.starts_at))}
                   </button>
