@@ -381,11 +381,12 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
             {step === 3 && (
               <div className="space-y-4">
                 <div>
-                  <Label>6-month revenue goal</Label>
-                  <Input value={goals.revenue_goal ?? ""} onChange={(e) => setGoals({ ...goals, revenue_goal: e.target.value })} placeholder="e.g. +20% or $1.2M ARR" />
+                  <Label>6-month revenue goal *</Label>
+                  <Input maxLength={200} value={goals.revenue_goal ?? ""} aria-invalid={!!errors.revenue_goal} className={errors.revenue_goal ? "border-destructive" : ""} onChange={(e) => setGoals({ ...goals, revenue_goal: e.target.value })} placeholder="e.g. +20% or $1.2M ARR" />
+                  <FieldError msg={errors.revenue_goal} />
                 </div>
                 <div>
-                  <Label>Open to raising tuition?</Label>
+                  <Label>Open to raising tuition? *</Label>
                   <RadioGroup value={goals.raise_tuition ?? ""} onValueChange={(v) => setGoals({ ...goals, raise_tuition: v })} className="flex gap-4">
                     {["yes", "maybe", "no"].map((v) => (
                       <label key={v} className="flex items-center gap-2 cursor-pointer">
@@ -394,12 +395,14 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
                       </label>
                     ))}
                   </RadioGroup>
+                  <FieldError msg={errors.raise_tuition} />
                 </div>
                 <div>
                   <Label>Hiring / staffing constraints</Label>
-                  <Textarea rows={2} value={goals.staffing_constraints ?? ""} onChange={(e) => setGoals({ ...goals, staffing_constraints: e.target.value })} placeholder="e.g. Can't hire another lead teacher right now." />
+                  <Textarea rows={2} maxLength={1000} value={goals.staffing_constraints ?? ""} onChange={(e) => setGoals({ ...goals, staffing_constraints: e.target.value })} placeholder="e.g. Can't hire another lead teacher right now." />
+                  <FieldError msg={errors.staffing_constraints} />
                 </div>
-                <NumberField label="Target operating margin (%)" value={goals.target_margin} onChange={(v) => setGoals({ ...goals, target_margin: v })} />
+                <NumberField label="Target operating margin (%)" max={100} error={errors.target_margin} value={goals.target_margin} onChange={(v) => setGoals({ ...goals, target_margin: v })} />
               </div>
             )}
 
