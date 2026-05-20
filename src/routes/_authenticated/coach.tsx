@@ -26,7 +26,27 @@ const MODES = [
 ];
 
 type Mode = (typeof MODES)[number]["id"];
-type Resp = { insight: string; recommendation: string; action_steps: string[] };
+type Resp = {
+  diagnosis: string;
+  impact: string;
+  strategic_move: string;
+  elevation: string;
+  action_steps: string[];
+  // legacy fields for older sessions
+  insight?: string;
+  recommendation?: string;
+};
+
+function normalizeResp(r: any): Resp {
+  if (!r) return { diagnosis: "", impact: "", strategic_move: "", elevation: "", action_steps: [] };
+  return {
+    diagnosis: r.diagnosis ?? r.insight ?? "",
+    impact: r.impact ?? "",
+    strategic_move: r.strategic_move ?? r.recommendation ?? "",
+    elevation: r.elevation ?? "",
+    action_steps: Array.isArray(r.action_steps) ? r.action_steps : [],
+  };
+}
 
 function Coach() {
   const { tier, user } = useAuth();
