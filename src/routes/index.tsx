@@ -149,12 +149,7 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-border/60 px-6 py-10">
-        <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <img src={logoImg} alt="The Preschool Prima Donna" width={56} height={56} className="h-10 sm:h-12 md:h-14 w-auto aspect-square" />
-          <div>© {new Date().getFullYear()} — Strategy for women who run rooms full of futures.</div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
