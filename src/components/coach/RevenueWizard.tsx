@@ -236,6 +236,7 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
       setErrors({});
     }
     setSaving(true);
+    setSaveError(null);
     try {
       const res = await save({
         data: {
@@ -248,12 +249,18 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
         },
       });
       if (!res.ok) {
-        toast.error(res.error || "Could not save");
+        const msg = res.error || "Could not save revenue profile.";
+        setSaveError(msg);
+        toast.error(msg);
         return;
       }
       toast.success(markSkipped ? "Setup skipped — you can complete it anytime." : "Revenue profile saved.");
       onSaved();
       onOpenChange(false);
+    } catch (err: any) {
+      const msg = err?.message || "Network error while saving. Please try again.";
+      setSaveError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
