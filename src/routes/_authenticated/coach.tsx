@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
 import { createScribeToken } from "@/lib/stt.functions";
+import { generateCoachImage, getImageQuota } from "@/lib/coach-image.functions";
 import { getRevenueProfile } from "@/lib/revenue-profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { RevenueWizard } from "@/components/coach/RevenueWizard";
@@ -15,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2, ArrowLeft, ImageIcon, X } from "lucide-react";
 import { exportCoachingPlanPDF } from "@/lib/export-pdf";
 import {
   AlertDialog,
@@ -85,7 +86,43 @@ function Coach() {
   const mintScribeToken = useServerFn(createScribeToken);
   const historyFn = useServerFn(getCoachingHistory);
   const fetchRevenueProfile = useServerFn(getRevenueProfile);
+  const generateImage = useServerFn(generateCoachImage);
+  const fetchImageQuota = useServerFn(getImageQuota);
   const qc = useQueryClient();
+
+  // ---------- Visual example generator ----------
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const quotaQ = useQuery({
+    queryKey: ["coach-image-quota", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchImageQuota(),
+  });
+  const handleGenerateImage = async () => {
+    const seed = (prompt || response?.strategic_move || "").trim();
+    if (seed.length < 4) {
+      toast.error("Type a question or run a session first so I know what to visualize.");
+      return;
+    }
+    setImageLoading(true);
+    setImageUrl(null);
+    try {
+      const visualPrompt = response
+        ? `Based on this childcare business coaching context: "${seed}". Generate a clean branded visual example that illustrates the strategic move: "${response.strategic_move}".`
+        : `Generate a clean branded childcare business visual example for: "${seed}".`;
+      const res = await generateImage({ data: { prompt: visualPrompt } });
+      if (res.error) {
+        toast.error(res.error);
+      } else if (res.image) {
+        setImageUrl(res.image);
+        qc.invalidateQueries({ queryKey: ["coach-image-quota", user?.id] });
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Image generation failed.");
+    } finally {
+      setImageLoading(false);
+    }
+  };
 
   // ---------- Revenue setup wizard ----------
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -434,6 +471,17 @@ function Coach() {
                 <Button variant="ghost" size="sm" onClick={() => exportCoachingPlanPDF(prompt, mode, response, { printFriendly: true })}>
                   <Printer className="size-3 mr-2" /> Print-friendly PDF
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateImage}
+                  disabled={imageLoading || (quotaQ.data?.remaining ?? 1) <= 0}
+                  title={quotaQ.data ? `${quotaQ.data.remaining}/${quotaQ.data.limit} visuals left today` : "Generate visual example"}
+                >
+                  {imageLoading
+                    ? <><Loader2 className="size-3 mr-2 animate-spin" /> Generating…</>
+                    : <><ImageIcon className="size-3 mr-2" /> Visual example {quotaQ.data ? `(${quotaQ.data.remaining}/${quotaQ.data.limit})` : ""}</>}
+                </Button>
               </div>
             </div>
             <Section label="Diagnosis">{response.diagnosis}</Section>
@@ -451,6 +499,32 @@ function Coach() {
                 ))}
               </ol>
             </div>
+            {(imageLoading || imageUrl) && (
+              <div className="mt-6 rounded-xl border border-border/60 bg-background p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-xs uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                    <ImageIcon className="size-3" /> Visual example
+                  </div>
+                  {imageUrl && (
+                    <div className="flex items-center gap-1">
+                      <a href={imageUrl} download="prima-donna-visual.png" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2">
+                        <Download className="size-3" /> Save
+                      </a>
+                      <Button variant="ghost" size="sm" onClick={() => setImageUrl(null)} title="Dismiss">
+                        <X className="size-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {imageLoading ? (
+                  <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin mr-2" /> Rendering visual…
+                  </div>
+                ) : imageUrl ? (
+                  <img src={imageUrl} alt="AI-generated visual example" className="w-full rounded-lg" />
+                ) : null}
+              </div>
+            )}
           </article>
         )}
       </div>
