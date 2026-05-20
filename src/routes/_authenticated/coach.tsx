@@ -366,6 +366,9 @@ function Coach() {
                 <Button variant="ghost" size="sm" onClick={() => exportCoachingPlanPDF(prompt, mode, response)}>
                   <Download className="size-3 mr-2" /> Export PDF
                 </Button>
+                <Button variant="ghost" size="sm" onClick={() => exportCoachingPlanPDF(prompt, mode, response, { printFriendly: true })}>
+                  <Printer className="size-3 mr-2" /> Print-friendly PDF
+                </Button>
               </div>
             </div>
             <Section label="Diagnosis">{response.diagnosis}</Section>
