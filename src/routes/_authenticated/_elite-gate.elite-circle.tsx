@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crown, MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react";
+import { MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { EliteSubNav } from "@/components/EliteSubNav";
 
