@@ -71,7 +71,8 @@ function normalizeResp(r: any): Resp {
 
 function Coach() {
   const { tier, user } = useAuth();
-  const [mode, setMode] = useState<Mode>("ceo");
+  const { mode: initialMode } = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(initialMode ?? "ceo");
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<Resp | null>(null);
