@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff } from "lucide-react";
+import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download } from "lucide-react";
+import { exportCoachingPlanPDF } from "@/lib/export-pdf";
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
@@ -292,6 +293,9 @@ function Coach() {
                 )}
                 <Button variant="ghost" size="sm" onClick={copyPlan}>
                   <Copy className="size-3 mr-2" /> Copy plan
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => exportCoachingPlanPDF(prompt, mode, response)}>
+                  <Download className="size-3 mr-2" /> Export PDF
                 </Button>
               </div>
             </div>
