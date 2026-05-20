@@ -133,9 +133,14 @@ function Admin() {
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Admin</p>
           <h1 className="mt-2 font-display text-4xl">Platform overview</h1>
         </div>
-        <Link to="/admin-analytics" className="text-sm rounded-md border border-border px-3 py-1.5 hover:bg-muted">
-          View analytics →
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/admin-cookie-log" className="text-sm rounded-md border border-border px-3 py-1.5 hover:bg-muted">
+            Cookie log →
+          </Link>
+          <Link to="/admin-analytics" className="text-sm rounded-md border border-border px-3 py-1.5 hover:bg-muted">
+            View analytics →
+          </Link>
+        </div>
       </div>
 
       <section className="mt-10 grid sm:grid-cols-4 gap-4">
