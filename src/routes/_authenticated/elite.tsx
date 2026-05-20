@@ -8,6 +8,7 @@ import {
   submitEliteApplication,
   getMyEliteApplication,
 } from "@/lib/elite-application.functions";
+import { checkEliteAccess } from "@/lib/elite-access.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
