@@ -38,8 +38,66 @@ function Coach() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const run = useServerFn(runCoaching);
   const tts = useServerFn(synthesizeSpeech);
+  const stt = useServerFn(transcribeAudio);
   const historyFn = useServerFn(getCoachingHistory);
   const qc = useQueryClient();
+
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    if (recording || transcribing) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "";
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+        if (blob.size < 1000) {
+          setRecording(false);
+          return toast.error("Recording too short.");
+        }
+        setTranscribing(true);
+        try {
+          const buf = await blob.arrayBuffer();
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          const result = await stt({ data: { audioBase64: b64, mimeType: mr.mimeType || "audio/webm" } });
+          if (result.error || !result.text) {
+            toast.error(result.error || "Could not transcribe.");
+          } else {
+            setPrompt((prev) => (prev ? prev.trimEnd() + " " + result.text : result.text!));
+            toast.success("Transcribed.");
+          }
+        } catch (e: any) {
+          toast.error(e?.message ?? "Transcription failed");
+        } finally {
+          setTranscribing(false);
+          setRecording(false);
+        }
+      };
+      recorderRef.current = mr;
+      mr.start();
+      setRecording(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Microphone unavailable");
+      setRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
+    }
+  };
 
   const stopAudio = () => {
     if (audioRef.current) {
