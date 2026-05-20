@@ -84,21 +84,21 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
               ))}
             </ul>
           </aside>
-          <div className="p-6 bg-card">
+          <div className="p-6 bg-card flex flex-col items-center">
             {selected ? (
               <>
-                <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                <div className="aspect-[9/16] w-full max-w-[320px] bg-black rounded-lg overflow-hidden">
                   {signedUrl ? (
-                    <video key={signedUrl} src={signedUrl} controls autoPlay className="w-full h-full" />
+                    <video key={signedUrl} src={signedUrl} controls autoPlay playsInline className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">Loading video…</div>
                   )}
                 </div>
-                <h3 className="mt-4 font-display text-xl">{selected.title}</h3>
-                {selected.description && <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{selected.description}</p>}
+                <h3 className="mt-4 font-display text-xl text-center">{selected.title}</h3>
+                {selected.description && <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap text-center max-w-md">{selected.description}</p>}
               </>
             ) : (
-              <div className="aspect-video bg-muted rounded-lg grid place-items-center text-muted-foreground">
+              <div className="aspect-[9/16] w-full max-w-[320px] bg-muted rounded-lg grid place-items-center text-muted-foreground text-sm">
                 Select a video to play
               </div>
             )}
