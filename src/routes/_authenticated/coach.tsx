@@ -5,7 +5,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
 import { createScribeToken } from "@/lib/stt.functions";
+import { getRevenueProfile } from "@/lib/revenue-profile.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { RevenueWizard } from "@/components/coach/RevenueWizard";
+import { RevenueScopeBar } from "@/components/coach/RevenueScopeBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -75,7 +78,26 @@ function Coach() {
   const run = useServerFn(runCoaching);
   const mintScribeToken = useServerFn(createScribeToken);
   const historyFn = useServerFn(getCoachingHistory);
+  const fetchRevenueProfile = useServerFn(getRevenueProfile);
   const qc = useQueryClient();
+
+  // ---------- Revenue setup wizard ----------
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const revenueProfileQ = useQuery({
+    queryKey: ["revenue-profile", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchRevenueProfile(),
+  });
+  const revenueProfile = revenueProfileQ.data?.profile;
+
+  useEffect(() => {
+    if (mode !== "revenue") return;
+    if (revenueProfileQ.isLoading) return;
+    if (!revenueProfile) setWizardOpen(true);
+  }, [mode, revenueProfile, revenueProfileQ.isLoading]);
+
+  const refreshRevenue = () =>
+    qc.invalidateQueries({ queryKey: ["revenue-profile", user?.id] });
 
   // ---------- Realtime STT (live dictation) ----------
   const [recording, setRecording] = useState(false);
@@ -324,10 +346,20 @@ function Coach() {
           {mode === "compliance" && " — answers are tailored to each center's state licensing rules."}
         </p>
 
+        {mode === "revenue" && revenueProfile && (
+          <RevenueScopeBar
+            profile={revenueProfile}
+            userId={user?.id}
+            onEdit={() => setWizardOpen(true)}
+            onChanged={refreshRevenue}
+          />
+        )}
+
         <div className="mt-6 flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2 w-fit">
           <Volume2 className="size-4 text-primary" />
           <span className="text-xs uppercase tracking-[0.2em]">Raven voice · always on</span>
         </div>
+
 
         <div className="mt-6">
           <Textarea
@@ -494,6 +526,14 @@ function Coach() {
           </AlertDialogContent>
         </AlertDialog>
       </aside>
+
+      <RevenueWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        initial={revenueProfile}
+        userId={user?.id}
+        onSaved={refreshRevenue}
+      />
     </div>
   );
 }

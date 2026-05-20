@@ -535,6 +535,45 @@ export type Database = {
         }
         Relationships: []
       }
+      revenue_profiles: {
+        Row: {
+          active_center_id: string | null
+          created_at: string
+          goals: Json
+          id: string
+          model: Json
+          scope_mode: string
+          skipped: boolean
+          snapshot: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_center_id?: string | null
+          created_at?: string
+          goals?: Json
+          id?: string
+          model?: Json
+          scope_mode?: string
+          skipped?: boolean
+          snapshot?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_center_id?: string | null
+          created_at?: string
+          goals?: Json
+          id?: string
+          model?: Json
+          scope_mode?: string
+          skipped?: boolean
+          snapshot?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
