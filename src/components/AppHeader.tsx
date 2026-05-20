@@ -10,10 +10,16 @@ export function AppHeader() {
   return (
     <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-40">
       <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="The Preschool Prima Donna" className="h-12 w-auto" />
+        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <img
+            src={logo}
+            alt="The Preschool Prima Donna"
+            width={48}
+            height={48}
+            className="h-9 sm:h-10 md:h-12 w-auto aspect-square"
+          />
           <span className="sr-only">Prima Donna AI</span>
-          <span className="font-display text-base text-primary -ml-1 self-end pb-2">AI™</span>
+          <span className="font-display text-sm sm:text-base text-primary -ml-1 self-end pb-1.5 sm:pb-2">AI™</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm">
           {user ? (
