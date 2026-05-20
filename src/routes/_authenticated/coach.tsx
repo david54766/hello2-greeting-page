@@ -69,7 +69,11 @@ function Coach() {
         setTranscribing(true);
         try {
           const buf = await blob.arrayBuffer();
-          const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          const bytes = new Uint8Array(buf);
+          let bin = "";
+          const CHUNK = 0x8000;
+          for (let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+          const b64 = btoa(bin);
           const result = await stt({ data: { audioBase64: b64, mimeType: mr.mimeType || "audio/webm" } });
           if (result.error || !result.text) {
             toast.error(result.error || "Could not transcribe.");
