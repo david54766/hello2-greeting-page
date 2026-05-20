@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
 import { createScribeToken } from "@/lib/stt.functions";
+import { generateCoachImage, getImageQuota } from "@/lib/coach-image.functions";
 import { getRevenueProfile } from "@/lib/revenue-profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { RevenueWizard } from "@/components/coach/RevenueWizard";
