@@ -18,6 +18,9 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 type Profile = {
   full_name: string | null;
   business_name: string | null;
+};
+
+type CenterAgg = {
   enrollment_size: number | null;
   tuition_range: string | null;
   staff_count: number | null;
@@ -26,19 +29,22 @@ type Profile = {
 function Dashboard() {
   const { user, tier } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [centers, setCenters] = useState<CenterAgg[]>([]);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const dailyFn = useServerFn(getTodayRecommendation);
   const daily = useQuery({ queryKey: ["daily", user?.id], queryFn: () => dailyFn(), enabled: !!user, staleTime: 60 * 60 * 1000 });
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("full_name,business_name,enrollment_size,tuition_range,staff_count").eq("id", user.id).maybeSingle().then(({ data }) => setProfile(data as Profile));
+    supabase.from("profiles").select("full_name,business_name").eq("id", user.id).maybeSingle().then(({ data }) => setProfile(data as Profile));
+    supabase.from("centers").select("enrollment_size,tuition_range,staff_count").eq("user_id", user.id).then(({ data }) => setCenters((data ?? []) as CenterAgg[]));
   }, [user]);
 
-  const enrollment = profile?.enrollment_size ?? 0;
-  const tuitionMid = parseTuition(profile?.tuition_range);
-  const monthlyRev = enrollment * tuitionMid;
-  const staff = profile?.staff_count ?? 0;
+  const enrollment = centers.reduce((sum, c) => sum + (c.enrollment_size ?? 0), 0);
+  const staff = centers.reduce((sum, c) => sum + (c.staff_count ?? 0), 0);
+  const tuitionMids = centers.map((c) => parseTuition(c.tuition_range)).filter((n) => n > 0);
+  const avgTuition = tuitionMids.length ? tuitionMids.reduce((a, b) => a + b, 0) / tuitionMids.length : 0;
+  const monthlyRev = Math.round(enrollment * avgTuition);
   const ratio = enrollment && staff ? (enrollment / staff).toFixed(1) : "—";
 
   return (
