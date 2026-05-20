@@ -331,16 +331,17 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
 
             {step === 1 && (
               <div className="grid grid-cols-2 gap-4">
-                <NumberField label="Capacity (seats)" value={snapshot.capacity} onChange={(v) => setSnapshot({ ...snapshot, capacity: v })} />
-                <NumberField label="Current enrollment" value={snapshot.enrollment} onChange={(v) => setSnapshot({ ...snapshot, enrollment: v })} />
-                <NumberField label="Waitlist size" value={snapshot.waitlist} onChange={(v) => setSnapshot({ ...snapshot, waitlist: v })} />
-                <NumberField label="Avg weekly tuition ($)" value={snapshot.avg_weekly_tuition} onChange={(v) => setSnapshot({ ...snapshot, avg_weekly_tuition: v })} />
+                <NumberField label="Capacity (seats) *" max={100000} error={errors.capacity} value={snapshot.capacity} onChange={(v) => setSnapshot({ ...snapshot, capacity: v })} />
+                <NumberField label="Current enrollment *" max={100000} error={errors.enrollment} value={snapshot.enrollment} onChange={(v) => setSnapshot({ ...snapshot, enrollment: v })} />
+                <NumberField label="Waitlist size" max={100000} error={errors.waitlist} value={snapshot.waitlist} onChange={(v) => setSnapshot({ ...snapshot, waitlist: v })} />
+                <NumberField label="Avg weekly tuition ($)" max={5000} error={errors.avg_weekly_tuition} value={snapshot.avg_weekly_tuition} onChange={(v) => setSnapshot({ ...snapshot, avg_weekly_tuition: v })} />
                 <div className="col-span-2">
                   <Label>Tuition range (optional)</Label>
-                  <Input value={snapshot.tuition_range ?? ""} onChange={(e) => setSnapshot({ ...snapshot, tuition_range: e.target.value })} placeholder="$280–$420/week" />
+                  <Input maxLength={120} value={snapshot.tuition_range ?? ""} onChange={(e) => setSnapshot({ ...snapshot, tuition_range: e.target.value })} placeholder="$280–$420/week" />
+                  <FieldError msg={errors.tuition_range} />
                 </div>
-                <NumberField label="Collection rate (%)" value={snapshot.collection_rate} onChange={(v) => setSnapshot({ ...snapshot, collection_rate: v })} />
-                <NumberField label="Past-due AR ($)" value={snapshot.past_due_ar} onChange={(v) => setSnapshot({ ...snapshot, past_due_ar: v })} />
+                <NumberField label="Collection rate (%)" max={100} error={errors.collection_rate} value={snapshot.collection_rate} onChange={(v) => setSnapshot({ ...snapshot, collection_rate: v })} />
+                <NumberField label="Past-due AR ($)" max={10_000_000} error={errors.past_due_ar} value={snapshot.past_due_ar} onChange={(v) => setSnapshot({ ...snapshot, past_due_ar: v })} />
               </div>
             )}
 
