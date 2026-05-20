@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,17 +18,35 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Calendar, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { EliteSubNav } from "@/components/EliteSubNav";
 
 export const Route = createFileRoute("/_authenticated/_elite-gate/elite-schedule")({
   head: () => ({ meta: [{ title: "Schedule with Raven — Prima Donna AI™" }] }),
-  component: EliteSchedule,
+  component: Scheduler,
 });
 
-function EliteSchedule() {
-  return <Scheduler />;
+type Slot = { starts_at: string; ends_at: string };
+type View = "week" | "day";
+
+function startOfWeek(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  const day = x.getDay(); // 0 = Sun
+  x.setDate(x.getDate() - day);
+  return x;
+}
+
+function addDays(d: Date, n: number) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function sameDayInTZ(a: Date, b: Date, tz: string) {
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+  return fmt.format(a) === fmt.format(b);
 }
 
 function Scheduler() {
@@ -44,32 +61,43 @@ function Scheduler() {
   const mine = useQuery({ queryKey: ["my-bookings"], queryFn: () => myFn() });
   const settings = useQuery({ queryKey: ["raven-settings"], queryFn: () => settingsFn() });
 
-  const [chosen, setChosen] = useState<{ starts_at: string; ends_at: string } | null>(null);
+  const tz = slots.data?.timezone ?? "America/New_York";
+
+  const [view, setView] = useState<View>("week");
+  const [cursor, setCursor] = useState<Date>(() => new Date());
+  const [chosen, setChosen] = useState<Slot | null>(null);
   const [topic, setTopic] = useState("");
   const [busy, setBusy] = useState(false);
-  const [density, setDensity] = useState<"comfortable" | "compact">(() => {
-    if (typeof window === "undefined") return "comfortable";
-    return (window.localStorage.getItem("elite-schedule-density") as any) === "compact" ? "compact" : "comfortable";
-  });
-  const setDensityPersist = (d: "comfortable" | "compact") => {
-    setDensity(d);
-    try { window.localStorage.setItem("elite-schedule-density", d); } catch {}
-  };
-  const isCompact = density === "compact";
 
-  const grouped = useMemo(() => {
-    const tz = slots.data?.timezone ?? "America/New_York";
-    const map = new Map<string, { starts_at: string; ends_at: string }[]>();
+  const weekStart = useMemo(() => startOfWeek(cursor), [cursor]);
+  const days = useMemo(
+    () => (view === "week" ? Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)) : [cursor]),
+    [view, weekStart, cursor]
+  );
+
+  const slotsByDay = useMemo(() => {
+    const map = new Map<string, Slot[]>();
+    const keyFmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
     (slots.data?.slots ?? []).forEach((s) => {
-      const key = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" }).format(new Date(s.starts_at));
-      const arr = map.get(key) ?? [];
+      const k = keyFmt.format(new Date(s.starts_at));
+      const arr = map.get(k) ?? [];
       arr.push(s);
-      map.set(key, arr);
+      map.set(k, arr);
     });
-    return Array.from(map.entries());
-  }, [slots.data]);
+    return { map, keyFmt };
+  }, [slots.data, tz]);
 
-  const tz = slots.data?.timezone ?? "America/New_York";
+  const rangeLabel = useMemo(() => {
+    if (view === "day") {
+      return new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" }).format(cursor);
+    }
+    const end = addDays(weekStart, 6);
+    const m = (d: Date) => new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short", day: "numeric" }).format(d);
+    return `${m(weekStart)} – ${m(end)}`;
+  }, [view, cursor, weekStart, tz]);
+
+  const step = (dir: -1 | 1) => setCursor((c) => addDays(c, view === "week" ? 7 * dir : dir));
+  const goToday = () => setCursor(new Date());
 
   const confirm = async () => {
     if (!chosen) return;
@@ -86,7 +114,6 @@ function Scheduler() {
 
   const cancel = async (id: string) => {
     if (!window.confirm("Cancel this booking?")) return;
-
     const r = await cancelFn({ data: { id } });
     if (!r.ok) return toast.error(r.message);
     toast.success("Booking cancelled.");
@@ -94,11 +121,14 @@ function Scheduler() {
     qc.invalidateQueries({ queryKey: ["raven-slots"] });
   };
 
-  const upcoming = (mine.data?.bookings ?? []).filter((b: any) => b.status === "booked" && new Date(b.starts_at).getTime() > Date.now());
+  const upcoming = (mine.data?.bookings ?? []).filter(
+    (b: any) => b.status === "booked" && new Date(b.starts_at).getTime() > Date.now()
+  );
   const roomUrl = settings.data?.settings.room_url || "";
+  const today = new Date();
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="mb-6"><EliteSubNav /></div>
 
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -106,28 +136,14 @@ function Scheduler() {
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Elite Circle</p>
           <h1 className="mt-1 font-display text-3xl">Schedule with Raven</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="inline-flex rounded-full border border-border p-0.5 text-[11px]">
-            <button
-              onClick={() => setDensityPersist("comfortable")}
-              className={`px-2.5 py-1 rounded-full transition ${!isCompact ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Comfortable
-            </button>
-            <button
-              onClick={() => setDensityPersist("compact")}
-              className={`px-2.5 py-1 rounded-full transition ${isCompact ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Compact
-            </button>
-          </div>
-          <p className="text-xs text-muted-foreground">{tz}</p>
-        </div>
+        <p className="text-xs text-muted-foreground">{tz}</p>
       </header>
 
       {upcoming.length > 0 && (
         <section className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">Your upcoming session{upcoming.length > 1 ? "s" : ""}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">
+            Your upcoming session{upcoming.length > 1 ? "s" : ""}
+          </h2>
           <ul className="mt-2 divide-y divide-primary/10">
             {upcoming.map((b: any) => (
               <li key={b.id} className="flex items-center justify-between gap-3 py-2 text-sm">
@@ -151,32 +167,79 @@ function Scheduler() {
         </section>
       )}
 
-      <section className="mt-8">
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          <Calendar className="size-4 text-primary" /> Open slots
-        </h2>
-        {slots.isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading availability…</p>}
-        {!slots.isLoading && grouped.length === 0 && (
-          <p className="mt-4 text-sm text-muted-foreground">No open slots available right now.</p>
-        )}
-        <div className={`mt-4 grid gap-3 sm:grid-cols-2 ${isCompact ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-          {grouped.map(([day, items]) => (
-            <div key={day} className={`rounded-lg border border-border bg-card/50 ${isCompact ? "p-2" : "p-3"}`}>
-              <h3 className={`font-semibold uppercase tracking-wider text-muted-foreground ${isCompact ? "text-[10px]" : "text-xs"}`}>{day}</h3>
-              <div className={`flex flex-wrap ${isCompact ? "mt-1.5 gap-1" : "mt-2 gap-1.5"}`}>
-                {items.map((s) => (
-                  <button
-                    key={s.starts_at}
-                    onClick={() => setChosen(s)}
-                    className={`rounded-md border border-border bg-background hover:border-primary hover:text-primary transition ${isCompact ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs"}`}
-                  >
-                    {new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(s.starts_at))}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+      {/* Calendar nav bar */}
+      <section className="mt-8 rounded-xl border border-border bg-card/40">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => step(-1)} className="h-8 w-8 p-0">
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={goToday} className="h-8 px-3 text-xs">Today</Button>
+            <Button variant="outline" size="sm" onClick={() => step(1)} className="h-8 w-8 p-0">
+              <ChevronRight className="size-4" />
+            </Button>
+            <div className="ml-2 text-sm font-medium">{rangeLabel}</div>
+          </div>
+          <div className="inline-flex rounded-full border border-border p-0.5 text-[11px]">
+            <button
+              onClick={() => setView("day")}
+              className={`px-3 py-1 rounded-full transition ${view === "day" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Day
+            </button>
+            <button
+              onClick={() => setView("week")}
+              className={`px-3 py-1 rounded-full transition ${view === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Week
+            </button>
+          </div>
         </div>
+
+        {slots.isLoading ? (
+          <p className="px-4 py-8 text-sm text-muted-foreground">Loading availability…</p>
+        ) : (
+          <div
+            className={`grid divide-x divide-border ${
+              view === "week" ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7" : "grid-cols-1"
+            }`}
+          >
+            {days.map((d) => {
+              const key = slotsByDay.keyFmt.format(d);
+              const dayItems = (slotsByDay.map.get(key) ?? []).sort(
+                (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+              );
+              const isToday = sameDayInTZ(d, today, tz);
+              return (
+                <div key={d.toISOString()} className="min-h-[120px] p-3">
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(d)}
+                    </div>
+                    <div className={`text-sm font-display ${isToday ? "text-primary" : ""}`}>
+                      {new Intl.DateTimeFormat("en-US", { timeZone: tz, day: "numeric" }).format(d)}
+                    </div>
+                  </div>
+                  {dayItems.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/70">—</p>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {dayItems.map((s) => (
+                        <button
+                          key={s.starts_at}
+                          onClick={() => setChosen(s)}
+                          className="w-full rounded-md border border-border bg-background px-2 py-1 text-left text-xs hover:border-primary hover:text-primary transition"
+                        >
+                          {new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(s.starts_at))}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <Dialog open={!!chosen} onOpenChange={(o) => { if (!o) { setChosen(null); setTopic(""); } }}>
