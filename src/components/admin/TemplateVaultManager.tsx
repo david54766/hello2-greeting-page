@@ -111,11 +111,14 @@ export function TemplateVaultManager() {
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
-  const saveEdit = async (id: string, patch: Partial<Tpl>) => {
+  const saveEdit = async (id: string, patch: Partial<Tpl>): Promise<void> => {
     const update = { ...patch } as any;
     if (update.tier_required) update.is_elite = update.tier_required === "elite";
     const { error } = await supabase.from("templates").update(update).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Updated.");
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...update } : i)));
   };
