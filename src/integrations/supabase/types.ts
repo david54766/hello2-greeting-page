@@ -268,6 +268,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_urls: string[]
           thread_id: string
           user_id: string
         }
@@ -275,6 +276,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          image_urls?: string[]
           thread_id: string
           user_id: string
         }
@@ -282,6 +284,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          image_urls?: string[]
           thread_id?: string
           user_id?: string
         }
@@ -300,6 +303,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_urls: string[]
           pinned: boolean
           title: string
           updated_at: string
@@ -309,6 +313,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          image_urls?: string[]
           pinned?: boolean
           title: string
           updated_at?: string
@@ -318,6 +323,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          image_urls?: string[]
           pinned?: boolean
           title?: string
           updated_at?: string
