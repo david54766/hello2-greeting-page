@@ -180,9 +180,10 @@ function Coach() {
       const result = await run({ data: { mode, prompt } });
       if (result.error) toast.error(result.error);
       else {
-        setResponse(result.response);
+        const normalized = normalizeResp(result.response);
+        setResponse(normalized);
         qc.invalidateQueries({ queryKey: ["coaching-history", user?.id] });
-        speak(result.response);
+        speak(normalized);
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Strategist unavailable");
@@ -193,14 +194,20 @@ function Coach() {
   const loadFromHistory = (s: any) => {
     setMode(s.mode);
     setPrompt(s.prompt);
-    setResponse(s.response as Resp);
+    setResponse(normalizeResp(s.response));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const copyPlan = () => {
     if (!response) return;
-    const text = `INSIGHT\n${response.insight}\n\nRECOMMENDATION\n${response.recommendation}\n\nACTION STEPS\n${response.action_steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
-    navigator.clipboard.writeText(text);
+    const parts = [
+      `DIAGNOSIS\n${response.diagnosis}`,
+      response.impact && `IMPACT\n${response.impact}`,
+      `STRATEGIC MOVE\n${response.strategic_move}`,
+      response.elevation && `ELEVATION\n${response.elevation}`,
+      `ACTION STEPS\n${response.action_steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`,
+    ].filter(Boolean);
+    navigator.clipboard.writeText(parts.join("\n\n"));
     toast.success("Action plan copied.");
   };
 
