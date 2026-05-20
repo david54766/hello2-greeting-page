@@ -53,8 +53,15 @@ function Dashboard() {
             {profile?.business_name ?? "Your center"} · <span className="capitalize text-primary">{tier} tier</span>
           </p>
         </div>
-        <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary">Update business profile →</Link>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => setInsightsOpen(true)} className="gap-2">
+            <Play className="size-4" /> Get daily insights from Raven
+          </Button>
+          <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary">Update business profile →</Link>
+        </div>
       </div>
+
+      <RavenInsightsDialog open={insightsOpen} onOpenChange={setInsightsOpen} />
 
       <div className="gold-divider mt-8" />
 
