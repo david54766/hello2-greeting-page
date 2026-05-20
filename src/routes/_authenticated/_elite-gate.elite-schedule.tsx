@@ -89,34 +89,36 @@ function Scheduler() {
   const roomUrl = settings.data?.settings.room_url || "";
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <div className="mx-auto max-w-5xl px-6 py-10">
       <div className="mb-6"><EliteSubNav /></div>
-      <div>
-        <p className="text-xs uppercase tracking-[0.25em] text-primary">Elite Circle</p>
-        <h1 className="mt-2 font-display text-4xl">Schedule with Raven</h1>
-        <p className="mt-2 text-muted-foreground">Pick an open slot. All times shown in {tz}.</p>
-      </div>
 
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-primary">Elite Circle</p>
+          <h1 className="mt-1 font-display text-3xl">Schedule with Raven</h1>
+        </div>
+        <p className="text-xs text-muted-foreground">Times shown in {tz}</p>
+      </header>
 
       {upcoming.length > 0 && (
-        <section className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
-          <h2 className="font-display text-xl">Your upcoming sessions</h2>
-          <ul className="mt-3 space-y-2">
+        <section className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-primary">Your upcoming session{upcoming.length > 1 ? "s" : ""}</h2>
+          <ul className="mt-2 divide-y divide-primary/10">
             {upcoming.map((b: any) => (
-              <li key={b.id} className="flex items-center justify-between gap-3 text-sm">
-                <div>
-                  <div className="font-medium">
-                    {new Intl.DateTimeFormat("en-US", { timeZone: tz, dateStyle: "full", timeStyle: "short" }).format(new Date(b.starts_at))}
+              <li key={b.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">
+                    {new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(b.starts_at))}
                   </div>
-                  {b.topic && <div className="text-xs text-muted-foreground mt-0.5">Topic: {b.topic}</div>}
+                  {b.topic && <div className="text-xs text-muted-foreground truncate">{b.topic}</div>}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 shrink-0">
                   {roomUrl && (
-                    <a href={roomUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                    <a href={roomUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline px-2">
                       Join <ExternalLink className="size-3" />
                     </a>
                   )}
-                  <Button size="sm" variant="ghost" onClick={() => cancel(b.id)}>Cancel</Button>
+                  <Button size="sm" variant="ghost" onClick={() => cancel(b.id)} className="h-7 px-2 text-xs">Cancel</Button>
                 </div>
               </li>
             ))}
@@ -124,24 +126,24 @@ function Scheduler() {
         </section>
       )}
 
-      <div className="gold-divider mt-10" />
-
       <section className="mt-8">
-        <h2 className="font-display text-2xl flex items-center gap-2"><Calendar className="size-5 text-primary" /> Open slots</h2>
+        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <Calendar className="size-4 text-primary" /> Open slots
+        </h2>
         {slots.isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading availability…</p>}
         {!slots.isLoading && grouped.length === 0 && (
           <p className="mt-4 text-sm text-muted-foreground">No open slots available right now.</p>
         )}
-        <div className="mt-6 space-y-6">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {grouped.map(([day, items]) => (
-            <div key={day}>
-              <h3 className="font-display text-lg text-muted-foreground">{day}</h3>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <div key={day} className="rounded-lg border border-border bg-card/50 p-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{day}</h3>
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {items.map((s) => (
                   <button
                     key={s.starts_at}
                     onClick={() => setChosen(s)}
-                    className="rounded-full border border-border bg-card px-4 py-2 text-sm hover:border-primary hover:text-primary transition"
+                    className="rounded-md border border-border bg-background px-2.5 py-1 text-xs hover:border-primary hover:text-primary transition"
                   >
                     {new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(s.starts_at))}
                   </button>
