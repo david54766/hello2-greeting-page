@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil, Trash2, Upload, Check, X, Image as ImageIcon, GripVertical } from "lucide-react";
+import { Pencil, Trash2, Upload, Check, X, Image as ImageIcon, GripVertical, Play } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Row = {
   id: string;
@@ -37,6 +38,8 @@ export function RavenVideosAdmin() {
   const [editCategory, setEditCategory] = useState("General");
   const [savingEdit, setSavingEdit] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [previewRow, setPreviewRow] = useState<Row | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const replaceThumbInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = async () => {
@@ -65,6 +68,17 @@ export function RavenVideosAdmin() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!previewRow) {
+      setPreviewUrl(null);
+      return;
+    }
+    supabase.storage
+      .from("raven-videos")
+      .createSignedUrl(previewRow.storage_path, 3600)
+      .then(({ data }) => setPreviewUrl(data?.signedUrl ?? null));
+  }, [previewRow]);
 
   const categories = useMemo(() => {
     const set = new Set<string>(DEFAULT_CATEGORIES);
@@ -414,9 +428,14 @@ export function RavenVideosAdmin() {
                         </Button>
                       </>
                     ) : (
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(r)}>
-                        <Pencil className="size-4" />
-                      </Button>
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => setPreviewRow(r)} title="Preview">
+                          <Play className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => startEdit(r)} title="Edit">
+                          <Pencil className="size-4" />
+                        </Button>
+                      </>
                     )}
                     <Button variant="ghost" size="icon" onClick={() => remove(r)} disabled={isEditing}>
                       <Trash2 className="size-4" />
@@ -428,6 +447,34 @@ export function RavenVideosAdmin() {
           </div>
         ))}
       </div>
+
+      <Dialog open={!!previewRow} onOpenChange={(o) => !o && setPreviewRow(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle className="font-display text-lg">{previewRow?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="p-6 pt-4 flex flex-col items-center">
+            <div className="aspect-[9/16] w-full max-w-[320px] bg-black rounded-lg overflow-hidden">
+              {previewUrl ? (
+                <video
+                  key={previewUrl}
+                  src={previewUrl}
+                  poster={previewRow ? thumbUrls[previewRow.id] : undefined}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">Loading…</div>
+              )}
+            </div>
+            {previewRow?.description && (
+              <p className="mt-3 text-sm text-muted-foreground text-center whitespace-pre-wrap">{previewRow.description}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
