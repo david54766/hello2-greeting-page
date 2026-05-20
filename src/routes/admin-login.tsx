@@ -157,7 +157,7 @@ function AdminLogin() {
               Members sign in at the <Link to="/login" className="text-primary underline">member portal</Link>.
             </p>
           </div>
-          <SuperAdminStatus />
+          
 
           <div className="space-y-2">
             <Label htmlFor="email">Admin email</Label>
