@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { runCoaching, getCoachingHistory } from "@/lib/coaching.functions";
 import { createScribeToken } from "@/lib/stt.functions";
-import { generateCoachImage, getImageQuota } from "@/lib/coach-image.functions";
+import { generateCoachImage } from "@/lib/coach-image.functions";
 import { getRevenueProfile } from "@/lib/revenue-profile.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { RevenueWizard } from "@/components/coach/RevenueWizard";
@@ -87,17 +87,11 @@ function Coach() {
   const historyFn = useServerFn(getCoachingHistory);
   const fetchRevenueProfile = useServerFn(getRevenueProfile);
   const generateImage = useServerFn(generateCoachImage);
-  const fetchImageQuota = useServerFn(getImageQuota);
   const qc = useQueryClient();
 
   // ---------- Visual example generator ----------
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
-  const quotaQ = useQuery({
-    queryKey: ["coach-image-quota", user?.id],
-    enabled: !!user,
-    queryFn: () => fetchImageQuota(),
-  });
   const handleGenerateImage = async () => {
     const seed = (prompt || response?.strategic_move || "").trim();
     if (seed.length < 4) {
@@ -115,7 +109,6 @@ function Coach() {
         toast.error(res.error);
       } else if (res.image) {
         setImageUrl(res.image);
-        qc.invalidateQueries({ queryKey: ["coach-image-quota", user?.id] });
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Image generation failed.");
@@ -475,12 +468,12 @@ function Coach() {
                   variant="ghost"
                   size="sm"
                   onClick={handleGenerateImage}
-                  disabled={imageLoading || (quotaQ.data?.remaining ?? 1) <= 0}
-                  title={quotaQ.data ? `${quotaQ.data.remaining}/${quotaQ.data.limit} visuals left today` : "Generate visual example"}
+                  disabled={imageLoading}
+                  title="Generate a visual example when it helps clarify the strategic move"
                 >
                   {imageLoading
                     ? <><Loader2 className="size-3 mr-2 animate-spin" /> Generating…</>
-                    : <><ImageIcon className="size-3 mr-2" /> Visual example {quotaQ.data ? `(${quotaQ.data.remaining}/${quotaQ.data.limit})` : ""}</>}
+                    : <><ImageIcon className="size-3 mr-2" /> Visual example</>}
                 </Button>
               </div>
             </div>
