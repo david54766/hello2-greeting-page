@@ -73,23 +73,23 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle className="font-display text-2xl">Daily Insights from Raven</DialogTitle>
-          <DialogDescription>Premade strategy tips curated for childcare operators.</DialogDescription>
+      <DialogContent className="max-w-3xl p-0 overflow-hidden">
+        <DialogHeader className="px-4 pt-4 pb-2">
+          <DialogTitle className="font-display text-lg">Daily Insights from Raven</DialogTitle>
+          <DialogDescription className="text-xs">Premade strategy tips curated for childcare operators.</DialogDescription>
         </DialogHeader>
-        <div className="grid md:grid-cols-[280px_1fr] gap-0 border-t border-border/60 mt-4">
-          <aside className="border-r border-border/60 max-h-[500px] overflow-y-auto">
-            {loading && <div className="p-4 text-sm text-muted-foreground">Loading…</div>}
+        <div className="grid md:grid-cols-[220px_1fr] gap-0 border-t border-border/60">
+          <aside className="border-r border-border/60 max-h-[460px] overflow-y-auto">
+            {loading && <div className="p-3 text-xs text-muted-foreground">Loading…</div>}
             {!loading && videos.length === 0 && (
-              <div className="p-6 text-sm text-muted-foreground">
-                <VideoIcon className="size-6 mb-2 text-primary" />
+              <div className="p-4 text-xs text-muted-foreground">
+                <VideoIcon className="size-5 mb-2 text-primary" />
                 No insight videos yet. Check back soon.
               </div>
             )}
             {grouped.map(([cat, list]) => (
               <div key={cat}>
-                <div className="px-3 py-2 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/40 border-b border-border/40 sticky top-0">
+                <div className="px-2.5 py-1.5 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/40 border-b border-border/40 sticky top-0">
                   {cat}
                 </div>
                 <ul>
@@ -99,21 +99,21 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
                       <li key={v.id}>
                         <button
                           onClick={() => setSelected(v)}
-                          className={`w-full text-left px-3 py-3 border-b border-border/40 hover:bg-primary/5 transition flex items-start gap-3 ${
+                          className={`w-full text-left px-2.5 py-2 border-b border-border/40 hover:bg-primary/5 transition flex items-center gap-2.5 ${
                             selected?.id === v.id ? "bg-primary/10" : ""
                           }`}
                         >
-                          <div className="w-14 h-20 shrink-0 rounded-md overflow-hidden bg-muted grid place-items-center">
+                          <div className="w-10 h-14 shrink-0 rounded overflow-hidden bg-muted grid place-items-center">
                             {thumb ? (
                               <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
                             ) : (
-                              <Play className="size-4 text-primary" />
+                              <Play className="size-3.5 text-primary" />
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate">{v.title}</div>
+                            <div className="text-sm font-medium truncate leading-tight">{v.title}</div>
                             {v.duration_seconds ? (
-                              <div className="text-xs text-muted-foreground">{formatDuration(v.duration_seconds)}</div>
+                              <div className="text-[11px] text-muted-foreground">{formatDuration(v.duration_seconds)}</div>
                             ) : null}
                           </div>
                         </button>
@@ -124,10 +124,10 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
               </div>
             ))}
           </aside>
-          <div className="p-6 bg-card flex flex-col items-center">
+          <div className="p-3 bg-card flex flex-col items-center">
             {selected ? (
               <>
-                <div className="aspect-[9/16] w-full max-w-[320px] bg-black rounded-lg overflow-hidden">
+                <div className="aspect-[9/16] w-full max-w-[240px] bg-black rounded-md overflow-hidden">
                   {signedUrl ? (
                     <video
                       key={signedUrl}
@@ -139,14 +139,14 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
                       className="w-full h-full object-contain"
                     />
                   ) : (
-                    <div className="w-full h-full grid place-items-center text-muted-foreground text-sm">Loading video…</div>
+                    <div className="w-full h-full grid place-items-center text-muted-foreground text-xs">Loading video…</div>
                   )}
                 </div>
-                <h3 className="mt-4 font-display text-xl text-center">{selected.title}</h3>
-                {selected.description && <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap text-center max-w-md">{selected.description}</p>}
+                <h3 className="mt-2.5 font-display text-base text-center leading-tight">{selected.title}</h3>
+                {selected.description && <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap text-center max-w-sm line-clamp-3">{selected.description}</p>}
               </>
             ) : (
-              <div className="aspect-[9/16] w-full max-w-[320px] bg-muted rounded-lg grid place-items-center text-muted-foreground text-sm">
+              <div className="aspect-[9/16] w-full max-w-[240px] bg-muted rounded-md grid place-items-center text-muted-foreground text-xs">
                 Select a video to play
               </div>
             )}
