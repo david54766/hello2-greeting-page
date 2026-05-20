@@ -73,7 +73,7 @@ function Signup() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-primary/10 via-rose-soft/20 to-background">
-        <Link to="/" className="flex items-center gap-2"><img src={logoImg} alt="The Preschool Prima Donna" className="h-16 w-auto" /><span className="font-display text-xl text-primary self-end pb-2">AI™</span></Link>
+        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0"><img src={logoImg} alt="The Preschool Prima Donna" width={64} height={64} className="h-12 sm:h-14 md:h-16 w-auto aspect-square" /><span className="font-display text-lg sm:text-xl text-primary self-end pb-1.5 sm:pb-2">AI™</span></Link>
         <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
           <img src={signupPortrait} alt="Founder of Prima Donna AI™" className="size-full object-cover" loading="eager" />
         </div>
