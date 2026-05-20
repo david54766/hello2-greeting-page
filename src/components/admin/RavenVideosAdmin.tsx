@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil, Trash2, Upload, Check, X, Image as ImageIcon, GripVertical } from "lucide-react";
+import { Pencil, Trash2, Upload, Check, X, Image as ImageIcon, GripVertical, Play } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Row = {
   id: string;
