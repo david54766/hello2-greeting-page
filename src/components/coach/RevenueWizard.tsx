@@ -348,28 +348,32 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
             {step === 2 && (
               <div className="space-y-4">
                 <div>
-                  <Label>Tuition structure</Label>
+                  <Label>Tuition structure *</Label>
                   <Select value={model.tuition_structure ?? ""} onValueChange={(v) => setModel({ ...model, tuition_structure: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectTrigger className={errors.tuition_structure ? "border-destructive" : ""}><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="weekly">Weekly</SelectItem>
                       <SelectItem value="monthly">Monthly</SelectItem>
                       <SelectItem value="other">Other / mixed</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FieldError msg={errors.tuition_structure} />
                 </div>
                 <div>
                   <Label>Sibling discount policy</Label>
-                  <Input value={model.sibling_discount ?? ""} onChange={(e) => setModel({ ...model, sibling_discount: e.target.value })} placeholder="e.g. 10% off second child" />
+                  <Input maxLength={200} value={model.sibling_discount ?? ""} onChange={(e) => setModel({ ...model, sibling_discount: e.target.value })} placeholder="e.g. 10% off second child" />
+                  <FieldError msg={errors.sibling_discount} />
                 </div>
                 <div>
                   <Label>Registration / enrollment fee</Label>
-                  <Input value={model.registration_fee ?? ""} onChange={(e) => setModel({ ...model, registration_fee: e.target.value })} placeholder="e.g. $150 non-refundable" />
+                  <Input maxLength={200} value={model.registration_fee ?? ""} onChange={(e) => setModel({ ...model, registration_fee: e.target.value })} placeholder="e.g. $150 non-refundable" />
+                  <FieldError msg={errors.registration_fee} />
                 </div>
-                <NumberField label="Subsidy / voucher mix (% of revenue)" value={model.subsidy_pct} onChange={(v) => setModel({ ...model, subsidy_pct: v })} />
+                <NumberField label="Subsidy / voucher mix (% of revenue)" max={100} error={errors.subsidy_pct} value={model.subsidy_pct} onChange={(v) => setModel({ ...model, subsidy_pct: v })} />
                 <div>
                   <Label>Ancillary revenue (camps, late fees, meals, etc.)</Label>
-                  <Textarea rows={2} value={model.ancillary ?? ""} onChange={(e) => setModel({ ...model, ancillary: e.target.value })} placeholder="What else generates revenue?" />
+                  <Textarea rows={2} maxLength={1000} value={model.ancillary ?? ""} onChange={(e) => setModel({ ...model, ancillary: e.target.value })} placeholder="What else generates revenue?" />
+                  <FieldError msg={errors.ancillary} />
                 </div>
               </div>
             )}
