@@ -24,6 +24,35 @@ export function RavenVideosAdmin() {
   const [sortOrder, setSortOrder] = useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEdit = (row: Row) => {
+    setEditingId(row.id);
+    setEditTitle(row.title);
+    setEditDescription(row.description ?? "");
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditTitle("");
+    setEditDescription("");
+  };
+  const saveEdit = async (row: Row) => {
+    const title = editTitle.trim();
+    if (!title) return toast.error("Title is required");
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("raven_videos")
+      .update({ title, description: editDescription.trim() || null })
+      .eq("id", row.id);
+    setSavingEdit(false);
+    if (error) return toast.error(error.message);
+    toast.success("Updated");
+    cancelEdit();
+    load();
+  };
 
   const load = async () => {
     const { data } = await supabase
