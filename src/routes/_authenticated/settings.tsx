@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function Settings() {
   const { user, tier, isAdmin, refresh } = useAuth();
-  const [form, setForm] = useState({ full_name: "", business_name: "", state: "", enrollment_size: "", tuition_range: "", staff_count: "", timezone: "America/New_York" });
+  const [form, setForm] = useState({ full_name: "", business_name: "", state: "", timezone: "America/New_York" });
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
