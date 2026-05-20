@@ -3,18 +3,18 @@ import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { submitEliteRequest, getMyEliteRequests } from "@/lib/elite.functions";
 import {
   submitEliteApplication,
   getMyEliteApplication,
 } from "@/lib/elite-application.functions";
 import { checkEliteAccess } from "@/lib/elite-access.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "@tanstack/react-router";
-import { Crown, Calendar, CheckCircle2, Clock, XCircle, MessageSquare } from "lucide-react";
+import { Crown, Calendar, CheckCircle2, Clock, XCircle, MessageSquare, FileText, ArrowRight } from "lucide-react";
 import { EliteSubNav } from "@/components/EliteSubNav";
 import { toast } from "sonner";
 import founderPortrait from "@/assets/prima-donna-founder.jpeg";
