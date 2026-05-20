@@ -314,7 +314,7 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
                   <div className="space-y-2">
                     <Label>Choose center</Label>
                     <Select value={activeCenterId ?? ""} onValueChange={(v) => setActiveCenterId(v)}>
-                      <SelectTrigger><SelectValue placeholder="Select a center" /></SelectTrigger>
+                      <SelectTrigger className={errors.activeCenterId ? "border-destructive" : ""}><SelectValue placeholder="Select a center" /></SelectTrigger>
                       <SelectContent>
                         {centers.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
@@ -323,6 +323,7 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldError msg={errors.activeCenterId} />
                   </div>
                 )}
               </div>
