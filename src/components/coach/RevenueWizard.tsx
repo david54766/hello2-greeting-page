@@ -424,7 +424,7 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
               </Button>
             )}
             {step < STEPS.length - 1 ? (
-              <Button onClick={() => setStep((s) => s + 1)} disabled={!canNext || noCenters}>
+              <Button onClick={goNext} disabled={noCenters || saving}>
                 Next <ArrowRight className="size-4 ml-1" />
               </Button>
             ) : (
