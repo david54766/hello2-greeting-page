@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil, Trash2, Upload, Check, X, Image as ImageIcon } from "lucide-react";
+import { Pencil, Trash2, Upload, Check, X, Image as ImageIcon, GripVertical } from "lucide-react";
 
 type Row = {
   id: string;
@@ -16,33 +16,38 @@ type Row = {
   duration_seconds: number | null;
   published: boolean;
   sort_order: number;
+  category: string;
 };
+
+const DEFAULT_CATEGORIES = ["General", "Hiring", "Enrollment", "Operations", "Finance", "Leadership"];
 
 export function RavenVideosAdmin() {
   const [rows, setRows] = useState<Row[]>([]);
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [sortOrder, setSortOrder] = useState(0);
+  const [category, setCategory] = useState("General");
+  const [newCategory, setNewCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [thumbFile, setThumbFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("General");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
   const replaceThumbInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = async () => {
     const { data } = await supabase
       .from("raven_videos")
-      .select("id,title,description,storage_path,thumbnail_path,duration_seconds,published,sort_order")
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false });
+      .select("id,title,description,storage_path,thumbnail_path,duration_seconds,published,sort_order,category")
+      .order("category", { ascending: true })
+      .order("sort_order", { ascending: true });
     const list = (data ?? []) as Row[];
     setRows(list);
 
-    // Resolve thumbnail signed URLs
     const map: Record<string, string> = {};
     await Promise.all(
       list
@@ -61,6 +66,22 @@ export function RavenVideosAdmin() {
     load();
   }, []);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>(DEFAULT_CATEGORIES);
+    rows.forEach((r) => r.category && set.add(r.category));
+    return Array.from(set);
+  }, [rows]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, Row[]>();
+    rows.forEach((r) => {
+      const arr = map.get(r.category) ?? [];
+      arr.push(r);
+      map.set(r.category, arr);
+    });
+    return Array.from(map.entries());
+  }, [rows]);
+
   const uploadFileTo = async (f: File, userId: string | undefined, kind: "video" | "image") => {
     const ext = f.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg");
     const path = `${userId}/${crypto.randomUUID()}.${ext}`;
@@ -76,13 +97,13 @@ export function RavenVideosAdmin() {
       toast.error("Title and video file are required");
       return;
     }
+    const finalCategory = (newCategory.trim() || category || "General").trim();
     setUploading(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       const videoPath = await uploadFileTo(file, userId, "video");
 
-      // Thumbnail: user-provided or auto-captured from video
       let thumbPath: string | null = null;
       const thumb = thumbFile ?? (await captureThumbnail(file).catch(() => null));
       if (thumb) {
@@ -101,7 +122,8 @@ export function RavenVideosAdmin() {
         storage_path: videoPath,
         thumbnail_path: thumbPath,
         duration_seconds: duration,
-        sort_order: sortOrder,
+        category: finalCategory,
+        // sort_order omitted — trigger assigns next within category
         published: true,
         created_by: userId,
       });
@@ -110,7 +132,7 @@ export function RavenVideosAdmin() {
       toast.success("Video uploaded");
       setTitle("");
       setDescription("");
-      setSortOrder(0);
+      setNewCategory("");
       setFile(null);
       setThumbFile(null);
       const vEl = document.getElementById("raven-file-input") as HTMLInputElement | null;
@@ -148,6 +170,7 @@ export function RavenVideosAdmin() {
     setEditingId(row.id);
     setEditTitle(row.title);
     setEditDescription(row.description ?? "");
+    setEditCategory(row.category);
   };
   const cancelEdit = () => {
     setEditingId(null);
@@ -158,9 +181,26 @@ export function RavenVideosAdmin() {
     const t = editTitle.trim();
     if (!t) return toast.error("Title is required");
     setSavingEdit(true);
+    const movingCategory = editCategory !== row.category;
+    let newSort = row.sort_order;
+    if (movingCategory) {
+      const { data: maxRow } = await supabase
+        .from("raven_videos")
+        .select("sort_order")
+        .eq("category", editCategory)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      newSort = ((maxRow?.sort_order as number | undefined) ?? 0) + 1;
+    }
     const { error } = await supabase
       .from("raven_videos")
-      .update({ title: t, description: editDescription.trim() || null })
+      .update({
+        title: t,
+        description: editDescription.trim() || null,
+        category: editCategory,
+        sort_order: newSort,
+      })
       .eq("id", row.id);
     setSavingEdit(false);
     if (error) return toast.error(error.message);
@@ -187,20 +227,60 @@ export function RavenVideosAdmin() {
     }
   };
 
+  const reorderWithin = async (cat: string, sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return;
+    const list = rows.filter((r) => r.category === cat);
+    const srcIdx = list.findIndex((r) => r.id === sourceId);
+    const tgtIdx = list.findIndex((r) => r.id === targetId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    const reordered = [...list];
+    const [moved] = reordered.splice(srcIdx, 1);
+    reordered.splice(tgtIdx, 0, moved);
+
+    // Optimistic UI
+    const newRows = rows.map((r) => {
+      if (r.category !== cat) return r;
+      const idx = reordered.findIndex((x) => x.id === r.id);
+      return { ...r, sort_order: idx + 1 };
+    });
+    setRows(newRows);
+
+    // Persist
+    await Promise.all(
+      reordered.map((r, idx) =>
+        supabase.from("raven_videos").update({ sort_order: idx + 1 }).eq("id", r.id),
+      ),
+    );
+  };
+
   return (
     <section className="rounded-2xl border border-border/60 bg-card p-6">
       <h3 className="font-display text-xl">Raven Insight Videos</h3>
       <p className="text-sm text-muted-foreground mt-1">
-        Upload premade tip videos. Thumbnails are optional — we'll auto-capture a frame if you don't provide one.
+        Upload premade tip videos. Order is auto-assigned — drag the handle to reorder within a category.
       </p>
 
       <div className="mt-5 grid md:grid-cols-2 gap-4">
         <div className="space-y-3">
           <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
           <Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-muted-foreground">Sort order</label>
-            <Input type="number" value={sortOrder} onChange={(e) => setSortOrder(parseInt(e.target.value) || 0)} className="w-24" />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Category</label>
+              <select
+                className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Or new category</label>
+              <Input placeholder="e.g. Marketing" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} />
+            </div>
           </div>
         </div>
         <div className="space-y-3">
@@ -228,81 +308,125 @@ export function RavenVideosAdmin() {
         </div>
       </div>
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-6 space-y-6">
         {rows.length === 0 && <div className="text-sm text-muted-foreground">No videos yet.</div>}
-        {rows.map((r) => {
-          const isEditing = editingId === r.id;
-          const thumb = thumbUrls[r.id];
-          return (
-            <div key={r.id} className="flex items-start gap-3 rounded-lg border border-border/60 p-3">
-              <div className="relative w-14 h-20 shrink-0 rounded-md overflow-hidden bg-muted grid place-items-center">
-                {thumb ? (
-                  <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
-                ) : (
-                  <ImageIcon className="size-5 text-muted-foreground" />
-                )}
-                <input
-                  ref={(el) => {
-                    replaceThumbInputs.current[r.id] = el;
-                  }}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) replaceThumbnail(r, f);
-                    e.target.value = "";
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => replaceThumbInputs.current[r.id]?.click()}
-                  className="absolute inset-0 bg-black/0 hover:bg-black/40 text-white opacity-0 hover:opacity-100 text-[10px] font-medium transition"
-                  title="Replace thumbnail"
-                >
-                  Replace
-                </button>
-              </div>
-              <div className="flex-1 min-w-0 space-y-2">
-                {isEditing ? (
-                  <>
-                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title" />
-                    <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Description (optional)" rows={2} />
-                  </>
-                ) : (
-                  <>
-                    <div className="font-medium truncate">{r.title}</div>
-                    {r.description && <div className="text-xs text-muted-foreground line-clamp-2">{r.description}</div>}
-                    <div className="text-xs text-muted-foreground truncate">
-                      Order {r.sort_order}{r.duration_seconds ? ` · ${r.duration_seconds}s` : ""}
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">Published</span>
-                <Switch checked={r.published} onCheckedChange={() => togglePublished(r)} />
-              </div>
-              {isEditing ? (
-                <>
-                  <Button variant="ghost" size="icon" onClick={() => saveEdit(r)} disabled={savingEdit}>
-                    <Check className="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={cancelEdit} disabled={savingEdit}>
-                    <X className="size-4" />
-                  </Button>
-                </>
-              ) : (
-                <Button variant="ghost" size="icon" onClick={() => startEdit(r)}>
-                  <Pencil className="size-4" />
-                </Button>
-              )}
-              <Button variant="ghost" size="icon" onClick={() => remove(r)} disabled={isEditing}>
-                <Trash2 className="size-4" />
-              </Button>
+        {grouped.map(([cat, list]) => (
+          <div key={cat}>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-display text-sm uppercase tracking-wider text-muted-foreground">{cat}</h4>
+              <span className="text-xs text-muted-foreground">{list.length} video{list.length === 1 ? "" : "s"}</span>
             </div>
-          );
-        })}
+            <div className="space-y-2">
+              {list.map((r) => {
+                const isEditing = editingId === r.id;
+                const thumb = thumbUrls[r.id];
+                const isDragging = dragId === r.id;
+                return (
+                  <div
+                    key={r.id}
+                    draggable={!isEditing}
+                    onDragStart={() => setDragId(r.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (dragId) reorderWithin(cat, dragId, r.id);
+                      setDragId(null);
+                    }}
+                    onDragEnd={() => setDragId(null)}
+                    className={`flex items-start gap-3 rounded-lg border border-border/60 p-3 transition ${
+                      isDragging ? "opacity-50" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                      title="Drag to reorder"
+                    >
+                      <GripVertical className="size-4" />
+                    </button>
+                    <div className="relative w-14 h-20 shrink-0 rounded-md overflow-hidden bg-muted grid place-items-center">
+                      {thumb ? (
+                        <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <ImageIcon className="size-5 text-muted-foreground" />
+                      )}
+                      <input
+                        ref={(el) => {
+                          replaceThumbInputs.current[r.id] = el;
+                        }}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) replaceThumbnail(r, f);
+                          e.target.value = "";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => replaceThumbInputs.current[r.id]?.click()}
+                        className="absolute inset-0 bg-black/0 hover:bg-black/40 text-white opacity-0 hover:opacity-100 text-[10px] font-medium transition"
+                        title="Replace thumbnail"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {isEditing ? (
+                        <>
+                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title" />
+                          <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Description (optional)" rows={2} />
+                          <div>
+                            <label className="text-xs text-muted-foreground">Category</label>
+                            <select
+                              className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm"
+                              value={editCategory}
+                              onChange={(e) => setEditCategory(e.target.value)}
+                            >
+                              {categories.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="font-medium truncate">{r.title}</div>
+                          {r.description && <div className="text-xs text-muted-foreground line-clamp-2">{r.description}</div>}
+                          <div className="text-xs text-muted-foreground truncate">
+                            #{r.sort_order}{r.duration_seconds ? ` · ${r.duration_seconds}s` : ""}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">Published</span>
+                      <Switch checked={r.published} onCheckedChange={() => togglePublished(r)} />
+                    </div>
+                    {isEditing ? (
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => saveEdit(r)} disabled={savingEdit}>
+                          <Check className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={cancelEdit} disabled={savingEdit}>
+                          <X className="size-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="ghost" size="icon" onClick={() => startEdit(r)}>
+                        <Pencil className="size-4" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" onClick={() => remove(r)} disabled={isEditing}>
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

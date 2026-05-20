@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Play, Video as VideoIcon } from "lucide-react";
@@ -11,6 +11,7 @@ type RavenVideo = {
   thumbnail_path: string | null;
   duration_seconds: number | null;
   sort_order: number;
+  category: string;
 };
 
 export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
@@ -25,10 +26,10 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
     setLoading(true);
     supabase
       .from("raven_videos")
-      .select("id,title,description,storage_path,thumbnail_path,duration_seconds,sort_order")
+      .select("id,title,description,storage_path,thumbnail_path,duration_seconds,sort_order,category")
       .eq("published", true)
+      .order("category", { ascending: true })
       .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false })
       .then(async ({ data }) => {
         const list = (data ?? []) as RavenVideo[];
         setVideos(list);
@@ -60,6 +61,16 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
     });
   }, [selected]);
 
+  const grouped = useMemo(() => {
+    const map = new Map<string, RavenVideo[]>();
+    videos.forEach((v) => {
+      const arr = map.get(v.category) ?? [];
+      arr.push(v);
+      map.set(v.category, arr);
+    });
+    return Array.from(map.entries());
+  }, [videos]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl p-0 overflow-hidden">
@@ -76,35 +87,42 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
                 No insight videos yet. Check back soon.
               </div>
             )}
-            <ul>
-              {videos.map((v) => {
-                const thumb = thumbUrls[v.id];
-                return (
-                  <li key={v.id}>
-                    <button
-                      onClick={() => setSelected(v)}
-                      className={`w-full text-left px-3 py-3 border-b border-border/40 hover:bg-primary/5 transition flex items-start gap-3 ${
-                        selected?.id === v.id ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <div className="w-14 h-20 shrink-0 rounded-md overflow-hidden bg-muted grid place-items-center">
-                        {thumb ? (
-                          <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        ) : (
-                          <Play className="size-4 text-primary" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate">{v.title}</div>
-                        {v.duration_seconds ? (
-                          <div className="text-xs text-muted-foreground">{formatDuration(v.duration_seconds)}</div>
-                        ) : null}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            {grouped.map(([cat, list]) => (
+              <div key={cat}>
+                <div className="px-3 py-2 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/40 border-b border-border/40 sticky top-0">
+                  {cat}
+                </div>
+                <ul>
+                  {list.map((v) => {
+                    const thumb = thumbUrls[v.id];
+                    return (
+                      <li key={v.id}>
+                        <button
+                          onClick={() => setSelected(v)}
+                          className={`w-full text-left px-3 py-3 border-b border-border/40 hover:bg-primary/5 transition flex items-start gap-3 ${
+                            selected?.id === v.id ? "bg-primary/10" : ""
+                          }`}
+                        >
+                          <div className="w-14 h-20 shrink-0 rounded-md overflow-hidden bg-muted grid place-items-center">
+                            {thumb ? (
+                              <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+                            ) : (
+                              <Play className="size-4 text-primary" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{v.title}</div>
+                            {v.duration_seconds ? (
+                              <div className="text-xs text-muted-foreground">{formatDuration(v.duration_seconds)}</div>
+                            ) : null}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </aside>
           <div className="p-6 bg-card flex flex-col items-center">
             {selected ? (
