@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.raven_videos_assign_sort_order() FROM PUBLIC, anon, authenticated;
