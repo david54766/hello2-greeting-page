@@ -23,7 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ArrowLeft, ArrowRight, Check, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Check, AlertCircle, RefreshCw, Building2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { z } from "zod";
@@ -124,6 +126,7 @@ const STEPS = ["Scope", "Snapshot", "Revenue Model", "Goals", "Review"] as const
 export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: Props) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const save = useServerFn(upsertRevenueProfile);
 
   const centersQ = useQuery({
@@ -233,6 +236,7 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
       setErrors({});
     }
     setSaving(true);
+    setSaveError(null);
     try {
       const res = await save({
         data: {
@@ -245,21 +249,27 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
         },
       });
       if (!res.ok) {
-        toast.error(res.error || "Could not save");
+        const msg = res.error || "Could not save revenue profile.";
+        setSaveError(msg);
+        toast.error(msg);
         return;
       }
       toast.success(markSkipped ? "Setup skipped — you can complete it anytime." : "Revenue profile saved.");
       onSaved();
       onOpenChange(false);
+    } catch (err: any) {
+      const msg = err?.message || "Network error while saving. Please try again.";
+      setSaveError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
   };
 
-  const noCenters = !centersQ.isLoading && centers.length === 0;
+  const noCenters = !centersQ.isLoading && !centersQ.isError && centers.length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!saving) onOpenChange(o); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Revenue Mode Setup</DialogTitle>
@@ -268,7 +278,7 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-2 flex gap-1">
+        <div className="mt-2 flex gap-1" aria-hidden>
           {STEPS.map((_, i) => (
             <div
               key={i}
@@ -277,8 +287,38 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
           ))}
         </div>
 
-        {noCenters ? (
+        {centersQ.isLoading ? (
+          <div className="py-8 space-y-4" role="status" aria-live="polite">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Loading your centers…
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-10 w-1/2" />
+            </div>
+          </div>
+        ) : centersQ.isError ? (
+          <div className="py-6 space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="size-4" />
+              <AlertTitle>Couldn't load your centers</AlertTitle>
+              <AlertDescription>
+                {(centersQ.error as any)?.message || "Something went wrong fetching your centers."}
+              </AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={() => centersQ.refetch()} disabled={centersQ.isFetching}>
+              {centersQ.isFetching ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="size-4 mr-2" />
+              )}
+              Try again
+            </Button>
+          </div>
+        ) : noCenters ? (
           <div className="py-8 text-center space-y-4">
+            <Building2 className="size-10 mx-auto text-muted-foreground" />
             <p className="text-muted-foreground">
               Add at least one center before setting up Revenue mode. Center metrics (capacity, enrollment, tuition) anchor every recommendation.
             </p>
@@ -422,8 +462,22 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
           </div>
         )}
 
+        {saveError && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Save failed</AlertTitle>
+            <AlertDescription>{saveError}</AlertDescription>
+          </Alert>
+        )}
+
+        {saving && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
+            <Loader2 className="size-4 animate-spin" /> Saving your revenue profile…
+          </div>
+        )}
+
         <DialogFooter className="flex sm:justify-between gap-2">
-          <Button variant="ghost" onClick={() => handleSave(true)} disabled={saving || noCenters}>
+          <Button variant="ghost" onClick={() => handleSave(true)} disabled={saving || noCenters || centersQ.isLoading || centersQ.isError}>
             Skip for now
           </Button>
           <div className="flex gap-2">
@@ -433,13 +487,16 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
               </Button>
             )}
             {step < STEPS.length - 1 ? (
-              <Button onClick={goNext} disabled={noCenters || saving}>
+              <Button onClick={goNext} disabled={noCenters || saving || centersQ.isLoading || centersQ.isError}>
                 Next <ArrowRight className="size-4 ml-1" />
               </Button>
             ) : (
-              <Button onClick={() => handleSave(false)} disabled={saving || noCenters}>
-                {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Check className="size-4 mr-2" />}
-                Save profile
+              <Button onClick={() => handleSave(false)} disabled={saving || noCenters || centersQ.isLoading || centersQ.isError}>
+                {saving ? (
+                  <><Loader2 className="size-4 animate-spin mr-2" /> Saving…</>
+                ) : (
+                  <><Check className="size-4 mr-2" /> Save profile</>
+                )}
               </Button>
             )}
           </div>
