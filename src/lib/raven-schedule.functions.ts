@@ -58,10 +58,10 @@ export const getOpenSlots = createServerFn({ method: "GET" })
     for (let day = 0; day <= (settings.advance_days ?? 30); day++) {
       const date = new Date(start);
       date.setDate(date.getDate() + day);
-      // Determine weekday in tz
-      const wd = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).formatToParts(date).find((p) => p.type === "weekday")?.value
-        ? String(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(date)))
-        : "0", 10);
+      // Determine weekday in tz (0=Sun..6=Sat)
+      const wdShort = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(date);
+      const wd = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(wdShort);
+
 
       const dayWindows = (windows ?? []).filter((w: any) => w.weekday === wd);
       for (const w of dayWindows) {
