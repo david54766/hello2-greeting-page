@@ -76,7 +76,7 @@ function Dashboard() {
       <section className="mt-10">
         <h2 className="font-display text-2xl">Center snapshot</h2>
         <div className="mt-5 grid sm:grid-cols-3 gap-4">
-          <SnapshotCard label="Enrollment" value={enrollment ? String(enrollment) : "Set in profile"} />
+          <SnapshotCard label="Enrollment" value={enrollment ? String(enrollment) : "Add a center"} />
           <SnapshotCard label="Est. monthly revenue" value={monthlyRev ? `$${monthlyRev.toLocaleString()}` : "—"} />
           <SnapshotCard label="Children per staff" value={ratio} />
         </div>
