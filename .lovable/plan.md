@@ -1,47 +1,30 @@
-## Live STT + streaming TTS for the Coaching Engine
+## Goal
+Align the app's brand color palette with the uploaded "The Preschool Prima Donna" logo (hot pink script + red apple) and replace the text wordmarks across the app with the actual logo image.
 
-Two upgrades to `/coach`: realtime transcription that writes into the prompt box as the user speaks, and TTS that starts playing within ~1s instead of waiting for the full MP3.
+## 1. Add the logo asset
+- Copy `user-uploads://1.png` to `src/assets/prima-donna-logo.png`.
+- Import it as an ES6 module wherever the wordmark currently renders.
 
-### 1. Realtime STT (live dictation)
+## 2. Replace text wordmarks with the logo image
+Swap the `<span>/<Link>Prima Donna AI™</…>` brand marks in these files for an `<img>` of the new logo (height-constrained, `w-auto`, with descriptive `alt`):
+- `src/components/AppHeader.tsx` (top nav — ~36px tall)
+- `src/routes/index.tsx` (landing header — ~40px tall; the existing hero portrait of Raven stays as-is)
+- `src/routes/login.tsx`, `src/routes/signup.tsx`, `src/routes/admin-login.tsx`, `src/routes/reset-password.tsx` (auth screens — ~56px tall, centered)
 
-Replace the current "record → upload → wait → paste" flow with ElevenLabs realtime Scribe.
+The "AI™" suffix will be kept as small sans-serif text next to the logo on auth screens so the product name still reads. (Tell me if you'd rather drop it.)
 
-- Install `@elevenlabs/react`.
-- New server fn `createScribeToken` in `src/lib/stt.functions.ts` — calls `POST /v1/single-use-token/realtime_scribe` with `ELEVENLABS_API_KEY` and returns `{ token }`. Keep the existing `transcribeAudio` for backward compatibility (unused, can remove later).
-- In `coach.tsx`, use the `useScribe` hook (`modelId: "scribe_v2_realtime"`, `commitStrategy: "vad"`).
-  - On mic button press: fetch token → `scribe.connect(...)` with mic constraints.
-  - As `partialTranscript` updates → live-append to a `liveTail` shown inline at the end of the textarea value.
-  - On `onCommittedTranscript` → commit the chunk into the actual `prompt` state and clear the live tail.
-  - On stop → `scribe.disconnect()` and flush any remaining partial into the prompt.
-- Loading bar: replace the static "Transcribing…" toast with an inline indicator under the textarea:
-  - Pulsing red dot + "Listening…" while recording.
-  - Indeterminate progress bar (`<Progress />` with shimmer) shown when `scribe.isConnected` is true and no committed text yet, or when a partial is being processed.
-  - "Speak your question" button toggles to "Stop" when active.
+## 3. Recolor the design system to match the logo
+Edit tokens in `src/styles.css` (light + dark) so every component using `--primary` / `--accent` shifts automatically — no component code touched:
+- `--primary` → hot magenta-pink (matches the "Prima" script, ~#EC008C)
+- `--accent` → crimson red (matches the apple / "donna" lettering, ~#E60023)
+- `--ring`, `--sidebar-primary`, `--destructive` realigned to the same pink/red family
+- `--rose-soft` softened to a blush tint of the new pink
+- `--elite` gold preserved (Elite Circle tier identity)
+- Dark mode variants tuned for contrast on the ivory→deep-rose surfaces
 
-### 2. Streaming TTS (instant Raven playback)
+## 4. QA
+- Visit `/`, `/login`, `/signup`, `/admin-login`, `/dashboard`, `/coach` to confirm the logo renders crisply and the new pink/red reads correctly on buttons, links, badges, and the Elite gold still pops against it.
 
-Switch from "generate full MP3 → base64 → play" to a true audio stream so Raven starts speaking within a second.
-
-- New server route `src/routes/api/tts-stream.ts` (`POST /api/tts-stream`):
-  - Body: `{ text, voiceId? }` (Zod validated, 1–5000 chars).
-  - Calls `https://api.elevenlabs.io/v1/text-to-speech/{voiceId}/stream?output_format=mp3_44100_128` with `model_id: "eleven_turbo_v2_5"` (lowest latency).
-  - Returns the upstream `ReadableStream` directly with `Content-Type: audio/mpeg` and `Cache-Control: no-store`.
-- Update `speak()` in `coach.tsx`:
-  - `POST /api/tts-stream` with text → take `response.body` (ReadableStream).
-  - Attach to an `<audio>` element via `MediaSource` + `SourceBuffer` (`audio/mpeg`), appending chunks as they arrive. Playback starts on `canplay` (first chunk).
-  - Fallback: if `MediaSource` is unavailable, blob-and-play (current behavior).
-  - Auto-speak on new response is preserved.
-- Remove the old `synthesizeSpeech` server fn import path from coach (keep the file if used elsewhere).
-
-### Files
-
-- `src/lib/stt.functions.ts` — add `createScribeToken`.
-- `src/routes/api/tts-stream.ts` — new streaming server route.
-- `src/routes/_authenticated/coach.tsx` — swap STT to `useScribe`, add live transcript UI + progress bar, swap TTS to streaming fetch with MediaSource.
-- `package.json` — add `@elevenlabs/react`.
-
-### Out of scope
-
-- No changes to coaching prompt/doctrine or response shape.
-- No model swap for the strategist (still Gemini 2.5 Pro, structured tool call).
-- No new tables or auth changes.
+## Out of scope
+- PDF export branding, favicon, and email templates (let me know if you want those updated in the same pass).
+- The Raven portrait images remain unchanged.
