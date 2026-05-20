@@ -18,6 +18,8 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedEliteScheduleRouteImport } from './routes/_authenticated/elite-schedule'
+import { Route as AuthenticatedEliteCircleRouteImport } from './routes/_authenticated/elite-circle'
 import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCoachRouteImport } from './routes/_authenticated/coach'
@@ -71,6 +73,18 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedEliteScheduleRoute =
+  AuthenticatedEliteScheduleRouteImport.update({
+    id: '/elite-schedule',
+    path: '/elite-schedule',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedEliteCircleRoute =
+  AuthenticatedEliteCircleRouteImport.update({
+    id: '/elite-circle',
+    path: '/elite-circle',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedEliteRoute = AuthenticatedEliteRouteImport.update({
   id: '/elite',
   path: '/elite',
@@ -123,6 +137,8 @@ export interface FileRoutesByFullPath {
   '/coach': typeof AuthenticatedCoachRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/elite': typeof AuthenticatedEliteRoute
+  '/elite-circle': typeof AuthenticatedEliteCircleRoute
+  '/elite-schedule': typeof AuthenticatedEliteScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
@@ -140,6 +156,8 @@ export interface FileRoutesByTo {
   '/coach': typeof AuthenticatedCoachRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/elite': typeof AuthenticatedEliteRoute
+  '/elite-circle': typeof AuthenticatedEliteCircleRoute
+  '/elite-schedule': typeof AuthenticatedEliteScheduleRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
@@ -160,6 +178,8 @@ export interface FileRoutesById {
   '/_authenticated/coach': typeof AuthenticatedCoachRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/elite': typeof AuthenticatedEliteRoute
+  '/_authenticated/elite-circle': typeof AuthenticatedEliteCircleRoute
+  '/_authenticated/elite-schedule': typeof AuthenticatedEliteScheduleRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
@@ -179,6 +199,8 @@ export interface FileRouteTypes {
     | '/coach'
     | '/dashboard'
     | '/elite'
+    | '/elite-circle'
+    | '/elite-schedule'
     | '/settings'
     | '/templates'
     | '/admin'
@@ -196,6 +218,8 @@ export interface FileRouteTypes {
     | '/coach'
     | '/dashboard'
     | '/elite'
+    | '/elite-circle'
+    | '/elite-schedule'
     | '/settings'
     | '/templates'
     | '/admin'
@@ -215,6 +239,8 @@ export interface FileRouteTypes {
     | '/_authenticated/coach'
     | '/_authenticated/dashboard'
     | '/_authenticated/elite'
+    | '/_authenticated/elite-circle'
+    | '/_authenticated/elite-schedule'
     | '/_authenticated/settings'
     | '/_authenticated/templates'
     | '/_authenticated/_admin/admin'
@@ -300,6 +326,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/elite-schedule': {
+      id: '/_authenticated/elite-schedule'
+      path: '/elite-schedule'
+      fullPath: '/elite-schedule'
+      preLoaderRoute: typeof AuthenticatedEliteScheduleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/elite-circle': {
+      id: '/_authenticated/elite-circle'
+      path: '/elite-circle'
+      fullPath: '/elite-circle'
+      preLoaderRoute: typeof AuthenticatedEliteCircleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/elite': {
       id: '/_authenticated/elite'
       path: '/elite'
@@ -377,6 +417,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCoachRoute: typeof AuthenticatedCoachRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEliteRoute: typeof AuthenticatedEliteRoute
+  AuthenticatedEliteCircleRoute: typeof AuthenticatedEliteCircleRoute
+  AuthenticatedEliteScheduleRoute: typeof AuthenticatedEliteScheduleRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
 }
@@ -386,6 +428,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCoachRoute: AuthenticatedCoachRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEliteRoute: AuthenticatedEliteRoute,
+  AuthenticatedEliteCircleRoute: AuthenticatedEliteCircleRoute,
+  AuthenticatedEliteScheduleRoute: AuthenticatedEliteScheduleRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
 }
