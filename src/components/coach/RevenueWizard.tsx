@@ -126,6 +126,7 @@ const STEPS = ["Scope", "Snapshot", "Revenue Model", "Goals", "Review"] as const
 export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: Props) {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const save = useServerFn(upsertRevenueProfile);
 
   const centersQ = useQuery({
