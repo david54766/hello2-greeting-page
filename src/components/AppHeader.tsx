@@ -70,7 +70,7 @@ export function AppHeader() {
             <>
               <Link to="/login" className="text-sm hover:text-primary">Sign in</Link>
               <Button asChild size="sm" className="rounded-full px-5">
-                <Link to="/signup">Apply now</Link>
+                <Link to="/signup">Sign up</Link>
               </Button>
             </>
           )}
