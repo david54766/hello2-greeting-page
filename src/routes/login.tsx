@@ -23,6 +23,18 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const doSendReset = useServerFn(sendPasswordReset);
+
+  const handleForgot = async () => {
+    const target = email.trim();
+    if (!target) return toast.error("Enter your email above first.");
+    setResetting(true);
+    const res = await doSendReset({ data: { email: target } });
+    setResetting(false);
+    toast.success(res.message);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
