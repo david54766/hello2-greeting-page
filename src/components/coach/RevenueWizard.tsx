@@ -440,16 +440,52 @@ export function RevenueWizard({ open, onOpenChange, initial, userId, onSaved }: 
   );
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: any; onChange: (v: number | null) => void }) {
+function NumberField({
+  label,
+  value,
+  onChange,
+  error,
+  max,
+}: {
+  label: string;
+  value: any;
+  onChange: (v: number | null) => void;
+  error?: string;
+  max?: number;
+}) {
   return (
     <div>
       <Label>{label}</Label>
       <Input
         type="number"
+        min={0}
+        max={max}
+        step="any"
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+        aria-invalid={!!error}
+        className={error ? "border-destructive focus-visible:ring-destructive" : ""}
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (raw === "") return onChange(null);
+          const n = Number(raw);
+          onChange(Number.isFinite(n) ? n : null);
+        }}
       />
+      {error && (
+        <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="size-3" /> {error}
+        </p>
+      )}
     </div>
+  );
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return (
+    <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+      <AlertCircle className="size-3" /> {msg}
+    </p>
   );
 }
 
