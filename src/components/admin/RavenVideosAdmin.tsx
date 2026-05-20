@@ -38,6 +38,8 @@ export function RavenVideosAdmin() {
   const [editCategory, setEditCategory] = useState("General");
   const [savingEdit, setSavingEdit] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [previewRow, setPreviewRow] = useState<Row | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const replaceThumbInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = async () => {
