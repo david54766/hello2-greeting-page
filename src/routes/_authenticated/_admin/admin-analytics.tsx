@@ -45,6 +45,14 @@ const TIER_COLORS: Record<string, string> = {
   elite: "#a01a3c",      // deep crimson (brand accent)
 };
 
+const MODE_COLORS: Record<string, string> = {
+  ceo: "#a01a3c",        // crimson
+  revenue: "#e83e8c",    // magenta-pink
+  marketing: "#f59ec2",  // soft rose
+  compliance: "#6b21a8", // royal purple
+  systems: "#1e293b",    // slate
+};
+
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function AnalyticsPage() {
@@ -213,7 +221,11 @@ function AnalyticsPage() {
                   <XAxis dataKey="name" fontSize={11} />
                   <YAxis fontSize={11} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" />
+                  <Bar dataKey="count">
+                    {(features.data?.modes ?? []).map((m: any, i: number) => (
+                      <Cell key={i} fill={MODE_COLORS[String(m.name).toLowerCase()] ?? "#e83e8c"} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
