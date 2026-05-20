@@ -428,9 +428,14 @@ export function RavenVideosAdmin() {
                         </Button>
                       </>
                     ) : (
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(r)}>
-                        <Pencil className="size-4" />
-                      </Button>
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => setPreviewRow(r)} title="Preview">
+                          <Play className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => startEdit(r)} title="Edit">
+                          <Pencil className="size-4" />
+                        </Button>
+                      </>
                     )}
                     <Button variant="ghost" size="icon" onClick={() => remove(r)} disabled={isEditing}>
                       <Trash2 className="size-4" />
