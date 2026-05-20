@@ -7,8 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getTodayRecommendation } from "@/lib/coaching.functions";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, FileText, TrendingUp, Sparkles, Play } from "lucide-react";
+import { MessageSquare, FileText, TrendingUp, Sparkles, Play, Info } from "lucide-react";
 import { RavenInsightsDialog } from "@/components/RavenInsightsDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Command Center — Prima Donna AI™" }] }),
@@ -85,9 +86,9 @@ function Dashboard() {
       <section className="mt-10">
         <h2 className="font-display text-2xl">Center snapshot</h2>
         <div className="mt-5 grid sm:grid-cols-3 gap-4">
-          <SnapshotCard label="Enrollment" value={enrollment ? String(enrollment) : "Add a center"} />
-          <SnapshotCard label="Est. monthly revenue" value={monthlyRev ? `$${monthlyRev.toLocaleString()}` : "—"} />
-          <SnapshotCard label="Children per staff" value={ratio} />
+          <SnapshotCard label="Enrollment" value={enrollment ? String(enrollment) : "Add a center"} hint="Total enrolled children summed across every center you've added in Settings → Your centers. Not pulled from your business profile." />
+          <SnapshotCard label="Est. monthly revenue" value={monthlyRev ? `$${monthlyRev.toLocaleString()}` : "—"} hint="Enrollment × average tuition midpoint across your centers. Update each center's tuition range in Settings to refine this estimate." />
+          <SnapshotCard label="Children per staff" value={ratio} hint="Total enrollment ÷ total staff across all your centers. Edit staff counts per center in Settings → Your centers." />
         </div>
       </section>
 
@@ -119,10 +120,24 @@ function Dashboard() {
   );
 }
 
-function SnapshotCard({ label, value }: { label: string; value: string }) {
+function SnapshotCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card p-6">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+        <span>{label}</span>
+        {hint && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" aria-label={`About ${label}`} className="text-muted-foreground/70 hover:text-primary transition">
+                  <Info className="size-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">{hint}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
       <div className="mt-3 font-display text-3xl">{value}</div>
     </div>
   );
