@@ -26,7 +26,27 @@ const MODES = [
 ];
 
 type Mode = (typeof MODES)[number]["id"];
-type Resp = { insight: string; recommendation: string; action_steps: string[] };
+type Resp = {
+  diagnosis: string;
+  impact: string;
+  strategic_move: string;
+  elevation: string;
+  action_steps: string[];
+  // legacy fields for older sessions
+  insight?: string;
+  recommendation?: string;
+};
+
+function normalizeResp(r: any): Resp {
+  if (!r) return { diagnosis: "", impact: "", strategic_move: "", elevation: "", action_steps: [] };
+  return {
+    diagnosis: r.diagnosis ?? r.insight ?? "",
+    impact: r.impact ?? "",
+    strategic_move: r.strategic_move ?? r.recommendation ?? "",
+    elevation: r.elevation ?? "",
+    action_steps: Array.isArray(r.action_steps) ? r.action_steps : [],
+  };
+}
 
 function Coach() {
   const { tier, user } = useAuth();
@@ -125,7 +145,7 @@ function Coach() {
 
   const speak = async (r: Resp) => {
     stopAudio();
-    const text = `Insight. ${r.insight} Recommendation. ${r.recommendation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
+    const text = `Diagnosis. ${r.diagnosis} Impact. ${r.impact} Strategic move. ${r.strategic_move} Elevation. ${r.elevation} Action steps. ${r.action_steps.map((s, i) => `Step ${i + 1}. ${s}`).join(" ")}`;
     setSpeaking(true);
     try {
       const result = await tts({ data: { text } });
@@ -160,9 +180,10 @@ function Coach() {
       const result = await run({ data: { mode, prompt } });
       if (result.error) toast.error(result.error);
       else {
-        setResponse(result.response);
+        const normalized = normalizeResp(result.response);
+        setResponse(normalized);
         qc.invalidateQueries({ queryKey: ["coaching-history", user?.id] });
-        speak(result.response);
+        speak(normalized);
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Strategist unavailable");
@@ -173,14 +194,20 @@ function Coach() {
   const loadFromHistory = (s: any) => {
     setMode(s.mode);
     setPrompt(s.prompt);
-    setResponse(s.response as Resp);
+    setResponse(normalizeResp(s.response));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const copyPlan = () => {
     if (!response) return;
-    const text = `INSIGHT\n${response.insight}\n\nRECOMMENDATION\n${response.recommendation}\n\nACTION STEPS\n${response.action_steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
-    navigator.clipboard.writeText(text);
+    const parts = [
+      `DIAGNOSIS\n${response.diagnosis}`,
+      response.impact && `IMPACT\n${response.impact}`,
+      `STRATEGIC MOVE\n${response.strategic_move}`,
+      response.elevation && `ELEVATION\n${response.elevation}`,
+      `ACTION STEPS\n${response.action_steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`,
+    ].filter(Boolean);
+    navigator.clipboard.writeText(parts.join("\n\n"));
     toast.success("Action plan copied.");
   };
 
@@ -268,8 +295,10 @@ function Coach() {
                 </Button>
               </div>
             </div>
-            <Section label="Insight">{response.insight}</Section>
-            <Section label="Recommendation">{response.recommendation}</Section>
+            <Section label="Diagnosis">{response.diagnosis}</Section>
+            {response.impact && <Section label="Impact">{response.impact}</Section>}
+            <Section label="Strategic Move">{response.strategic_move}</Section>
+            {response.elevation && <Section label="Elevation">{response.elevation}</Section>}
             <div className="mt-6">
               <div className="text-xs uppercase tracking-[0.2em] text-primary">Action steps</div>
               <ol className="mt-3 space-y-2">
@@ -302,7 +331,7 @@ function Coach() {
                 <span className="text-xs uppercase tracking-wider text-primary">{s.mode}</span>
                 <span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
               </div>
-              <p className="mt-2 text-sm line-clamp-2">{s.response?.insight ?? s.prompt}</p>
+              <p className="mt-2 text-sm line-clamp-2">{s.response?.diagnosis ?? s.response?.insight ?? s.prompt}</p>
             </button>
           ))}
         </div>
