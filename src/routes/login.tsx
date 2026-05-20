@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import loginPortrait from "@/assets/prima-donna-login.jpeg";
 import { toast } from "sonner";
+import { sendPasswordReset } from "@/lib/auth-email.functions";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Prima Donna AI™" }] }),
@@ -21,6 +23,18 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const doSendReset = useServerFn(sendPasswordReset);
+
+  const handleForgot = async () => {
+    const target = email.trim();
+    if (!target) return toast.error("Enter your email above first.");
+    setResetting(true);
+    const res = await doSendReset({ data: { email: target } });
+    setResetting(false);
+    toast.success(res.message);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -56,7 +70,12 @@ function Login() {
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <button type="button" onClick={handleForgot} disabled={resetting} className="text-xs text-primary underline underline-offset-4 disabled:opacity-50">
+                {resetting ? "Sending…" : "Forgot password?"}
+              </button>
+            </div>
             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <Button type="submit" className="w-full rounded-full h-11" disabled={loading}>
