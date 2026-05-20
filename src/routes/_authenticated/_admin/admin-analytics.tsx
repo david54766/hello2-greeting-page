@@ -221,7 +221,11 @@ function AnalyticsPage() {
                   <XAxis dataKey="name" fontSize={11} />
                   <YAxis fontSize={11} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" />
+                  <Bar dataKey="count">
+                    {(features.data?.modes ?? []).map((m: any, i: number) => (
+                      <Cell key={i} fill={MODE_COLORS[String(m.name).toLowerCase()] ?? "#e83e8c"} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
