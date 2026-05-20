@@ -17,7 +17,7 @@ import { Crown, MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react"
 import { toast } from "sonner";
 import { EliteSubNav } from "@/components/EliteSubNav";
 
-export const Route = createFileRoute("/_authenticated/elite-circle")({
+export const Route = createFileRoute("/_authenticated/_elite-gate/elite-circle")({
   head: () => ({ meta: [{ title: "Elite Circle Conversations — Prima Donna AI™" }] }),
   component: EliteCircleBoard,
 });

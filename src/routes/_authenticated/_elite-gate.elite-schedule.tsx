@@ -23,7 +23,7 @@ import { Crown, Calendar, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { EliteSubNav } from "@/components/EliteSubNav";
 
-export const Route = createFileRoute("/_authenticated/elite-schedule")({
+export const Route = createFileRoute("/_authenticated/_elite-gate/elite-schedule")({
   head: () => ({ meta: [{ title: "Schedule with Raven — Prima Donna AI™" }] }),
   component: EliteSchedule,
 });
