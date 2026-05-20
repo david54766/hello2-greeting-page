@@ -143,9 +143,9 @@ function SnapshotCard({ label, value, hint }: { label: string; value: string; hi
   );
 }
 
-function ActionCard({ to, icon, title, desc }: { to: string; icon: React.ReactNode; title: string; desc: string }) {
+function ActionCard({ to, search, icon, title, desc }: { to: string; search?: Record<string, any>; icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <Link to={to as any} className="group rounded-xl border border-border/60 bg-card p-6 hover:border-primary/50 transition block">
+    <Link to={to as any} search={search as any} className="group rounded-xl border border-border/60 bg-card p-6 hover:border-primary/50 transition block">
       <div className="flex items-center gap-3">
         <div className="size-10 rounded-full bg-primary/10 text-primary grid place-items-center">{icon}</div>
         <div className="font-display text-xl">{title}</div>
