@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Trash2, Upload } from "lucide-react";
+import { Pencil, Trash2, Upload, Check, X } from "lucide-react";
 
 type Row = {
   id: string;
