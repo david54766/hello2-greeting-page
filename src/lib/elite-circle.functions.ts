@@ -2,13 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const ImageUrlsSchema = z
+  .array(z.string().url().max(1000))
+  .max(8)
+  .optional()
+  .default([]);
+
 export const listThreads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
     const { data, error } = await supabase
       .from("elite_threads")
-      .select("id, user_id, title, body, pinned, created_at, updated_at")
+      .select("id, user_id, title, body, image_urls, pinned, created_at, updated_at")
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -23,7 +29,6 @@ export const listThreads = createServerFn({ method: "GET" })
       names = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.full_name ?? "Member"]));
     }
 
-    // reply counts
     const { data: counts } = await supabase
       .from("elite_thread_replies")
       .select("thread_id");
@@ -33,6 +38,7 @@ export const listThreads = createServerFn({ method: "GET" })
     return {
       threads: (data ?? []).map((t) => ({
         ...t,
+        image_urls: (t as any).image_urls ?? [],
         author_name: names[t.user_id] ?? "Member",
         reply_count: tally[t.id] ?? 0,
       })),
@@ -45,13 +51,14 @@ export const createThread = createServerFn({ method: "POST" })
     z.object({
       title: z.string().min(3).max(200),
       body: z.string().min(1).max(10_000),
+      image_urls: ImageUrlsSchema,
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("elite_threads")
-      .insert({ user_id: userId, title: data.title, body: data.body })
+      .insert({ user_id: userId, title: data.title, body: data.body, image_urls: data.image_urls ?? [] })
       .select("id")
       .single();
     if (error) return { ok: false, message: error.message };
@@ -65,14 +72,14 @@ export const getThread = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: thread, error } = await supabase
       .from("elite_threads")
-      .select("id, user_id, title, body, pinned, created_at, updated_at")
+      .select("id, user_id, title, body, image_urls, pinned, created_at, updated_at")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !thread) throw new Error(error?.message ?? "Not found");
 
     const { data: replies } = await supabase
       .from("elite_thread_replies")
-      .select("id, user_id, body, created_at")
+      .select("id, user_id, body, image_urls, created_at")
       .eq("thread_id", data.id)
       .order("created_at", { ascending: true });
 
@@ -82,8 +89,8 @@ export const getThread = createServerFn({ method: "GET" })
     const names = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.full_name ?? "Member"]));
 
     return {
-      thread: { ...thread, author_name: names[thread.user_id] ?? "Member" },
-      replies: (replies ?? []).map((r: any) => ({ ...r, author_name: names[r.user_id] ?? "Member" })),
+      thread: { ...thread, image_urls: (thread as any).image_urls ?? [], author_name: names[thread.user_id] ?? "Member" },
+      replies: (replies ?? []).map((r: any) => ({ ...r, image_urls: r.image_urls ?? [], author_name: names[r.user_id] ?? "Member" })),
     };
   });
 
@@ -93,6 +100,7 @@ export const replyToThread = createServerFn({ method: "POST" })
     z.object({
       thread_id: z.string().uuid(),
       body: z.string().min(1).max(10_000),
+      image_urls: ImageUrlsSchema,
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -101,9 +109,9 @@ export const replyToThread = createServerFn({ method: "POST" })
       thread_id: data.thread_id,
       user_id: userId,
       body: data.body,
+      image_urls: data.image_urls ?? [],
     });
     if (error) return { ok: false, message: error.message };
-    // Bump thread updated_at
     await supabase.from("elite_threads").update({ updated_at: new Date().toISOString() }).eq("id", data.thread_id);
     return { ok: true };
   });
@@ -117,3 +125,4 @@ export const deleteThread = createServerFn({ method: "POST" })
     if (error) return { ok: false, message: error.message };
     return { ok: true };
   });
+

@@ -13,9 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Calendar, Trash2, ArrowLeft } from "lucide-react";
+import { MessageSquare, Calendar, Trash2, ArrowLeft, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { EliteSubNav } from "@/components/EliteSubNav";
+import { ImageAttachments, AttachmentGallery } from "@/components/elite/ImageAttachments";
 
 export const Route = createFileRoute("/_authenticated/_elite-gate/elite-circle")({
   head: () => ({ meta: [{ title: "Elite Circle Conversations — Prima Donna AI™" }] }),
@@ -42,17 +43,18 @@ function ThreadList({ onOpen, userId }: { onOpen: (id: string) => void; userId?:
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     if (!title.trim() || !body.trim()) return;
     setBusy(true);
-    const r = await createFn({ data: { title: title.trim(), body: body.trim() } });
+    const r = await createFn({ data: { title: title.trim(), body: body.trim(), image_urls: images } });
     setBusy(false);
     if (!r.ok) return toast.error(r.message);
     toast.success("Conversation started.");
-    setTitle(""); setBody(""); setShowForm(false);
+    setTitle(""); setBody(""); setImages([]); setShowForm(false);
     qc.invalidateQueries({ queryKey: ["elite-threads"] });
   };
 
@@ -86,6 +88,7 @@ function ThreadList({ onOpen, userId }: { onOpen: (id: string) => void; userId?:
         <div className="mt-6 rounded-xl border border-border bg-card p-5 space-y-3">
           <Input placeholder="Title" value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />
           <Textarea placeholder="What's on your mind?" rows={5} value={body} maxLength={10000} onChange={(e) => setBody(e.target.value)} />
+          {userId && <ImageAttachments userId={userId} value={images} onChange={setImages} disabled={busy} />}
           <div className="flex justify-end">
             <Button onClick={submit} disabled={busy || !title.trim() || !body.trim()} className="rounded-full">
               {busy ? "Posting…" : "Post"}
@@ -112,8 +115,12 @@ function ThreadList({ onOpen, userId }: { onOpen: (id: string) => void; userId?:
                   <h3 className="font-display text-xl group-hover:text-primary">{t.title}</h3>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{t.body}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t.author_name} · {new Date(t.updated_at).toLocaleDateString()} · <MessageSquare className="size-3 inline" /> {t.reply_count}
+                <p className="mt-2 text-xs text-muted-foreground inline-flex items-center gap-2">
+                  <span>{t.author_name} · {new Date(t.updated_at).toLocaleDateString()}</span>
+                  <span className="inline-flex items-center gap-1"><MessageSquare className="size-3" /> {t.reply_count}</span>
+                  {t.image_urls?.length > 0 && (
+                    <span className="inline-flex items-center gap-1"><ImageIcon className="size-3" /> {t.image_urls.length}</span>
+                  )}
                 </p>
               </div>
               {t.user_id === userId && (
@@ -139,15 +146,16 @@ function ThreadView({ id, onBack, userId }: { id: string; onBack: () => void; us
   const qc = useQueryClient();
   const thread = useQuery({ queryKey: ["elite-thread", id], queryFn: () => getFn({ data: { id } }) });
   const [body, setBody] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     if (!body.trim()) return;
     setBusy(true);
-    const r = await replyFn({ data: { thread_id: id, body: body.trim() } });
+    const r = await replyFn({ data: { thread_id: id, body: body.trim(), image_urls: images } });
     setBusy(false);
     if (!r.ok) return toast.error(r.message);
-    setBody("");
+    setBody(""); setImages([]);
     qc.invalidateQueries({ queryKey: ["elite-thread", id] });
     qc.invalidateQueries({ queryKey: ["elite-threads"] });
   };
@@ -166,6 +174,7 @@ function ThreadView({ id, onBack, userId }: { id: string; onBack: () => void; us
           </p>
           <div className="mt-6 rounded-xl border border-border bg-card p-5 whitespace-pre-wrap">
             {thread.data.thread.body}
+            <AttachmentGallery urls={thread.data.thread.image_urls} />
           </div>
 
           <div className="gold-divider mt-10" />
@@ -176,12 +185,14 @@ function ThreadView({ id, onBack, userId }: { id: string; onBack: () => void; us
               <div key={r.id} className="rounded-lg border border-border/60 bg-card/50 p-4">
                 <p className="text-xs text-muted-foreground">{r.author_name} · {new Date(r.created_at).toLocaleString()}</p>
                 <p className="mt-2 whitespace-pre-wrap">{r.body}</p>
+                <AttachmentGallery urls={r.image_urls} />
               </div>
             ))}
           </div>
 
           <div className="mt-6 rounded-xl border border-border bg-card p-5 space-y-3">
             <Textarea placeholder="Add to the conversation…" rows={4} value={body} onChange={(e) => setBody(e.target.value)} maxLength={10000} />
+            {userId && <ImageAttachments userId={userId} value={images} onChange={setImages} disabled={busy} />}
             <div className="flex justify-end">
               <Button onClick={submit} disabled={busy || !body.trim()} className="rounded-full">
                 {busy ? "Posting…" : "Reply"}
