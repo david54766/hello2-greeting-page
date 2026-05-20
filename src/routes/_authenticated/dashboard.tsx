@@ -120,10 +120,24 @@ function Dashboard() {
   );
 }
 
-function SnapshotCard({ label, value }: { label: string; value: string }) {
+function SnapshotCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card p-6">
-      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+        <span>{label}</span>
+        {hint && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" aria-label={`About ${label}`} className="text-muted-foreground/70 hover:text-primary transition">
+                  <Info className="size-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">{hint}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
       <div className="mt-3 font-display text-3xl">{value}</div>
     </div>
   );
