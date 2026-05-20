@@ -331,7 +331,7 @@ function Coach() {
                 <span className="text-xs uppercase tracking-wider text-primary">{s.mode}</span>
                 <span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
               </div>
-              <p className="mt-2 text-sm line-clamp-2">{s.response?.insight ?? s.prompt}</p>
+              <p className="mt-2 text-sm line-clamp-2">{s.response?.diagnosis ?? s.response?.insight ?? s.prompt}</p>
             </button>
           ))}
         </div>
