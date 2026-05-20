@@ -72,7 +72,7 @@ function Coach() {
 
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: "vad",
+    commitStrategy: CommitStrategy.VAD,
     onCommittedTranscript: (data: any) => {
       const text = (data?.text ?? "").trim();
       if (!text) return;
