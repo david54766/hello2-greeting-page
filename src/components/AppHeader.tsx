@@ -26,6 +26,9 @@ export function AppHeader() {
       <Link to="/elite" className="hover:text-primary transition" activeProps={{ className: "text-primary" }} onClick={close}>
         Elite Circle
       </Link>
+      <Link to="/billing" className="hover:text-primary transition" activeProps={{ className: "text-primary" }} onClick={close}>
+        Billing
+      </Link>
       {isAdmin && (
         <Link to="/admin" className="hover:text-primary transition" activeProps={{ className: "text-primary" }} onClick={close}>
           Admin

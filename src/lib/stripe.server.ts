@@ -14,13 +14,17 @@ export function getStripe(): Stripe {
 
 export type Tier = "essentials" | "pro" | "elite";
 
+const DEFAULT_PRICE_IDS: Record<Tier, string> = {
+  essentials: "price_1TZki3Phk6TJdyZVe2ZatPwD",
+  pro: "price_1TZki4Phk6TJdyZVrL64llc7",
+  elite: "price_1TZki5Phk6TJdyZVb3L7BAcN",
+};
+
 export function priceIdFor(tier: Tier): string {
-  const map: Record<Tier, string | undefined> = {
+  const envMap: Record<Tier, string | undefined> = {
     essentials: process.env.STRIPE_PRICE_ESSENTIALS,
     pro: process.env.STRIPE_PRICE_PRO,
     elite: process.env.STRIPE_PRICE_ELITE,
   };
-  const id = map[tier];
-  if (!id) throw new Error(`Missing Stripe price ID for tier "${tier}". Set STRIPE_PRICE_${tier.toUpperCase()} in secrets.`);
-  return id;
+  return envMap[tier] || DEFAULT_PRICE_IDS[tier];
 }
