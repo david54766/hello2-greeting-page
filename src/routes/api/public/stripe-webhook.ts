@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
-import { getStripe, type Tier } from "@/lib/stripe.server";
+import { getStripe, priceIdFor, type Tier } from "@/lib/stripe.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-import { priceIdFor } from "@/lib/stripe.server";
 
 const TIER_BY_PRICE = (): Record<string, Tier> => ({
   [priceIdFor("essentials")]: "essentials",
