@@ -25,8 +25,10 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCoachRouteImport } from './routes/_authenticated/coach'
+import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedEliteGateRouteImport } from './routes/_authenticated/_elite-gate'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
+import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
 import { Route as AuthenticatedEliteGateEliteScheduleRouteImport } from './routes/_authenticated/_elite-gate.elite-schedule'
 import { Route as AuthenticatedEliteGateEliteCircleRouteImport } from './routes/_authenticated/_elite-gate.elite-circle'
@@ -114,6 +116,11 @@ const AuthenticatedCoachRoute = AuthenticatedCoachRouteImport.update({
   path: '/coach',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedEliteGateRoute = AuthenticatedEliteGateRouteImport.update({
   id: '/_elite-gate',
   getParentRoute: () => AuthenticatedRoute,
@@ -121,6 +128,11 @@ const AuthenticatedEliteGateRoute = AuthenticatedEliteGateRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/_admin',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe-webhook',
+  path: '/api/public/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEliteApplyRoute = ApiPublicEliteApplyRouteImport.update({
   id: '/api/public/elite-apply',
@@ -173,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/billing': typeof AuthenticatedBillingRoute
   '/coach': typeof AuthenticatedCoachRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/elite': typeof AuthenticatedEliteRoute
@@ -185,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
   '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRoutesByTo {
@@ -197,6 +211,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/billing': typeof AuthenticatedBillingRoute
   '/coach': typeof AuthenticatedCoachRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/elite': typeof AuthenticatedEliteRoute
@@ -209,6 +224,7 @@ export interface FileRoutesByTo {
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
   '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRoutesById {
@@ -225,6 +241,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/_elite-gate': typeof AuthenticatedEliteGateRouteWithChildren
+  '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/coach': typeof AuthenticatedCoachRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/elite': typeof AuthenticatedEliteRoute
@@ -237,6 +254,7 @@ export interface FileRoutesById {
   '/_authenticated/_elite-gate/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
   '/_authenticated/_elite-gate/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 export interface FileRouteTypes {
@@ -251,6 +269,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/billing'
     | '/coach'
     | '/dashboard'
     | '/elite'
@@ -263,6 +282,7 @@ export interface FileRouteTypes {
     | '/elite-circle'
     | '/elite-schedule'
     | '/api/public/elite-apply'
+    | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -275,6 +295,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/terms'
+    | '/billing'
     | '/coach'
     | '/dashboard'
     | '/elite'
@@ -287,6 +308,7 @@ export interface FileRouteTypes {
     | '/elite-circle'
     | '/elite-schedule'
     | '/api/public/elite-apply'
+    | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
   id:
     | '__root__'
@@ -302,6 +324,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/_authenticated/_admin'
     | '/_authenticated/_elite-gate'
+    | '/_authenticated/billing'
     | '/_authenticated/coach'
     | '/_authenticated/dashboard'
     | '/_authenticated/elite'
@@ -314,6 +337,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_elite-gate/elite-circle'
     | '/_authenticated/_elite-gate/elite-schedule'
     | '/api/public/elite-apply'
+    | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
   fileRoutesById: FileRoutesById
 }
@@ -330,6 +354,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiTtsStreamRoute: typeof ApiTtsStreamRoute
   ApiPublicEliteApplyRoute: typeof ApiPublicEliteApplyRoute
+  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicHooksGenerateDailyRecommendationsRoute: typeof ApiPublicHooksGenerateDailyRecommendationsRoute
 }
 
@@ -447,6 +472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCoachRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/billing': {
+      id: '/_authenticated/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthenticatedBillingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/_elite-gate': {
       id: '/_authenticated/_elite-gate'
       path: ''
@@ -460,6 +492,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/stripe-webhook': {
+      id: '/api/public/stripe-webhook'
+      path: '/api/public/stripe-webhook'
+      fullPath: '/api/public/stripe-webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/elite-apply': {
       id: '/api/public/elite-apply'
@@ -549,6 +588,7 @@ const AuthenticatedEliteGateRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedEliteGateRoute: typeof AuthenticatedEliteGateRouteWithChildren
+  AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedCoachRoute: typeof AuthenticatedCoachRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEliteRoute: typeof AuthenticatedEliteRoute
@@ -559,6 +599,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedEliteGateRoute: AuthenticatedEliteGateRouteWithChildren,
+  AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedCoachRoute: AuthenticatedCoachRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEliteRoute: AuthenticatedEliteRoute,
@@ -583,19 +624,10 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiTtsStreamRoute: ApiTtsStreamRoute,
   ApiPublicEliteApplyRoute: ApiPublicEliteApplyRoute,
+  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicHooksGenerateDailyRecommendationsRoute:
     ApiPublicHooksGenerateDailyRecommendationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
