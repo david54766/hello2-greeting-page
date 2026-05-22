@@ -37,22 +37,26 @@ async function syncSubscription(sub: Stripe.Subscription) {
     return;
   }
   const tier = tierFromSubscription(sub);
-  const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
+  const periodEndUnix = (sub as unknown as { current_period_end?: number }).current_period_end;
+  const periodEnd = periodEndUnix ? new Date(periodEndUnix * 1000).toISOString() : null;
 
-  const update: Record<string, unknown> = {
-    status: sub.status, // active | trialing | past_due | canceled | unpaid | incomplete | incomplete_expired
-    stripe_subscription_id: sub.id,
-    stripe_customer_id: customerId,
-    current_period_end: periodEnd,
-  };
+  let effectiveTier: "essentials" | "pro" | "elite" | undefined;
   if (tier && (sub.status === "active" || sub.status === "trialing")) {
-    update.tier = tier;
-  }
-  if (sub.status === "canceled" || sub.status === "incomplete_expired" || sub.status === "unpaid") {
-    update.tier = "essentials";
+    effectiveTier = tier;
+  } else if (sub.status === "canceled" || sub.status === "incomplete_expired" || sub.status === "unpaid") {
+    effectiveTier = "essentials";
   }
 
-  await supabaseAdmin.from("subscriptions").update(update).eq("user_id", userId);
+  await supabaseAdmin
+    .from("subscriptions")
+    .update({
+      status: sub.status,
+      stripe_subscription_id: sub.id,
+      stripe_customer_id: customerId,
+      current_period_end: periodEnd,
+      ...(effectiveTier ? { tier: effectiveTier } : {}),
+    })
+    .eq("user_id", userId);
 }
 
 export const Route = createFileRoute("/api/public/stripe-webhook")({
