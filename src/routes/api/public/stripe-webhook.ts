@@ -3,13 +3,13 @@ import Stripe from "stripe";
 import { getStripe, type Tier } from "@/lib/stripe.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const TIER_BY_PRICE = (): Record<string, Tier> => {
-  const m: Record<string, Tier> = {};
-  if (process.env.STRIPE_PRICE_ESSENTIALS) m[process.env.STRIPE_PRICE_ESSENTIALS] = "essentials";
-  if (process.env.STRIPE_PRICE_PRO) m[process.env.STRIPE_PRICE_PRO] = "pro";
-  if (process.env.STRIPE_PRICE_ELITE) m[process.env.STRIPE_PRICE_ELITE] = "elite";
-  return m;
-};
+import { priceIdFor } from "@/lib/stripe.server";
+
+const TIER_BY_PRICE = (): Record<string, Tier> => ({
+  [priceIdFor("essentials")]: "essentials",
+  [priceIdFor("pro")]: "pro",
+  [priceIdFor("elite")]: "elite",
+});
 
 function tierFromSubscription(sub: Stripe.Subscription): Tier | null {
   const metaTier = sub.metadata?.tier as Tier | undefined;
