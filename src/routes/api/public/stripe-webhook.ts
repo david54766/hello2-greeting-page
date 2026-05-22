@@ -1,0 +1,107 @@
+import { createFileRoute } from "@tanstack/react-router";
+import Stripe from "stripe";
+import { getStripe, type Tier } from "@/lib/stripe.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+const TIER_BY_PRICE = (): Record<string, Tier> => {
+  const m: Record<string, Tier> = {};
+  if (process.env.STRIPE_PRICE_ESSENTIALS) m[process.env.STRIPE_PRICE_ESSENTIALS] = "essentials";
+  if (process.env.STRIPE_PRICE_PRO) m[process.env.STRIPE_PRICE_PRO] = "pro";
+  if (process.env.STRIPE_PRICE_ELITE) m[process.env.STRIPE_PRICE_ELITE] = "elite";
+  return m;
+};
+
+function tierFromSubscription(sub: Stripe.Subscription): Tier | null {
+  const metaTier = sub.metadata?.tier as Tier | undefined;
+  if (metaTier && ["essentials", "pro", "elite"].includes(metaTier)) return metaTier;
+  const priceId = sub.items.data[0]?.price.id;
+  if (priceId) return TIER_BY_PRICE()[priceId] ?? null;
+  return null;
+}
+
+async function userIdForCustomer(customerId: string, subMetaUserId?: string): Promise<string | null> {
+  if (subMetaUserId) return subMetaUserId;
+  const { data } = await supabaseAdmin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
+    .maybeSingle();
+  return data?.user_id ?? null;
+}
+
+async function syncSubscription(sub: Stripe.Subscription) {
+  const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+  const userId = await userIdForCustomer(customerId, sub.metadata?.user_id);
+  if (!userId) {
+    console.error("[stripe-webhook] no user mapped for customer", customerId);
+    return;
+  }
+  const tier = tierFromSubscription(sub);
+  const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
+
+  const update: Record<string, unknown> = {
+    status: sub.status, // active | trialing | past_due | canceled | unpaid | incomplete | incomplete_expired
+    stripe_subscription_id: sub.id,
+    stripe_customer_id: customerId,
+    current_period_end: periodEnd,
+  };
+  if (tier && (sub.status === "active" || sub.status === "trialing")) {
+    update.tier = tier;
+  }
+  if (sub.status === "canceled" || sub.status === "incomplete_expired" || sub.status === "unpaid") {
+    update.tier = "essentials";
+  }
+
+  await supabaseAdmin.from("subscriptions").update(update).eq("user_id", userId);
+}
+
+export const Route = createFileRoute("/api/public/stripe-webhook")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const secret = process.env.STRIPE_WEBHOOK_SECRET;
+        if (!secret) {
+          console.error("[stripe-webhook] STRIPE_WEBHOOK_SECRET missing");
+          return new Response("Webhook not configured", { status: 500 });
+        }
+        const signature = request.headers.get("stripe-signature");
+        if (!signature) return new Response("Missing signature", { status: 400 });
+
+        const body = await request.text();
+        let event: Stripe.Event;
+        try {
+          event = await getStripe().webhooks.constructEventAsync(body, signature, secret);
+        } catch (err) {
+          console.error("[stripe-webhook] signature verify failed", err);
+          return new Response("Invalid signature", { status: 401 });
+        }
+
+        try {
+          switch (event.type) {
+            case "checkout.session.completed": {
+              const session = event.data.object as Stripe.Checkout.Session;
+              if (session.subscription) {
+                const subId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+                const sub = await getStripe().subscriptions.retrieve(subId);
+                await syncSubscription(sub);
+              }
+              break;
+            }
+            case "customer.subscription.created":
+            case "customer.subscription.updated":
+            case "customer.subscription.deleted": {
+              await syncSubscription(event.data.object as Stripe.Subscription);
+              break;
+            }
+            default:
+              break;
+          }
+          return new Response("ok", { status: 200 });
+        } catch (err) {
+          console.error("[stripe-webhook] handler error", err);
+          return new Response("Handler error", { status: 500 });
+        }
+      },
+    },
+  },
+});
