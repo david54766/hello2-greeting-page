@@ -1,0 +1,545 @@
+package com.preschoolprimadonna.app.data
+
+import com.preschoolprimadonna.app.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
+
+@Serializable
+private data class OptionalAuthSession(
+    @SerialName("access_token") val accessToken: String? = null,
+    @SerialName("refresh_token") val refreshToken: String? = null,
+    @SerialName("expires_in") val expiresIn: Long? = null,
+    @SerialName("token_type") val tokenType: String? = null,
+    val user: AuthUser? = null
+) {
+    fun toAuthSessionOrNull(): AuthSession? {
+        return accessToken?.let {
+            AuthSession(
+                accessToken = it,
+                refreshToken = refreshToken,
+                expiresIn = expiresIn,
+                tokenType = tokenType,
+                user = user
+            )
+        }
+    }
+}
+
+class SupabaseRestClient {
+    private val client = OkHttpClient()
+    private val json = Json {
+        ignoreUnknownKeys = true
+        explicitNulls = false
+    }
+    private val serverFunctionCodec = ServerFunctionCodec(json)
+    private val jsonMediaType = "application/json".toMediaType()
+
+    private object ServerFunctions {
+        const val LIST_THREADS = "ed759d5fefb644e4e280c13ac67a9ef31842917a7b657b3fdb5fe0e03e18a69c"
+        const val CREATE_THREAD = "c060c6d01170e66edff932b8eab3bb5093309c354a251f1c3dde1b262fdeda55"
+        const val DELETE_THREAD = "490af8a295d7a209cd6be9304ca3139a49654b9e1714e63d5db1d9a3409c83af"
+        const val RAVEN_SLOTS = "4499dd31b82fccefb8f99aab64e091a105345deb03fba9328fa5cd96cc9717fe"
+        const val RAVEN_BOOKINGS = "4b19acfe2011ea53fcf81328c3f6eb02ac92a28540f75a00812d63795882beba"
+        const val BOOK_RAVEN = "d7f2869be7c48ec79af89ab76699b8b344383567780d3e8e3e99c32b6ee4b72d"
+        const val CANCEL_RAVEN = "31bce3cc7098b2c5d1737dec38a357a85071fbd32fb7c1d986393e6c3e7565ca"
+    }
+
+    suspend fun signIn(email: String, password: String): AuthSession {
+        val body = JsonObject(
+            mapOf(
+                "email" to JsonPrimitive(email),
+                "password" to JsonPrimitive(password)
+            )
+        )
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/token?grant_type=password")
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        return json.decodeFromString(execute(request))
+    }
+
+    suspend fun signUp(email: String, password: String, fullName: String, redirectTo: String): AuthSession? {
+        val body = buildJsonObject {
+            put("email", email)
+            put("password", password)
+            put(
+                "data",
+                buildJsonObject {
+                    put("full_name", fullName.trim())
+                    put("intended_tier", "essentials")
+                }
+            )
+        }
+        val url = "${BuildConfig.SUPABASE_URL}/auth/v1/signup".toHttpUrl().newBuilder()
+            .apply {
+                redirectTo.takeIf { it.isNotBlank() }?.let { addQueryParameter("redirect_to", it) }
+            }
+            .build()
+        val request = baseRequest(url.toString())
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        return json.decodeFromString<OptionalAuthSession>(execute(request)).toAuthSessionOrNull()
+    }
+
+    suspend fun requestPasswordReset(email: String, redirectTo: String) {
+        val body = buildJsonObject {
+            put("email", email)
+        }
+        val url = "${BuildConfig.SUPABASE_URL}/auth/v1/recover".toHttpUrl().newBuilder()
+            .apply {
+                redirectTo.takeIf { it.isNotBlank() }?.let { addQueryParameter("redirect_to", it) }
+            }
+            .build()
+        val request = baseRequest(url.toString())
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        execute(request)
+    }
+
+    suspend fun updatePassword(session: AuthSession, password: String) {
+        val body = buildJsonObject {
+            put("password", password)
+        }
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/user", session)
+            .put(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        execute(request)
+    }
+
+    suspend fun refresh(refreshToken: String): AuthSession {
+        val body = JsonObject(mapOf("refresh_token" to JsonPrimitive(refreshToken)))
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token")
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        return json.decodeFromString(execute(request))
+    }
+
+    suspend fun getCurrentUser(session: AuthSession): AuthUser {
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/user", session)
+            .get()
+            .build()
+        return json.decodeFromString(execute(request))
+    }
+
+    suspend fun getProfile(session: AuthSession, userId: String): Profile? {
+        return select<Profile>(
+            session = session,
+            table = "profiles",
+            select = "*",
+            params = mapOf("id" to "eq.$userId"),
+            limit = 1
+        ).firstOrNull()
+    }
+
+    suspend fun getSubscription(session: AuthSession, userId: String): Subscription? {
+        return select<Subscription>(
+            session = session,
+            table = "subscriptions",
+            select = "*",
+            params = mapOf("user_id" to "eq.$userId"),
+            limit = 1
+        ).firstOrNull()
+    }
+
+    suspend fun getCenters(session: AuthSession, userId: String): List<Center> {
+        return select(
+            session = session,
+            table = "centers",
+            select = "*",
+            params = mapOf("user_id" to "eq.$userId", "order" to "created_at.desc")
+        )
+    }
+
+    suspend fun getTemplates(session: AuthSession): List<TemplateItem> {
+        return select(
+            session = session,
+            table = "templates",
+            select = "*",
+            params = mapOf("order" to "category.asc,created_at.asc")
+        )
+    }
+
+    suspend fun getVideos(session: AuthSession): List<RavenVideo> {
+        return select(
+            session = session,
+            table = "raven_videos",
+            select = "id,title,description,storage_path,thumbnail_path,duration_seconds,sort_order,category",
+            params = mapOf(
+                "published" to "eq.true",
+                "order" to "category.asc,sort_order.asc"
+            )
+        )
+    }
+
+    suspend fun getCoachingSessions(session: AuthSession, userId: String): List<CoachingSession> {
+        return select(
+            session = session,
+            table = "coaching_sessions",
+            select = "*",
+            params = mapOf(
+                "user_id" to "eq.$userId",
+                "order" to "created_at.desc",
+                "limit" to "10"
+            )
+        )
+    }
+
+    suspend fun addCoachingSession(
+        session: AuthSession,
+        userId: String,
+        mode: String,
+        prompt: String
+    ): CoachingSession? {
+        val response = JsonObject(
+            mapOf(
+                "diagnosis" to JsonPrimitive("Captured from the Android app."),
+                "impact" to JsonPrimitive("This session is saved to your coaching history."),
+                "strategic_move" to JsonPrimitive("Raven's generated strategy will populate when the stable coaching endpoint is connected."),
+                "elevation" to JsonPrimitive("Keep the context specific so the follow-up strategy can be sharper."),
+                "action_steps" to JsonArray(
+                    listOf(
+                        JsonPrimitive("Review the saved prompt."),
+                        JsonPrimitive("Add center details if the question depends on enrollment, staffing, or tuition."),
+                        JsonPrimitive("Run the prompt again once mobile strategy generation is connected.")
+                    )
+                )
+            )
+        )
+        val body = JsonObject(
+            mapOf(
+                "user_id" to JsonPrimitive(userId),
+                "mode" to JsonPrimitive(mode.lowercase()),
+                "prompt" to JsonPrimitive(prompt.trim()),
+                "response" to response
+            )
+        )
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/rest/v1/coaching_sessions", session)
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "return=representation")
+            .build()
+        return json.decodeFromString<List<CoachingSession>>(execute(request)).firstOrNull()
+    }
+
+    suspend fun deleteCoachingSession(session: AuthSession, userId: String, sessionId: String) {
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/coaching_sessions".toHttpUrl().newBuilder()
+            .addQueryParameter("id", "eq.$sessionId")
+            .addQueryParameter("user_id", "eq.$userId")
+            .build()
+        val request = baseRequest(url.toString(), session)
+            .delete()
+            .build()
+        execute(request)
+    }
+
+    suspend fun getEliteThreads(session: AuthSession): List<EliteThread> {
+        val result = mobileApiOrServerFunction(session, "list_elite_threads", ServerFunctions.LIST_THREADS)
+        val threads = result["threads"]?.jsonArray ?: JsonArray(emptyList())
+        return json.decodeFromJsonElement(threads)
+    }
+
+    suspend fun createEliteThread(session: AuthSession, title: String, body: String) {
+        val payload = buildJsonObject {
+            put("title", title.trim())
+            put("body", body.trim())
+            put("image_urls", JsonArray(emptyList()))
+        }
+        mobileApiOrServerFunction(session, "create_elite_thread", ServerFunctions.CREATE_THREAD, method = "POST", data = payload)
+    }
+
+    suspend fun getEliteThread(session: AuthSession, threadId: String): EliteThreadDetail {
+        val payload = buildJsonObject { put("id", threadId) }
+        val result = mobileApi(session, "get_elite_thread", payload)
+        val thread = result["thread"] ?: error("Conversation was not found")
+        val replies = result["replies"]?.jsonArray ?: JsonArray(emptyList())
+        return EliteThreadDetail(
+            thread = json.decodeFromJsonElement(thread),
+            replies = json.decodeFromJsonElement(replies)
+        )
+    }
+
+    suspend fun replyEliteThread(session: AuthSession, threadId: String, body: String) {
+        val payload = buildJsonObject {
+            put("thread_id", threadId)
+            put("body", body.trim())
+            put("image_urls", JsonArray(emptyList()))
+        }
+        mobileApi(session, "reply_elite_thread", payload)
+    }
+
+    suspend fun deleteEliteThread(session: AuthSession, threadId: String) {
+        val payload = buildJsonObject { put("id", threadId) }
+        mobileApiOrServerFunction(session, "delete_elite_thread", ServerFunctions.DELETE_THREAD, method = "POST", data = payload)
+    }
+
+    suspend fun getRavenSlots(session: AuthSession): Pair<List<RavenSlot>, String?> {
+        val result = mobileApiOrServerFunction(session, "list_raven_slots", ServerFunctions.RAVEN_SLOTS)
+        val slots = result["slots"]?.jsonArray ?: JsonArray(emptyList())
+        val timezone = result["timezone"]?.jsonPrimitive?.contentOrNull
+        return json.decodeFromJsonElement<List<RavenSlot>>(slots) to timezone
+    }
+
+    suspend fun getRavenBookings(session: AuthSession): List<RavenBooking> {
+        val result = mobileApiOrServerFunction(session, "list_raven_bookings", ServerFunctions.RAVEN_BOOKINGS)
+        val bookings = result["bookings"]?.jsonArray ?: JsonArray(emptyList())
+        return json.decodeFromJsonElement(bookings)
+    }
+
+    suspend fun bookRavenSlot(session: AuthSession, slot: RavenSlot, topic: String) {
+        val payload = buildJsonObject {
+            put("starts_at", slot.startsAt)
+            slot.endsAt?.let { put("ends_at", it) }
+            topic.trim().takeIf { it.isNotBlank() }?.let { put("topic", it) }
+        }
+        mobileApiOrServerFunction(session, "book_raven_slot", ServerFunctions.BOOK_RAVEN, method = "POST", data = payload)
+    }
+
+    suspend fun cancelRavenBooking(session: AuthSession, bookingId: String) {
+        val payload = buildJsonObject { put("id", bookingId) }
+        mobileApiOrServerFunction(session, "cancel_raven_booking", ServerFunctions.CANCEL_RAVEN, method = "POST", data = payload)
+    }
+
+    suspend fun updateProfile(
+        session: AuthSession,
+        userId: String,
+        fullName: String,
+        businessName: String,
+        state: String,
+        timezone: String
+    ): Profile? {
+        val body = JsonObject(
+            mapOf(
+                "full_name" to JsonPrimitive(fullName),
+                "business_name" to JsonPrimitive(businessName),
+                "state" to JsonPrimitive(state),
+                "timezone" to JsonPrimitive(timezone)
+            )
+        )
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/profiles".toHttpUrl().newBuilder()
+            .addQueryParameter("id", "eq.$userId")
+            .build()
+        val request = baseRequest(url.toString(), session)
+            .patch(body.toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "return=representation")
+            .build()
+        return json.decodeFromString<List<Profile>>(execute(request)).firstOrNull()
+    }
+
+    suspend fun addCenter(session: AuthSession, userId: String, center: Center): Center? {
+        val body = centerBody(center, includeUserId = userId)
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/rest/v1/centers", session)
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "return=representation")
+            .build()
+        return json.decodeFromString<List<Center>>(execute(request)).firstOrNull()
+    }
+
+    suspend fun updateCenter(session: AuthSession, userId: String, center: Center): Center? {
+        val centerId = center.id ?: error("Center id is required")
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/centers".toHttpUrl().newBuilder()
+            .addQueryParameter("id", "eq.$centerId")
+            .addQueryParameter("user_id", "eq.$userId")
+            .build()
+        val request = baseRequest(url.toString(), session)
+            .patch(centerBody(center).toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "return=representation")
+            .build()
+        return json.decodeFromString<List<Center>>(execute(request)).firstOrNull()
+    }
+
+    suspend fun deleteCenter(session: AuthSession, userId: String, centerId: String) {
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/centers".toHttpUrl().newBuilder()
+            .addQueryParameter("id", "eq.$centerId")
+            .addQueryParameter("user_id", "eq.$userId")
+            .build()
+        val request = baseRequest(url.toString(), session)
+            .delete()
+            .build()
+        execute(request)
+    }
+
+    suspend fun signedStorageUrl(session: AuthSession, bucket: String, path: String): String {
+        val safePath = path.trimStart('/')
+        val body = JsonObject(mapOf("expiresIn" to JsonPrimitive(3600)))
+        val request = baseRequest(
+            "${BuildConfig.SUPABASE_URL}/storage/v1/object/sign/$bucket/$safePath",
+            session
+        )
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        val response = json.decodeFromString<JsonObject>(execute(request))
+        val relative = response["signedURL"]?.toString()?.trim('"')
+            ?: response["signedUrl"]?.toString()?.trim('"')
+            ?: error("No signed URL returned")
+        return if (relative.startsWith("http")) {
+            relative
+        } else {
+            "${BuildConfig.SUPABASE_URL}$relative"
+        }
+    }
+
+    private inline fun <reified T> decodeList(payload: String): List<T> {
+        return json.decodeFromString(payload)
+    }
+
+    private fun centerBody(center: Center, includeUserId: String? = null): JsonObject {
+        return buildJsonObject {
+            includeUserId?.let { put("user_id", it) }
+            put("name", center.name.orEmpty())
+            put("city", center.city.orEmpty())
+            put("state", center.state.orEmpty())
+            put("ages_served", center.agesServed.orEmpty())
+            put("enrollment_size", center.enrollmentSize ?: 0)
+            put("capacity", center.capacity ?: 0)
+            put("tuition_range", center.tuitionRange.orEmpty())
+            put("staff_count", center.staffCount ?: 0)
+            put("notes", center.notes.orEmpty())
+        }
+    }
+
+    private suspend inline fun <reified T> select(
+        session: AuthSession,
+        table: String,
+        select: String,
+        params: Map<String, String> = emptyMap(),
+        limit: Int? = null
+    ): List<T> {
+        val builder = "${BuildConfig.SUPABASE_URL}/rest/v1/$table".toHttpUrl().newBuilder()
+            .addQueryParameter("select", select)
+        params.forEach { (key, value) -> builder.addQueryParameter(key, value) }
+        limit?.let { builder.addQueryParameter("limit", it.toString()) }
+        val request = baseRequest(builder.build().toString(), session)
+            .get()
+            .build()
+        return decodeList(execute(request))
+    }
+
+    private suspend fun mobileApiOrServerFunction(
+        session: AuthSession,
+        action: String,
+        fallbackHash: String,
+        method: String = "GET",
+        data: JsonElement? = null
+    ): JsonObject {
+        return try {
+            mobileApi(session, action, data)
+        } catch (error: IllegalStateException) {
+            if (error.isMissingMobileApi()) {
+                serverFunction(session, fallbackHash, method = method, data = data)
+            } else {
+                throw error
+            }
+        }
+    }
+
+    private suspend fun mobileApi(
+        session: AuthSession,
+        action: String,
+        data: JsonElement? = null
+    ): JsonObject {
+        val body = buildJsonObject {
+            put("action", action)
+            data?.let { put("data", it) }
+        }
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/functions/v1/mobile-api", session)
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        val decoded = json.decodeFromString<JsonObject>(execute(request))
+        val error = decoded["error"]?.jsonPrimitive?.contentOrNull
+        if (!error.isNullOrBlank()) throw IllegalStateException(error)
+        val ok = decoded["ok"]?.jsonPrimitive?.booleanOrNull
+        if (ok == false) {
+            val message = decoded["message"]?.jsonPrimitive?.contentOrNull ?: "Request failed"
+            throw IllegalStateException(message)
+        }
+        return decoded
+    }
+
+    private suspend fun serverFunction(
+        session: AuthSession,
+        hash: String,
+        method: String = "GET",
+        data: JsonElement? = null
+    ): JsonObject {
+        val urlBuilder = "${BuildConfig.WEB_APP_URL.trimEnd('/')}/_serverFn/$hash".toHttpUrl().newBuilder()
+        val requestBuilder = Request.Builder()
+            .header("Authorization", "Bearer ${session.accessToken}")
+            .header("accept", "application/json")
+            .header("x-tsr-serverFn", "true")
+
+        if (method == "GET" && data != null) {
+            urlBuilder.addQueryParameter("payload", serverFunctionCodec.requestEnvelope(buildJsonObject {
+                put("data", data)
+            }))
+        }
+
+        requestBuilder.url(urlBuilder.build())
+        if (method == "POST") {
+            val envelope = serverFunctionCodec.requestEnvelope(buildJsonObject {
+                data?.let { put("data", it) }
+            })
+            requestBuilder
+                .post(envelope.toRequestBody(jsonMediaType))
+                .header("content-type", "application/json")
+        } else {
+            requestBuilder.get()
+        }
+
+        val decoded = serverFunctionCodec.decode(execute(requestBuilder.build())).jsonObject
+        val error = decoded["error"]
+        if (error != null && error !is JsonNull) {
+            val message = error.jsonObject["message"]?.jsonPrimitive?.contentOrNull ?: error.toString()
+            throw IllegalStateException(message)
+        }
+        return decoded["result"]?.jsonObject ?: JsonObject(emptyMap())
+    }
+
+    private fun IllegalStateException.isMissingMobileApi(): Boolean {
+        val payload = message.orEmpty().lowercase()
+        return "function not found" in payload ||
+            "function was not found" in payload ||
+            "function_not_found" in payload ||
+            "\"code\":\"not_found\"" in payload ||
+            "\"code\":404" in payload ||
+            "http 404" in payload
+    }
+
+    private fun baseRequest(url: String, session: AuthSession? = null): Request.Builder {
+        val builder = Request.Builder()
+            .url(url)
+            .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+            .header("Content-Type", "application/json")
+        session?.let { builder.header("Authorization", "Bearer ${it.accessToken}") }
+        return builder
+    }
+
+    private suspend fun execute(request: Request): String = withContext(Dispatchers.IO) {
+        client.newCall(request).execute().use { response ->
+            val payload = response.body.string()
+            if (!response.isSuccessful) {
+                throw IllegalStateException(payload.ifBlank { "HTTP ${response.code}" })
+            }
+            payload
+        }
+    }
+}
