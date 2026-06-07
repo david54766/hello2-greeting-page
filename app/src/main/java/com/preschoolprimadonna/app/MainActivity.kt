@@ -109,6 +109,14 @@ import com.preschoolprimadonna.app.ui.PrimaDonnaTheme
 import com.preschoolprimadonna.app.ui.PrimaGold
 import com.preschoolprimadonna.app.ui.PrimaPink
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.text.NumberFormat
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -662,7 +670,9 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
 private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     var mode by rememberSaveable { mutableStateOf("CEO") }
     var prompt by rememberSaveable { mutableStateOf("") }
+    var selectedSessionId by rememberSaveable { mutableStateOf<String?>(null) }
     val modes = listOf("CEO", "Revenue", "Marketing", "Compliance", "Systems")
+    val selectedSession = state.data.coachingSessions.firstOrNull { it.id == selectedSessionId }
     val context = LocalContext.current
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -688,6 +698,23 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     }
 
     ScreenList {
+        if (selectedSession != null) {
+            CoachingSessionDetail(
+                session = selectedSession,
+                onBack = { selectedSessionId = null },
+                onReopen = {
+                    mode = modeLabel(selectedSession.mode)
+                    prompt = selectedSession.prompt.orEmpty()
+                    selectedSessionId = null
+                },
+                onDelete = {
+                    viewModel.deleteCoachingSession(selectedSession.id)
+                    selectedSessionId = null
+                }
+            )
+            return@ScreenList
+        }
+
         Eyebrow("Coaching Engine")
         Text(
             text = "Open a strategic session.",
@@ -744,6 +771,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
             state.data.coachingSessions.forEach { session ->
                 SessionCard(
                     session = session,
+                    onOpen = { selectedSessionId = session.id },
                     onReopen = {
                         mode = modeLabel(session.mode)
                         prompt = session.prompt.orEmpty()
@@ -756,8 +784,28 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
+    var category by rememberSaveable { mutableStateOf("All") }
+    var selectedTemplateId by rememberSaveable { mutableStateOf<String?>(null) }
+    val categories = listOf("All") + state.data.templates.mapNotNull { it.category?.takeIf(String::isNotBlank) }.distinct().sorted()
+    val selectedTemplate = state.data.templates.firstOrNull { it.id == selectedTemplateId }
+    val filteredTemplates = if (category == "All") {
+        state.data.templates
+    } else {
+        state.data.templates.filter { it.category == category }
+    }
+
     ScreenList {
+        if (selectedTemplate != null) {
+            TemplateDetail(
+                template = selectedTemplate,
+                viewModel = viewModel,
+                onBack = { selectedTemplateId = null }
+            )
+            return@ScreenList
+        }
+
         Eyebrow("Template Vault")
         Text(
             text = "The systems behind the strategy.",
@@ -766,8 +814,21 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         if (state.data.templates.isEmpty()) {
             EmptyState("The Vault is being curated.")
         } else {
-            state.data.templates.forEach { item ->
-                TemplateCard(template = item, viewModel = viewModel)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                categories.forEach { option ->
+                    FilterChip(
+                        selected = category == option,
+                        onClick = { category = option },
+                        label = { Text(option.replaceFirstChar { it.uppercase() }) }
+                    )
+                }
+            }
+            filteredTemplates.forEach { item ->
+                TemplateCard(
+                    template = item,
+                    viewModel = viewModel,
+                    onOpen = { selectedTemplateId = item.id }
+                )
             }
         }
     }
@@ -1339,7 +1400,7 @@ private fun EmptyState(text: String) {
 }
 
 @Composable
-private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel) {
+private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel, onOpen: (() -> Unit)? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Card(
@@ -1363,22 +1424,79 @@ private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel)
             }
             Text(template.title ?: "Untitled template", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(template.description.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(
-                onClick = {
-                    val path = template.storagePath ?: return@TextButton
-                    scope.launch {
-                        runCatching { viewModel.signedUrl("templates", path) }
-                            .onSuccess { context.openUrl(it) }
-                            .onFailure { Toast.makeText(context, it.message ?: "Download failed.", Toast.LENGTH_LONG).show() }
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (onOpen != null) {
+                    OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
+                        Text("Details")
                     }
-                },
-                enabled = template.storagePath != null
-            ) {
-                Icon(Icons.Outlined.Download, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Download")
+                }
+                TextButton(
+                    onClick = {
+                        val path = template.storagePath ?: return@TextButton
+                        scope.launch {
+                            runCatching { viewModel.signedUrl("templates", path) }
+                                .onSuccess { context.openUrl(it) }
+                                .onFailure { Toast.makeText(context, it.message ?: "Download failed.", Toast.LENGTH_LONG).show() }
+                        }
+                    },
+                    enabled = template.storagePath != null
+                ) {
+                    Icon(Icons.Outlined.Download, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Download")
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun TemplateDetail(template: TemplateItem, viewModel: PrimaDonnaViewModel, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    OutlinedButton(onClick = onBack) {
+        Text("Back to Vault")
+    }
+    Eyebrow(template.category ?: "Template")
+    Text(
+        text = template.title ?: "Untitled template",
+        style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
+    )
+    AssistChip(
+        onClick = {},
+        label = { Text("${tierLabel(template.tierRequired)} tier") },
+        leadingIcon = { Icon(Icons.Outlined.Star, contentDescription = null) }
+    )
+    FeatureCard(
+        title = "Where this helps",
+        body = template.description?.takeIf { it.isNotBlank() }
+            ?: "Use this template as a ready-made operating system for the selected workflow."
+    )
+    FeatureCard(
+        title = "Recommended next step",
+        body = if (template.storagePath != null) {
+            "Download it, customize the center-specific details, and save the finished version into your operating folder."
+        } else {
+            "This resource is listed in the Vault but the file has not been attached yet."
+        }
+    )
+    Button(
+        onClick = {
+            val path = template.storagePath ?: return@Button
+            scope.launch {
+                runCatching { viewModel.signedUrl("templates", path) }
+                    .onSuccess { context.openUrl(it) }
+                    .onFailure { Toast.makeText(context, it.message ?: "Download failed.", Toast.LENGTH_LONG).show() }
+            }
+        },
+        enabled = template.storagePath != null,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(Icons.Outlined.Download, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text("Download template")
     }
 }
 
@@ -1423,7 +1541,7 @@ private fun VideoRow(video: RavenVideo, viewModel: PrimaDonnaViewModel) {
 }
 
 @Composable
-private fun SessionCard(session: CoachingSession, onReopen: () -> Unit, onDelete: () -> Unit) {
+private fun SessionCard(session: CoachingSession, onOpen: () -> Unit, onReopen: () -> Unit, onDelete: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(10.dp),
@@ -1442,8 +1560,11 @@ private fun SessionCard(session: CoachingSession, onReopen: () -> Unit, onDelete
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
+                    Text("Details")
+                }
                 OutlinedButton(onClick = onReopen, modifier = Modifier.weight(1f)) {
-                    Text("Reopen")
+                    Text("Use")
                 }
                 TextButton(onClick = onDelete) {
                     Icon(Icons.Outlined.Delete, contentDescription = null)
@@ -1452,6 +1573,83 @@ private fun SessionCard(session: CoachingSession, onReopen: () -> Unit, onDelete
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CoachingSessionDetail(
+    session: CoachingSession,
+    onBack: () -> Unit,
+    onReopen: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val response = session.response?.jsonObjectOrNull()
+    val sectionBodies = listOfNotNull(
+        response?.get("diagnosis")?.jsonTextOrNull(),
+        response?.get("impact")?.jsonTextOrNull(),
+        response?.get("strategic_move")?.jsonTextOrNull(),
+        response?.get("elevation")?.jsonTextOrNull()
+    ).filter { it.isNotBlank() }
+    val actionSteps = response?.get("action_steps")?.jsonArrayOrNull()
+        ?.mapNotNull { it.jsonTextOrNull() }
+        .orEmpty()
+    val fallbackResponse = session.response
+        ?.takeIf { sectionBodies.isEmpty() && actionSteps.isEmpty() }
+        ?.toString()
+        ?.take(1200)
+
+    OutlinedButton(onClick = onBack) {
+        Text("Back to sessions")
+    }
+    Eyebrow("${modeLabel(session.mode)} Mode")
+    Text(
+        text = session.createdAt?.shortDateTime() ?: "Saved coaching session",
+        style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
+    )
+    FeatureCard(
+        title = "Prompt",
+        body = session.prompt?.takeIf { it.isNotBlank() } ?: "No prompt was saved."
+    )
+    StrategySection("Diagnosis", response?.get("diagnosis")?.jsonTextOrNull())
+    StrategySection("Impact", response?.get("impact")?.jsonTextOrNull())
+    StrategySection("Strategic move", response?.get("strategic_move")?.jsonTextOrNull())
+    StrategySection("Elevation", response?.get("elevation")?.jsonTextOrNull())
+    StrategySection("Saved response", fallbackResponse)
+    if (actionSteps.isNotEmpty()) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Text("Action steps", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+                actionSteps.forEachIndexed { index, step ->
+                    Text(
+                        text = "${index + 1}. $step",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 3.dp)
+                    )
+                }
+            }
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Button(onClick = onReopen, modifier = Modifier.weight(1f)) {
+            Text("Use prompt")
+        }
+        TextButton(onClick = onDelete) {
+            Icon(Icons.Outlined.Delete, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text("Delete")
+        }
+    }
+}
+
+@Composable
+private fun StrategySection(title: String, body: String?) {
+    body?.takeIf { it.isNotBlank() }?.let {
+        FeatureCard(title = title, body = it)
     }
 }
 
@@ -1711,6 +1909,17 @@ private fun formatDuration(seconds: Int): String {
     val minutes = seconds / 60
     val remainder = seconds % 60
     return "$minutes:${remainder.toString().padStart(2, '0')}"
+}
+
+private fun JsonElement.jsonObjectOrNull(): JsonObject? = runCatching { jsonObject }.getOrNull()
+
+private fun JsonElement.jsonArrayOrNull(): JsonArray? = runCatching { jsonArray }.getOrNull()
+
+private fun JsonElement.jsonTextOrNull(): String? {
+    return when (this) {
+        is JsonPrimitive -> contentOrNull
+        else -> toString().takeIf { it.isNotBlank() && it != "null" }
+    }
 }
 
 private fun String.shortDate(): String {

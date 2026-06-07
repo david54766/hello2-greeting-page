@@ -38,3 +38,4 @@ app/build/
 local.properties
 *.iml
 *.keystore
+qa/
