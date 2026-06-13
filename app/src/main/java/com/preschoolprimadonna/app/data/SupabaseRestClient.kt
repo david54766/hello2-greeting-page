@@ -205,40 +205,12 @@ class SupabaseRestClient {
         )
     }
 
-    suspend fun addCoachingSession(
-        session: AuthSession,
-        userId: String,
-        mode: String,
-        prompt: String
-    ): CoachingSession? {
-        val response = JsonObject(
-            mapOf(
-                "diagnosis" to JsonPrimitive("Captured from the Android app."),
-                "impact" to JsonPrimitive("This session is saved to your coaching history."),
-                "strategic_move" to JsonPrimitive("Raven's generated strategy will populate when the stable coaching endpoint is connected."),
-                "elevation" to JsonPrimitive("Keep the context specific so the follow-up strategy can be sharper."),
-                "action_steps" to JsonArray(
-                    listOf(
-                        JsonPrimitive("Review the saved prompt."),
-                        JsonPrimitive("Add center details if the question depends on enrollment, staffing, or tuition."),
-                        JsonPrimitive("Run the prompt again once mobile strategy generation is connected.")
-                    )
-                )
-            )
-        )
-        val body = JsonObject(
-            mapOf(
-                "user_id" to JsonPrimitive(userId),
-                "mode" to JsonPrimitive(mode.lowercase()),
-                "prompt" to JsonPrimitive(prompt.trim()),
-                "response" to response
-            )
-        )
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/rest/v1/coaching_sessions", session)
-            .post(body.toString().toRequestBody(jsonMediaType))
-            .header("Prefer", "return=representation")
-            .build()
-        return json.decodeFromString<List<CoachingSession>>(execute(request)).firstOrNull()
+    suspend fun runCoaching(session: AuthSession, mode: String, prompt: String): JsonObject {
+        val payload = buildJsonObject {
+            put("mode", mode.lowercase())
+            put("prompt", prompt.trim())
+        }
+        return mobileApi(session, "run_coaching", payload)
     }
 
     suspend fun deleteCoachingSession(session: AuthSession, userId: String, sessionId: String) {

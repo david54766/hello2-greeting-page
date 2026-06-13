@@ -11,24 +11,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -66,6 +67,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -73,6 +75,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -95,6 +98,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.preschoolprimadonna.app.data.Center
@@ -108,6 +112,7 @@ import com.preschoolprimadonna.app.data.TemplateItem
 import com.preschoolprimadonna.app.ui.PrimaDonnaTheme
 import com.preschoolprimadonna.app.ui.PrimaGold
 import com.preschoolprimadonna.app.ui.PrimaPink
+import com.preschoolprimadonna.app.ui.PrimaSoft
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -153,11 +158,11 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class AppScreen(val title: String, val icon: ImageVector) {
-    Dashboard("Dashboard", Icons.Outlined.Home),
+    Dashboard("Home", Icons.Outlined.Home),
     Coach("Coach", Icons.AutoMirrored.Outlined.Chat),
     Vault("Vault", Icons.Outlined.Folder),
     Elite("Elite", Icons.Outlined.Star),
-    Billing("Billing", Icons.Outlined.CreditCard),
+    Billing("Plan", Icons.Outlined.CreditCard),
     Settings("Settings", Icons.Outlined.Settings)
 }
 
@@ -166,6 +171,12 @@ private enum class AuthMode {
     SignUp,
     Reset
 }
+
+private val AppCardShape = RoundedCornerShape(8.dp)
+
+@Composable
+private fun appCardBorder(): BorderStroke =
+    BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.72f))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,6 +233,9 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
         topBar = {
             CenterAlignedTopAppBar(
                 title = { BrandMark(compact = true) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                ),
                 actions = {
                     IconButton(onClick = viewModel::refresh) {
                         Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
@@ -233,14 +247,31 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = PrimaSoft,
+                tonalElevation = 0.dp
+            ) {
                 AppScreen.entries.forEach { item ->
                     NavigationBarItem(
                         selected = item == screen,
                         onClick = { selectedScreen = item.name },
                         icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        alwaysShowLabel = false
+                        label = {
+                            Text(
+                                item.title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                fontSize = 11.sp
+                            )
+                        },
+                        alwaysShowLabel = false,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }
@@ -297,14 +328,12 @@ private fun LoginScreen(
     ) {
         BrandMark(compact = false)
         Spacer(Modifier.height(40.dp))
-        Text(
+        ScreenHeading(
             text = when (mode) {
                 AuthMode.SignIn -> "Sign in"
                 AuthMode.SignUp -> "Create account"
                 AuthMode.Reset -> "Reset password"
-            },
-            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif),
-            color = MaterialTheme.colorScheme.onBackground
+            }
         )
         Text(
             text = when (mode) {
@@ -459,10 +488,7 @@ private fun ResetPasswordScreen(
         ) {
             BrandMark(compact = false)
             Spacer(Modifier.height(40.dp))
-            Text(
-                text = "Reset password",
-                style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
-            )
+            ScreenHeading("Reset password")
             Text(
                 text = "Choose a new password for your account.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -613,11 +639,7 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
 
     ScreenList {
         Eyebrow("Command Center")
-        Text(
-            text = "Welcome back, $firstName.",
-            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif),
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        ScreenHeading("Welcome back, $firstName.")
         Text(
             text = "${data.profile?.businessName ?: "Your center"} - ${tierLabel(data.subscription?.tier)} Tier",
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -716,16 +738,16 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         }
 
         Eyebrow("Coaching Engine")
-        Text(
-            text = "Open a strategic session.",
-            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ScreenHeading("Open a strategic session.")
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             modes.forEach { option ->
-                FilterChip(
+                AppFilterChip(
                     selected = mode == option,
                     onClick = { mode = option },
-                    label = { Text("$option Mode") }
+                    label = option
                 )
             }
         }
@@ -761,7 +783,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
             ) {
                 Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Save session")
+                Text(if (state.saving) "Thinking..." else "Get the move")
             }
         }
         SectionTitle("Recent sessions")
@@ -807,19 +829,19 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         }
 
         Eyebrow("Template Vault")
-        Text(
-            text = "The systems behind the strategy.",
-            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
-        )
+        ScreenHeading("The systems behind the strategy.")
         if (state.data.templates.isEmpty()) {
             EmptyState("The Vault is being curated.")
         } else {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 categories.forEach { option ->
-                    FilterChip(
+                    AppFilterChip(
                         selected = category == option,
                         onClick = { category = option },
-                        label = { Text(option.replaceFirstChar { it.uppercase() }) }
+                        label = option.replaceFirstChar { it.uppercase() }
                     )
                 }
             }
@@ -842,25 +864,25 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     var threadBody by rememberSaveable { mutableStateOf("") }
     var bookingTopic by rememberSaveable { mutableStateOf("") }
     var replyBody by rememberSaveable(state.selectedEliteThread?.id) { mutableStateOf("") }
-    val options = listOf("Overview", "Conversations", "Schedule")
+    val options = listOf("Overview", "Board", "Schedule")
 
     ScreenList {
         Eyebrow("Elite Circle")
-        Text(
-            text = "Welcome to the room.",
-            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ScreenHeading("Welcome to the room.")
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             options.forEach { option ->
-                FilterChip(
+                AppFilterChip(
                     selected = section == option,
                     onClick = { section = option },
-                    label = { Text(option) }
+                    label = option
                 )
             }
         }
         when (section) {
-            "Conversations" -> {
+            "Board" -> {
                 val selectedThread = state.selectedEliteThread
                 if (selectedThread != null) {
                     EliteThreadDetailPanel(
@@ -981,10 +1003,7 @@ private fun BillingScreen(state: PrimaDonnaState) {
 
     ScreenList {
         Eyebrow("Billing")
-        Text(
-            text = "Plan and access.",
-            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
-        )
+        ScreenHeading("Plan and access.")
         FeatureCard(
             title = "Current membership",
             body = "Tier: $currentTier\nStatus: ${subscription?.status ?: "unknown"}\nCurrent period ends: $renewalDate"
@@ -1150,7 +1169,8 @@ private fun CenterManagementCard(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1221,7 +1241,8 @@ private fun CenterEditCard(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1282,7 +1303,8 @@ private fun PlanCard(
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -1321,22 +1343,44 @@ private fun BrandMark(compact: Boolean) {
 }
 
 @Composable
-private fun ScreenList(content: @Composable () -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        item { content() }
+private fun ScreenList(content: @Composable ColumnScope.() -> Unit) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            content()
+            Spacer(Modifier.height(72.dp))
+        }
     }
+}
+
+@Composable
+private fun ScreenHeading(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.headlineLarge.copy(
+            fontFamily = FontFamily.Serif,
+            fontSize = 28.sp,
+            lineHeight = 34.sp
+        ),
+        color = MaterialTheme.colorScheme.onBackground
+    )
 }
 
 @Composable
 private fun SectionTitle(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Serif),
-        modifier = Modifier.padding(top = 12.dp)
+        style = MaterialTheme.typography.titleLarge.copy(
+            fontFamily = FontFamily.Serif,
+            fontSize = 23.sp,
+            lineHeight = 29.sp
+        ),
+        modifier = Modifier.padding(top = 8.dp)
     )
 }
 
@@ -1347,6 +1391,25 @@ private fun Eyebrow(text: String) {
         style = MaterialTheme.typography.labelMedium,
         color = PrimaPink,
         fontWeight = FontWeight.SemiBold
+    )
+}
+
+@Composable
+private fun AppFilterChip(selected: Boolean, label: String, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        shape = AppCardShape,
+        modifier = Modifier
+            .heightIn(min = 42.dp)
+            .defaultMinSize(minWidth = 76.dp)
     )
 }
 
@@ -1364,13 +1427,20 @@ private fun GoldDivider() {
 private fun StatCard(label: String, value: String) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(22.dp)) {
+        Column(Modifier.padding(16.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(10.dp))
-            Text(value, style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.Serif))
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontFamily = FontFamily.Serif,
+                    lineHeight = 32.sp
+                )
+            )
         }
     }
 }
@@ -1379,13 +1449,21 @@ private fun StatCard(label: String, value: String) {
 private fun FeatureCard(title: String, body: String) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(18.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(6.dp))
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 22.sp
+            )
         }
     }
 }
@@ -1405,10 +1483,14 @@ private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel,
     val scope = rememberCoroutineScope()
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(18.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = template.category.orEmpty().uppercase(),
@@ -1422,14 +1504,37 @@ private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel,
                     color = PrimaGold
                 )
             }
-            Text(template.title ?: "Untitled template", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(template.description.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = template.title ?: "Untitled template",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 23.sp
+            )
+            Text(
+                text = template.description.orEmpty(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 22.sp
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 if (onOpen != null) {
-                    OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
-                        Text("Details")
+                    OutlinedButton(
+                        onClick = onOpen,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 44.dp)
+                    ) {
+                        Text("Details", maxLines = 1)
                     }
+                }
+                val downloadModifier = if (onOpen != null) {
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 44.dp)
+                } else {
+                    Modifier.heightIn(min = 44.dp)
                 }
                 TextButton(
                     onClick = {
@@ -1440,11 +1545,12 @@ private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel,
                                 .onFailure { Toast.makeText(context, it.message ?: "Download failed.", Toast.LENGTH_LONG).show() }
                         }
                     },
-                    enabled = template.storagePath != null
+                    enabled = template.storagePath != null,
+                    modifier = downloadModifier
                 ) {
                     Icon(Icons.Outlined.Download, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Download")
+                    Spacer(Modifier.width(6.dp))
+                    Text("Download", maxLines = 1)
                 }
             }
         }
@@ -1460,10 +1566,7 @@ private fun TemplateDetail(template: TemplateItem, viewModel: PrimaDonnaViewMode
         Text("Back to Vault")
     }
     Eyebrow(template.category ?: "Template")
-    Text(
-        text = template.title ?: "Untitled template",
-        style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
-    )
+    ScreenHeading(template.title ?: "Untitled template")
     AssistChip(
         onClick = {},
         label = { Text("${tierLabel(template.tierRequired)} tier") },
@@ -1506,7 +1609,8 @@ private fun VideoRow(video: RavenVideo, viewModel: PrimaDonnaViewModel) {
     val scope = rememberCoroutineScope()
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -1544,7 +1648,8 @@ private fun VideoRow(video: RavenVideo, viewModel: PrimaDonnaViewModel) {
 private fun SessionCard(session: CoachingSession, onOpen: () -> Unit, onReopen: () -> Unit, onDelete: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -1559,17 +1664,19 @@ private fun SessionCard(session: CoachingSession, onOpen: () -> Unit, onReopen: 
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
                     Text("Details")
                 }
                 OutlinedButton(onClick = onReopen, modifier = Modifier.weight(1f)) {
                     Text("Use")
                 }
-                TextButton(onClick = onDelete) {
-                    Icon(Icons.Outlined.Delete, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Delete")
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Outlined.Delete, contentDescription = "Delete session")
                 }
             }
         }
@@ -1584,13 +1691,23 @@ private fun CoachingSessionDetail(
     onDelete: () -> Unit
 ) {
     val response = session.response?.jsonObjectOrNull()
+    val diagnosis = response?.get("diagnosis")?.jsonTextOrNull()
+    val impact = response?.get("impact")?.jsonTextOrNull()
+    val strategicMove = response?.get("strategic_move")?.jsonTextOrNull()
+        ?: response?.get("recommendation")?.jsonTextOrNull()
+    val elevation = response?.get("elevation")?.jsonTextOrNull()
+    val summary = response?.get("summary")?.jsonTextOrNull()
     val sectionBodies = listOfNotNull(
-        response?.get("diagnosis")?.jsonTextOrNull(),
-        response?.get("impact")?.jsonTextOrNull(),
-        response?.get("strategic_move")?.jsonTextOrNull(),
-        response?.get("elevation")?.jsonTextOrNull()
+        diagnosis,
+        impact,
+        strategicMove,
+        elevation,
+        summary
     ).filter { it.isNotBlank() }
-    val actionSteps = response?.get("action_steps")?.jsonArrayOrNull()
+    val actionSteps = (
+        response?.get("action_steps")?.jsonArrayOrNull()
+            ?: response?.get("actions")?.jsonArrayOrNull()
+        )
         ?.mapNotNull { it.jsonTextOrNull() }
         .orEmpty()
     val fallbackResponse = session.response
@@ -1602,23 +1719,22 @@ private fun CoachingSessionDetail(
         Text("Back to sessions")
     }
     Eyebrow("${modeLabel(session.mode)} Mode")
-    Text(
-        text = session.createdAt?.shortDateTime() ?: "Saved coaching session",
-        style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif)
-    )
+    ScreenHeading(session.createdAt?.shortDateTime() ?: "Saved coaching session")
     FeatureCard(
         title = "Prompt",
         body = session.prompt?.takeIf { it.isNotBlank() } ?: "No prompt was saved."
     )
-    StrategySection("Diagnosis", response?.get("diagnosis")?.jsonTextOrNull())
-    StrategySection("Impact", response?.get("impact")?.jsonTextOrNull())
-    StrategySection("Strategic move", response?.get("strategic_move")?.jsonTextOrNull())
-    StrategySection("Elevation", response?.get("elevation")?.jsonTextOrNull())
+    StrategySection("Diagnosis", diagnosis)
+    StrategySection("Impact", impact)
+    StrategySection("Strategic move", strategicMove)
+    StrategySection("Elevation", elevation)
+    StrategySection("Summary", summary)
     StrategySection("Saved response", fallbackResponse)
     if (actionSteps.isNotEmpty()) {
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(10.dp),
+            shape = AppCardShape,
+            border = appCardBorder(),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(18.dp)) {
@@ -1668,7 +1784,8 @@ private fun EliteThreadDetailPanel(
     }
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -1693,7 +1810,8 @@ private fun EliteThreadDetailPanel(
         replies.forEach { reply ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(10.dp),
+                shape = AppCardShape,
+                border = appCardBorder(),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
@@ -1732,7 +1850,8 @@ private fun EliteThreadDetailPanel(
 private fun EliteThreadCard(thread: EliteThread, onOpen: () -> Unit, onDelete: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -1764,10 +1883,8 @@ private fun EliteThreadCard(thread: EliteThread, onOpen: () -> Unit, onDelete: (
                     Spacer(Modifier.width(6.dp))
                     Text("Open")
                 }
-                TextButton(onClick = onDelete) {
-                    Icon(Icons.Outlined.Delete, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Delete")
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Outlined.Delete, contentDescription = "Delete conversation")
                 }
             }
         }
@@ -1778,7 +1895,8 @@ private fun EliteThreadCard(thread: EliteThread, onOpen: () -> Unit, onDelete: (
 private fun RavenBookingCard(booking: RavenBooking, onCancel: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -1811,7 +1929,8 @@ private fun RavenBookingCard(booking: RavenBooking, onCancel: () -> Unit) {
 private fun RavenSlotCard(slot: RavenSlot, booked: Boolean, onBook: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(10.dp),
+        shape = AppCardShape,
+        border = appCardBorder(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
