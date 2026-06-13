@@ -86,8 +86,8 @@ export const runCoaching = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
 
     const [{ data: profile }, { data: centers }, { data: revenueProfile }] = await Promise.all([
       supabase.from("profiles").select("full_name, business_name, state").eq("id", userId).maybeSingle(),
@@ -147,11 +147,11 @@ export const runCoaching = createServerFn({ method: "POST" })
       },
     ];
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "gpt-4o-mini",
         messages,
         tools,
         tool_choice: { type: "function", function: { name: "structured_response" } },
@@ -159,10 +159,10 @@ export const runCoaching = createServerFn({ method: "POST" })
     });
 
     if (res.status === 429) return { error: "Rate limit reached. Try again in a moment." as const, response: null };
-    if (res.status === 402) return { error: "AI credits exhausted. Add funds in workspace settings." as const, response: null };
+    if (res.status === 402) return { error: "OpenAI credits exhausted. Check API billing." as const, response: null };
     if (!res.ok) {
       const t = await res.text();
-      console.error("AI gateway error", res.status, t);
+      console.error("OpenAI coaching error", res.status, t);
       return { error: "Strategist temporarily unavailable." as const, response: null };
     }
 
@@ -193,11 +193,11 @@ export const runCoaching = createServerFn({ method: "POST" })
   });
 
 async function generateRecommendationText(memory: string, apiKey: string): Promise<string> {
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "You are Prima Donna AI™. Generate ONE crisp strategic recommendation (1-2 sentences max) that a childcare center owner could act on today. No fluff, no greetings. Speak with authority." },
         { role: "user", content: `Owner context: ${memory}\n\nGive me today's strategic move.` },
@@ -240,7 +240,7 @@ export const getTodayRecommendation = createServerFn({ method: "GET" })
     if (existing) return { recommendation: existing.recommendation, created_at: existing.created_at, for_date: existing.for_date };
 
     // Generate now
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return { recommendation: "Connect AI to receive today's strategic move.", created_at: new Date().toISOString(), for_date: todayLocal };
 
     const { data: centers } = await supabase

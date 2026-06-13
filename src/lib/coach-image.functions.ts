@@ -20,34 +20,31 @@ export const generateCoachImage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return { error: "Image service not configured." as const, image: null };
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          { role: "system", content: SYSTEM_VISUAL },
-          { role: "user", content: data.prompt },
-        ],
-        modalities: ["image", "text"],
+        model: "gpt-image-1",
+        prompt: `${SYSTEM_VISUAL}\n\nUser request: ${data.prompt}`,
+        size: "1024x1024",
+        quality: "medium",
       }),
     });
 
     if (res.status === 429) return { error: "Rate limit reached. Try again shortly." as const, image: null };
-    if (res.status === 402) return { error: "AI credits exhausted." as const, image: null };
+    if (res.status === 402) return { error: "OpenAI credits exhausted." as const, image: null };
     if (!res.ok) {
       const t = await res.text();
-      console.error("Image gateway error", res.status, t);
+      console.error("OpenAI image error", res.status, t);
       return { error: "Image generator temporarily unavailable." as const, image: null };
     }
 
     const json = await res.json();
-    const imageUrl: string | undefined =
-      json.choices?.[0]?.message?.images?.[0]?.image_url?.url ??
-      json.choices?.[0]?.message?.images?.[0]?.url;
+    const b64: string | undefined = json.data?.[0]?.b64_json;
+    const imageUrl: string | undefined = b64 ? `data:image/png;base64,${b64}` : json.data?.[0]?.url;
 
     if (!imageUrl) {
       console.error("No image returned", JSON.stringify(json).slice(0, 500));

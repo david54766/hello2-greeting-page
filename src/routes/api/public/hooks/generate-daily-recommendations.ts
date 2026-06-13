@@ -9,8 +9,8 @@ export const Route = createFileRoute("/api/public/hooks/generate-daily-recommend
         if (apiKeyHeader !== process.env.SUPABASE_PUBLISHABLE_KEY) {
           return new Response("Unauthorized", { status: 401 });
         }
-        const lovableKey = process.env.LOVABLE_API_KEY;
-        if (!lovableKey) return new Response("LOVABLE_API_KEY missing", { status: 500 });
+        const openAiKey = process.env.OPENAI_API_KEY;
+        if (!openAiKey) return new Response("OPENAI_API_KEY missing", { status: 500 });
 
         const { data: due, error: dueErr } = await supabaseAdmin
           .from("profiles")
@@ -48,11 +48,11 @@ export const Route = createFileRoute("/api/public/hooks/generate-daily-recommend
             : `Single center: ${p.business_name ?? "(unnamed)"}, ${p.state ?? "n/a"}.`;
 
           try {
-            const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
               method: "POST",
-              headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+              headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
+                model: "gpt-4o-mini",
                 messages: [
                   { role: "system", content: "You are Prima Donna AI™. Generate ONE crisp strategic recommendation (1-2 sentences max) that a childcare center owner could act on today. No fluff, no greetings. Speak with authority." },
                   { role: "user", content: `Owner context: ${memory}\n\nGive me today's strategic move.` },
@@ -60,7 +60,7 @@ export const Route = createFileRoute("/api/public/hooks/generate-daily-recommend
               }),
             });
             if (!res.ok) {
-              console.error("AI gateway error for", p.id, res.status);
+              console.error("OpenAI recommendation error for", p.id, res.status);
               skipped++;
               continue;
             }
