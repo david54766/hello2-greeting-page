@@ -25,6 +25,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.util.Base64
 
 @Serializable
 private data class OptionalAuthSession(
@@ -211,6 +212,15 @@ class SupabaseRestClient {
             put("prompt", prompt.trim())
         }
         return mobileApi(session, "run_coaching", payload)
+    }
+
+    suspend fun synthesizeRavenVoice(session: AuthSession, text: String): ByteArray {
+        val result = mobileApi(session, "synthesize_raven_voice", buildJsonObject {
+            put("text", text.trim().take(5000))
+        })
+        val audio = result["audio_base64"]?.jsonPrimitive?.contentOrNull
+            ?: throw IllegalStateException("No Raven audio returned")
+        return Base64.getDecoder().decode(audio)
     }
 
     suspend fun deleteCoachingSession(session: AuthSession, userId: String, sessionId: String) {
@@ -514,4 +524,5 @@ class SupabaseRestClient {
             payload
         }
     }
+
 }

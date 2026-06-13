@@ -13,6 +13,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -626,6 +628,7 @@ private fun OnboardingScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     val data = state.data
     val centers = data.centers
@@ -641,10 +644,13 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
     ScreenList {
         Eyebrow("Command Center")
         ScreenHeading("Welcome back, $firstName.")
-        Text(
-            text = "${data.profile?.businessName ?: "Your center"} - ${tierLabel(data.subscription?.tier)} Tier",
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MetaBadge(data.profile?.businessName ?: "Your center")
+            MetaBadge("${tierLabel(data.subscription?.tier)} Tier", tone = BadgeTone.Gold)
+        }
         Spacer(Modifier.height(20.dp))
         Button(
             onClick = {
@@ -724,12 +730,11 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         if (selectedSession != null) {
             CoachingSessionDetail(
                 session = selectedSession,
+                voiceLoading = state.voiceLoadingSessionId == selectedSession.id,
+                voicePlaying = state.voicePlayingSessionId == selectedSession.id,
                 onBack = { selectedSessionId = null },
-                onReopen = {
-                    mode = modeLabel(selectedSession.mode)
-                    prompt = selectedSession.prompt.orEmpty()
-                    selectedSessionId = null
-                },
+                onPlayVoice = { viewModel.playRavenVoice(selectedSession) },
+                onStopVoice = { viewModel.stopRavenVoice() },
                 onDelete = {
                     viewModel.deleteCoachingSession(selectedSession.id)
                     selectedSessionId = null
@@ -755,11 +760,6 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         Text(
             text = modeDescription(mode),
             color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        AssistChip(
-            onClick = startSpeech,
-            label = { Text("Raven voice - always on") },
-            leadingIcon = { Icon(Icons.Outlined.Mic, contentDescription = null) }
         )
         OutlinedTextField(
             value = prompt,
@@ -794,11 +794,11 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
             state.data.coachingSessions.forEach { session ->
                 SessionCard(
                     session = session,
+                    voiceLoading = state.voiceLoadingSessionId == session.id,
+                    voicePlaying = state.voicePlayingSessionId == session.id,
                     onOpen = { selectedSessionId = session.id },
-                    onReopen = {
-                        mode = modeLabel(session.mode)
-                        prompt = session.prompt.orEmpty()
-                    },
+                    onPlayVoice = { viewModel.playRavenVoice(session) },
+                    onStopVoice = { viewModel.stopRavenVoice() },
                     onDelete = { viewModel.deleteCoachingSession(session.id) }
                 )
             }
@@ -1315,7 +1315,7 @@ private fun PlanCard(
                     Text(price, color = PrimaPink, fontWeight = FontWeight.SemiBold)
                 }
                 if (active) {
-                    AssistChip(onClick = {}, label = { Text("Current") })
+                    MetaBadge("Current")
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -1392,6 +1392,44 @@ private fun Eyebrow(text: String) {
         style = MaterialTheme.typography.labelMedium,
         color = PrimaPink,
         fontWeight = FontWeight.SemiBold
+    )
+}
+
+private enum class BadgeTone {
+    Pink,
+    Gold,
+    Neutral
+}
+
+@Composable
+private fun MetaBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    tone: BadgeTone = BadgeTone.Pink
+) {
+    val cleanText = text.trim().takeIf { it.isNotBlank() } ?: return
+    val color = when (tone) {
+        BadgeTone.Pink -> PrimaPink
+        BadgeTone.Gold -> PrimaGold
+        BadgeTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val background = when (tone) {
+        BadgeTone.Pink -> PrimaPink.copy(alpha = 0.10f)
+        BadgeTone.Gold -> PrimaGold.copy(alpha = 0.14f)
+        BadgeTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val shape = RoundedCornerShape(999.dp)
+    Text(
+        text = cleanText.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = color,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .background(background, shape)
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.22f)), shape)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     )
 }
 
@@ -1492,18 +1530,12 @@ private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel,
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = template.category.orEmpty().uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PrimaPink
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = tierLabel(template.tierRequired).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PrimaGold
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MetaBadge(template.category?.replaceFirstChar { it.uppercase() } ?: "Resource")
+                MetaBadge(tierLabel(template.tierRequired), tone = BadgeTone.Gold)
             }
             Text(
                 text = template.title ?: "Untitled template",
@@ -1568,11 +1600,7 @@ private fun TemplateDetail(template: TemplateItem, viewModel: PrimaDonnaViewMode
     }
     Eyebrow(template.category ?: "Template")
     ScreenHeading(template.title ?: "Untitled template")
-    AssistChip(
-        onClick = {},
-        label = { Text("${tierLabel(template.tierRequired)} tier") },
-        leadingIcon = { Icon(Icons.Outlined.Star, contentDescription = null) }
-    )
+    MetaBadge("${tierLabel(template.tierRequired)} tier", tone = BadgeTone.Gold)
     FeatureCard(
         title = "Where this helps",
         body = template.description?.takeIf { it.isNotBlank() }
@@ -1646,7 +1674,15 @@ private fun VideoRow(video: RavenVideo, viewModel: PrimaDonnaViewModel) {
 }
 
 @Composable
-private fun SessionCard(session: CoachingSession, onOpen: () -> Unit, onReopen: () -> Unit, onDelete: () -> Unit) {
+private fun SessionCard(
+    session: CoachingSession,
+    voiceLoading: Boolean,
+    voicePlaying: Boolean,
+    onOpen: () -> Unit,
+    onPlayVoice: () -> Unit,
+    onStopVoice: () -> Unit,
+    onDelete: () -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = AppCardShape,
@@ -1654,11 +1690,10 @@ private fun SessionCard(session: CoachingSession, onOpen: () -> Unit, onReopen: 
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
-            Text(
-                text = "${modeLabel(session.mode).uppercase()} - ${session.createdAt?.shortDate() ?: ""}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetaBadge(modeLabel(session.mode))
+                session.createdAt?.shortDate()?.let { MetaBadge(it, tone = BadgeTone.Neutral) }
+            }
             Spacer(Modifier.height(6.dp))
             Text(
                 text = session.prompt.orEmpty().ifBlank { session.response?.toString().orEmpty() }.take(220),
@@ -1673,8 +1708,20 @@ private fun SessionCard(session: CoachingSession, onOpen: () -> Unit, onReopen: 
                 OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
                     Text("Details")
                 }
-                OutlinedButton(onClick = onReopen, modifier = Modifier.weight(1f)) {
-                    Text("Use")
+                OutlinedButton(
+                    onClick = if (voicePlaying) onStopVoice else onPlayVoice,
+                    enabled = session.response != null && !voiceLoading,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Outlined.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = when {
+                            voiceLoading -> "Loading"
+                            voicePlaying -> "Stop"
+                            else -> "Play"
+                        }
+                    )
                 }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Outlined.Delete, contentDescription = "Delete session")
@@ -1687,8 +1734,11 @@ private fun SessionCard(session: CoachingSession, onOpen: () -> Unit, onReopen: 
 @Composable
 private fun CoachingSessionDetail(
     session: CoachingSession,
+    voiceLoading: Boolean,
+    voicePlaying: Boolean,
     onBack: () -> Unit,
-    onReopen: () -> Unit,
+    onPlayVoice: () -> Unit,
+    onStopVoice: () -> Unit,
     onDelete: () -> Unit
 ) {
     val response = session.response?.jsonObjectOrNull()
@@ -1721,6 +1771,10 @@ private fun CoachingSessionDetail(
     }
     Eyebrow("${modeLabel(session.mode)} Mode")
     ScreenHeading(session.createdAt?.shortDateTime() ?: "Saved coaching session")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MetaBadge(modeLabel(session.mode))
+        session.createdAt?.shortDate()?.let { MetaBadge(it, tone = BadgeTone.Neutral) }
+    }
     FeatureCard(
         title = "Prompt",
         body = session.prompt?.takeIf { it.isNotBlank() } ?: "No prompt was saved."
@@ -1752,8 +1806,20 @@ private fun CoachingSessionDetail(
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Button(onClick = onReopen, modifier = Modifier.weight(1f)) {
-            Text("Use prompt")
+        Button(
+            onClick = if (voicePlaying) onStopVoice else onPlayVoice,
+            enabled = session.response != null && !voiceLoading,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Outlined.PlayArrow, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = when {
+                    voiceLoading -> "Preparing voice"
+                    voicePlaying -> "Stop voice"
+                    else -> "Play Raven voice"
+                }
+            )
         }
         TextButton(onClick = onDelete) {
             Icon(Icons.Outlined.Delete, contentDescription = null)
@@ -1912,12 +1978,8 @@ private fun RavenBookingCard(booking: RavenBooking, onCancel: () -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = booking.status ?: "booked",
-                    color = PrimaPink,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f)
-                )
+                MetaBadge(booking.status ?: "booked", modifier = Modifier.weight(1f, fill = false))
+                Spacer(Modifier.weight(1f))
                 TextButton(onClick = onCancel) {
                     Text("Cancel")
                 }
@@ -1949,7 +2011,7 @@ private fun RavenSlotCard(slot: RavenSlot, booked: Boolean, onBook: () -> Unit) 
                 )
             }
             if (booked) {
-                AssistChip(onClick = {}, label = { Text("Booked") })
+                MetaBadge("Booked")
             } else {
                 Button(onClick = onBook, shape = RoundedCornerShape(10.dp)) {
                     Text("Book")

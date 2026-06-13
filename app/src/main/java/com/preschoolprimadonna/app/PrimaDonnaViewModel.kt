@@ -1,12 +1,14 @@
 package com.preschoolprimadonna.app
 
 import android.app.Application
+import android.media.MediaPlayer
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.preschoolprimadonna.app.data.AuthSession
 import com.preschoolprimadonna.app.data.AuthUser
 import com.preschoolprimadonna.app.data.Center
+import com.preschoolprimadonna.app.data.CoachingSession
 import com.preschoolprimadonna.app.data.DashboardData
 import com.preschoolprimadonna.app.data.EliteReply
 import com.preschoolprimadonna.app.data.EliteThread
@@ -21,6 +23,15 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 import java.net.URLDecoder
 
 data class PrimaDonnaState(
@@ -32,6 +43,8 @@ data class PrimaDonnaState(
     val saving: Boolean = false,
     val selectedEliteThread: EliteThread? = null,
     val eliteReplies: List<EliteReply> = emptyList(),
+    val voiceLoadingSessionId: String? = null,
+    val voicePlayingSessionId: String? = null,
     val error: String? = null,
     val message: String? = null
 )
@@ -40,6 +53,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     private val api = SupabaseRestClient()
     private val sessionStore by lazy { SessionStore(application) }
     private val _state = MutableStateFlow(PrimaDonnaState(loading = true))
+    private var voicePlayer: MediaPlayer? = null
 
     val state: StateFlow<PrimaDonnaState> = _state
 
@@ -191,6 +205,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun signOut() {
+        releaseRavenPlayer()
         viewModelScope.launch(Dispatchers.IO) {
             sessionStore.clear()
         }
@@ -312,6 +327,52 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
         }
+    }
+
+    fun playRavenVoice(session: CoachingSession) {
+        val authSession = _state.value.session
+        if (authSession == null) {
+            _state.update { it.copy(error = "Please sign in again before playing Raven voice.", message = null) }
+            return
+        }
+        val text = session.ravenVoiceText()
+        if (text.isBlank()) {
+            _state.update { it.copy(error = "This session does not have a saved response to play.", message = null) }
+            return
+        }
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    voiceLoadingSessionId = session.id,
+                    error = null,
+                    message = null
+                )
+            }
+            runCatching {
+                val audio = withRefreshRetry(authSession) { activeSession ->
+                    api.synthesizeRavenVoice(activeSession, text)
+                }
+                val file = withContext(Dispatchers.IO) {
+                    File(getApplication<Application>().cacheDir, "raven_voice_${session.id}.mp3").apply {
+                        writeBytes(audio)
+                    }
+                }
+                startRavenPlayback(session.id, file)
+            }.onFailure { throwable ->
+                _state.update {
+                    it.copy(
+                        voiceLoadingSessionId = null,
+                        voicePlayingSessionId = null,
+                        error = throwable.readableMessage()
+                    )
+                }
+            }
+        }
+    }
+
+    fun stopRavenVoice() {
+        releaseRavenPlayer()
+        _state.update { it.copy(voiceLoadingSessionId = null, voicePlayingSessionId = null) }
     }
 
     fun createEliteThread(title: String, body: String) {
@@ -558,5 +619,95 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun decodeAuthParam(value: String): String {
         return runCatching { URLDecoder.decode(value, Charsets.UTF_8.name()) }.getOrDefault(value)
+    }
+
+    private fun startRavenPlayback(sessionId: String, file: File) {
+        releaseRavenPlayer()
+        val player = MediaPlayer().apply {
+            setDataSource(file.absolutePath)
+            setOnCompletionListener {
+                releaseRavenPlayer()
+                _state.update { state ->
+                    if (state.voicePlayingSessionId == sessionId) {
+                        state.copy(voicePlayingSessionId = null)
+                    } else {
+                        state
+                    }
+                }
+            }
+            setOnErrorListener { _, _, _ ->
+                releaseRavenPlayer()
+                _state.update {
+                    it.copy(
+                        voiceLoadingSessionId = null,
+                        voicePlayingSessionId = null,
+                        error = "Raven voice could not play on this device."
+                    )
+                }
+                true
+            }
+            prepare()
+            start()
+        }
+        voicePlayer = player
+        _state.update {
+            it.copy(
+                voiceLoadingSessionId = null,
+                voicePlayingSessionId = sessionId,
+                error = null,
+                message = null
+            )
+        }
+    }
+
+    private fun releaseRavenPlayer() {
+        voicePlayer?.let { player ->
+            runCatching {
+                if (player.isPlaying) player.stop()
+            }
+            player.release()
+        }
+        voicePlayer = null
+    }
+
+    override fun onCleared() {
+        releaseRavenPlayer()
+        super.onCleared()
+    }
+}
+
+private fun CoachingSession.ravenVoiceText(): String {
+    val response = response?.jsonObjectOrNull()
+    val actionSteps = (
+        response?.get("action_steps")?.jsonArrayOrNull()
+            ?: response?.get("actions")?.jsonArrayOrNull()
+        )
+        ?.mapNotNull { it.jsonTextOrNull() }
+        .orEmpty()
+    val parts = listOfNotNull(
+        response?.get("diagnosis")?.jsonTextOrNull(),
+        response?.get("impact")?.jsonTextOrNull(),
+        response?.get("strategic_move")?.jsonTextOrNull()
+            ?: response?.get("recommendation")?.jsonTextOrNull(),
+        response?.get("elevation")?.jsonTextOrNull(),
+        actionSteps
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(separator = " Then, ", prefix = "Here's where to start. ")
+    )
+    return parts
+        .map { it.trim().replace(Regex("\\s+"), " ") }
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
+        .take(5000)
+}
+
+private fun JsonElement.jsonObjectOrNull(): JsonObject? = runCatching { jsonObject }.getOrNull()
+
+private fun JsonElement.jsonArrayOrNull(): JsonArray? = runCatching { jsonArray }.getOrNull()
+
+private fun JsonElement.jsonTextOrNull(): String? {
+    return when (this) {
+        is JsonPrimitive -> contentOrNull
+        else -> toString().takeIf { it.isNotBlank() && it != "null" }
     }
 }

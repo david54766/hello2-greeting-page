@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
     const data = isObject(body.data) ? body.data : {};
 
     if (action === 'run_coaching') return jsonResponse(await runCoaching(context, data));
+    if (action === 'synthesize_raven_voice') return jsonResponse(await synthesizeRavenVoice(data));
 
     await requireEliteAccess(context);
     switch (action) {
@@ -210,6 +211,40 @@ async function runCoaching({ supabase, userId }: MobileContext, data: Record<str
     metadata: { mode, source: 'mobile' },
   });
   return { ok: true, response: parsed, session: inserted };
+}
+
+async function synthesizeRavenVoice(data: Record<string, unknown>) {
+  const text = readString(data.text, 'text', 1, 5000);
+  const apiKey = Deno.env.get('ELEVENLABS_API_KEY');
+  if (!apiKey) return { ok: false, error: 'Raven voice is not configured.' };
+
+  const voiceId = Deno.env.get('ELEVENLABS_RAVEN_VOICE_ID') || 'EcNmy6NxONUCla9ZNPCn';
+  const upstream = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_128`,
+    {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.2, use_speaker_boost: true },
+      }),
+    },
+  );
+
+  if (upstream.status === 429) return { ok: false, error: 'Raven voice rate limit reached. Try again shortly.' };
+  if (!upstream.ok) {
+    const errorText = await upstream.text().catch(() => '');
+    console.error('ElevenLabs TTS error', upstream.status, errorText.slice(0, 300));
+    return { ok: false, error: 'Raven voice is temporarily unavailable.' };
+  }
+
+  const audio = new Uint8Array(await upstream.arrayBuffer());
+  return {
+    ok: true,
+    mime_type: 'audio/mpeg',
+    audio_base64: bytesToBase64(audio),
+  };
 }
 
 async function listEliteThreads({ supabase }: MobileContext) {
@@ -387,6 +422,15 @@ function readImageUrls(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === 'string' && item.length <= 1000).filter((item) => {
     try { new URL(item); return true; } catch { return false; }
   }).slice(0, 8);
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
