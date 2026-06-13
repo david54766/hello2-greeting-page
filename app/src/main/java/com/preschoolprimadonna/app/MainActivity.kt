@@ -99,6 +99,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.preschoolprimadonna.app.data.Center
@@ -1987,7 +1988,7 @@ private fun LoadingScrim() {
 }
 
 private fun Context.openUrl(url: String) {
-    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
 }
 
 private fun tierLabel(value: String?): String {

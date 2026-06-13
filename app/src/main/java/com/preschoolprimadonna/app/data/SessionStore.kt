@@ -1,6 +1,7 @@
 package com.preschoolprimadonna.app.data
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import kotlinx.serialization.encodeToString
@@ -26,11 +27,11 @@ class SessionStore(context: Context) {
     }
 
     fun save(session: AuthSession) {
-        preferences.edit().putString(KEY_SESSION, json.encodeToString(session)).apply()
+        preferences.edit { putString(KEY_SESSION, json.encodeToString(session)) }
     }
 
     fun clear() {
-        preferences.edit().clear().apply()
+        preferences.edit { clear() }
     }
 
     private companion object {
