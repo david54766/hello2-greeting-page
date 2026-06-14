@@ -361,7 +361,12 @@ private fun LoginScreen(
                 .padding(horizontal = 24.dp, vertical = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            BrandMark(compact = false)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                BrandMark(compact = false)
+            }
             Spacer(Modifier.height(22.dp))
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.96f)),
@@ -393,41 +398,6 @@ private fun LoginScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(AuthMode.SignIn, AuthMode.SignUp).forEach { option ->
-                            val selected = option == mode
-                            val label = when (option) {
-                                AuthMode.SignIn -> "Sign in"
-                                AuthMode.SignUp -> "Create"
-                                AuthMode.Reset -> "Reset"
-                            }
-                            if (selected) {
-                                Button(
-                                    onClick = { modeName = option.name },
-                                    shape = RoundedCornerShape(999.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaPink),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(42.dp)
-                                ) {
-                                    Text(label, maxLines = 1, fontSize = 12.sp)
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { modeName = option.name },
-                                    shape = RoundedCornerShape(999.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(42.dp)
-                                ) {
-                                    Text(label, maxLines = 1, fontSize = 12.sp)
-                                }
-                            }
-                        }
-                    }
                     if (mode == AuthMode.SignUp) {
                         OutlinedTextField(
                             value = fullName,
@@ -534,6 +504,27 @@ private fun LoginScreen(
                                 }
                             }
                         )
+                    }
+                    if (mode == AuthMode.SignIn && BuildConfig.DEBUG && BuildConfig.QA_EMAIL.isNotBlank() && BuildConfig.QA_PASSWORD.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = { onSignIn(BuildConfig.QA_EMAIL, BuildConfig.QA_PASSWORD) },
+                            enabled = !state.loading,
+                            shape = RoundedCornerShape(999.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                        ) {
+                            Text("Temp sign in")
+                        }
+                    }
+                    if (mode == AuthMode.Reset) {
+                        TextButton(
+                            onClick = { modeName = AuthMode.SignIn.name },
+                            enabled = !state.loading,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Back to sign in")
+                        }
                     }
                 }
             }
