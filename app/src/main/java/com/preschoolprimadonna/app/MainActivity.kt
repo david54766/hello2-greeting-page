@@ -276,7 +276,14 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
                                     Modifier
                                 }
                             ) {
-                                Icon(item.icon, contentDescription = item.title)
+                                if (item == AppScreen.Elite) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_nav_crown),
+                                        contentDescription = item.title
+                                    )
+                                } else {
+                                    Icon(item.icon, contentDescription = item.title)
+                                }
                             }
                         },
                         label = {
@@ -715,7 +722,11 @@ private fun DashboardScreen(state: PrimaDonnaState) {
         ) {
             SectionTitle("Center snapshot")
             if (showTierBadge) {
-                MetaBadge(tier, tone = BadgeTone.Gold)
+                MetaBadge(
+                    tier,
+                    modifier = Modifier.padding(top = 14.dp),
+                    tone = BadgeTone.Gold
+                )
             }
         }
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -810,17 +821,6 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     FixedScreen {
         Eyebrow("Coaching Engine")
         ScreenHeading("Open a strategic session.")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            OutlinedButton(
-                onClick = { historyOpen = true },
-                enabled = state.data.coachingSessions.isNotEmpty(),
-                shape = RoundedCornerShape(999.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Previous strategies")
-            }
-        }
         SingleLineFilterBar(
             options = modes,
             selected = mode,
@@ -869,6 +869,18 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                     Spacer(Modifier.width(6.dp))
                     Text(if (state.saving) "Thinking" else "Move", maxLines = 1)
                 }
+            }
+            OutlinedButton(
+                onClick = { historyOpen = true },
+                enabled = state.data.coachingSessions.isNotEmpty(),
+                shape = RoundedCornerShape(999.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Previous strategies", maxLines = 1)
             }
         }
     }
@@ -1239,29 +1251,78 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
     if (addCenterOpen) {
         AlertDialog(
             onDismissRequest = { addCenterOpen = false },
-            title = { Text("Add center") },
+            shape = AppCardShape,
+            containerColor = Color.White,
+            tonalElevation = 0.dp,
+            title = {
+                Text(
+                    "Add center",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
             text = {
                 Column(
                     modifier = Modifier
-                        .heightIn(max = 520.dp)
+                        .heightIn(max = 500.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedTextField(centerName, { centerName = it }, label = { Text("Center name") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(
+                        centerName,
+                        { centerName = it },
+                        label = { Text("Center name") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(city, { city = it }, label = { Text("City") }, modifier = Modifier.weight(1f))
-                        OutlinedTextField(centerState, { centerState = it }, label = { Text("State") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(
+                            city,
+                            { city = it },
+                            label = { Text("City") },
+                            singleLine = true,
+                            shape = AppCardShape,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            centerState,
+                            { centerState = it },
+                            label = { Text("State") },
+                            singleLine = true,
+                            shape = AppCardShape,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-                    OutlinedTextField(agesServed, { agesServed = it }, label = { Text("Ages served") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(
+                        agesServed,
+                        { agesServed = it },
+                        label = { Text("Ages served") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         NumberField(enrollment, { enrollment = it }, "Enrollment", Modifier.weight(1f))
                         NumberField(capacity, { capacity = it }, "Capacity", Modifier.weight(1f))
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(tuition, { tuition = it }, label = { Text("Tuition range") }, modifier = Modifier.weight(1f))
-                        NumberField(staff, { staff = it }, "Staff", Modifier.weight(1f))
-                    }
-                    OutlinedTextField(notes, { notes = it }, label = { Text("Notes / context for AI") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(
+                        tuition,
+                        { tuition = it },
+                        label = { Text("Tuition range") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    NumberField(staff, { staff = it }, "Staff", Modifier.fillMaxWidth())
+                    OutlinedTextField(
+                        notes,
+                        { notes = it },
+                        label = { Text("Notes / context for AI") },
+                        minLines = 3,
+                        shape = AppCardShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             },
             confirmButton = {
@@ -2527,6 +2588,8 @@ private fun NumberField(value: String, onValueChange: (String) -> Unit, label: S
         onValueChange = { onValueChange(it.filter(Char::isDigit)) },
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true,
+        shape = AppCardShape,
         modifier = modifier
     )
 }
