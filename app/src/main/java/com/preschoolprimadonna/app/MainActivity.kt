@@ -15,6 +15,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -91,6 +93,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -114,6 +117,7 @@ import com.preschoolprimadonna.app.data.EliteThread
 import com.preschoolprimadonna.app.data.RavenBooking
 import com.preschoolprimadonna.app.data.RavenSlot
 import com.preschoolprimadonna.app.data.RavenVideo
+import com.preschoolprimadonna.app.data.Subscription
 import com.preschoolprimadonna.app.data.TemplateItem
 import com.preschoolprimadonna.app.ui.PrimaDonnaTheme
 import com.preschoolprimadonna.app.ui.PrimaGold
@@ -335,151 +339,209 @@ private fun LoginScreen(
         password == confirmPassword
     val canReset = !state.loading && email.isNotBlank()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFFFF8FB),
+                        Color(0xFFFFEEF6),
+                        Color(0xFFFFFBF8)
+                    )
+                )
+            )
     ) {
-        BrandMark(compact = false)
-        Spacer(Modifier.height(40.dp))
-        ScreenHeading(
-            text = when (mode) {
-                AuthMode.SignIn -> "Sign in"
-                AuthMode.SignUp -> "Create account"
-                AuthMode.Reset -> "Reset password"
-            }
-        )
-        Text(
-            text = when (mode) {
-                AuthMode.SignIn -> "Enter the Command Center."
-                AuthMode.SignUp -> "Create your mobile account."
-                AuthMode.Reset -> "Request a password reset email."
-            },
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(24.dp))
-        if (mode == AuthMode.SignIn && BuildConfig.DEBUG && BuildConfig.QA_EMAIL.isNotBlank() && BuildConfig.QA_PASSWORD.isNotBlank()) {
-            OutlinedButton(
-                onClick = { onSignIn(BuildConfig.QA_EMAIL, BuildConfig.QA_PASSWORD) },
-                enabled = !state.loading,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            BrandMark(compact = false)
+            Spacer(Modifier.height(22.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.96f)),
+                shape = RoundedCornerShape(28.dp),
+                border = BorderStroke(1.dp, Color(0xFFF0DCE6)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("QA sign in")
-            }
-            Spacer(Modifier.height(12.dp))
-        }
-        if (mode == AuthMode.SignUp) {
-            OutlinedTextField(
-                value = fullName,
-                onValueChange = { fullName = it },
-                label = { Text("Your name") },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(12.dp))
-        }
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (mode != AuthMode.Reset) {
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (mode == AuthMode.SignIn && canSignIn) {
-                            onSignIn(email, password)
+                Column(
+                    modifier = Modifier.padding(22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = when (mode) {
+                            AuthMode.SignIn -> "Sign in"
+                            AuthMode.SignUp -> "Create account"
+                            AuthMode.Reset -> "Reset password"
+                        },
+                        style = MaterialTheme.typography.displaySmall,
+                        fontFamily = FontFamily.Serif,
+                        color = Color(0xFF201A1E)
+                    )
+                    Text(
+                        text = when (mode) {
+                            AuthMode.SignIn -> "Access your private AI command center."
+                            AuthMode.SignUp -> "Create your strategy workspace."
+                            AuthMode.Reset -> "Send a secure reset link to your email."
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AuthMode.values().forEach { option ->
+                            val selected = option == mode
+                            val label = when (option) {
+                                AuthMode.SignIn -> "Sign in"
+                                AuthMode.SignUp -> "Create"
+                                AuthMode.Reset -> "Reset"
+                            }
+                            if (selected) {
+                                Button(
+                                    onClick = { modeName = option.name },
+                                    shape = RoundedCornerShape(999.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaPink),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(42.dp)
+                                ) {
+                                    Text(label, maxLines = 1, fontSize = 12.sp)
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { modeName = option.name },
+                                    shape = RoundedCornerShape(999.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(42.dp)
+                                ) {
+                                    Text(label, maxLines = 1, fontSize = 12.sp)
+                                }
+                            }
                         }
                     }
-                ),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = if (mode == AuthMode.SignUp) ImeAction.Next else ImeAction.Done
-                ),
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        if (mode == AuthMode.SignUp) {
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirm password") },
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (canSignUp) {
-                            onSignUp(fullName, email, password)
+                    if (mode == AuthMode.SignIn && BuildConfig.DEBUG && BuildConfig.QA_EMAIL.isNotBlank() && BuildConfig.QA_PASSWORD.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = { onSignIn(BuildConfig.QA_EMAIL, BuildConfig.QA_PASSWORD) },
+                            enabled = !state.loading,
+                            shape = RoundedCornerShape(999.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("QA sign in")
                         }
                     }
-                ),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = {
-                when (mode) {
-                    AuthMode.SignIn -> onSignIn(email, password)
-                    AuthMode.SignUp -> onSignUp(fullName, email, password)
-                    AuthMode.Reset -> onResetPassword(email)
+                    if (mode == AuthMode.SignUp) {
+                        OutlinedTextField(
+                            value = fullName,
+                            onValueChange = { fullName = it },
+                            label = { Text("Your name") },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (mode != AuthMode.Reset) {
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Password") },
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    if (mode == AuthMode.SignIn && canSignIn) {
+                                        onSignIn(email, password)
+                                    }
+                                }
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = if (mode == AuthMode.SignUp) ImeAction.Next else ImeAction.Done
+                            ),
+                            visualTransformation = PasswordVisualTransformation(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    if (mode == AuthMode.SignUp) {
+                        OutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it },
+                            label = { Text("Confirm password") },
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    if (canSignUp) {
+                                        onSignUp(fullName, email, password)
+                                    }
+                                }
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            visualTransformation = PasswordVisualTransformation(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            when (mode) {
+                                AuthMode.SignIn -> onSignIn(email, password)
+                                AuthMode.SignUp -> onSignUp(fullName, email, password)
+                                AuthMode.Reset -> onResetPassword(email)
+                            }
+                        },
+                        enabled = when (mode) {
+                            AuthMode.SignIn -> canSignIn
+                            AuthMode.SignUp -> canSignUp
+                            AuthMode.Reset -> canReset
+                        },
+                        shape = RoundedCornerShape(999.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                    ) {
+                        Text(
+                            if (state.loading) {
+                                "Working..."
+                            } else {
+                                when (mode) {
+                                    AuthMode.SignIn -> "Enter Command Center"
+                                    AuthMode.SignUp -> "Create account"
+                                    AuthMode.Reset -> "Send reset email"
+                                }
+                            }
+                        )
+                    }
                 }
-            },
-            enabled = when (mode) {
-                AuthMode.SignIn -> canSignIn
-                AuthMode.SignUp -> canSignUp
-                AuthMode.Reset -> canReset
-            },
-            shape = RoundedCornerShape(999.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-        ) {
+            }
+            Spacer(Modifier.height(18.dp))
             Text(
-                if (state.loading) {
-                    "Working..."
-                } else {
-                    when (mode) {
-                        AuthMode.SignIn -> "Enter Command Center"
-                        AuthMode.SignUp -> "Create account"
-                        AuthMode.Reset -> "Send reset email"
-                    }
-                }
+                text = "Prima Donna AI",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { modeName = AuthMode.SignIn.name }, enabled = mode != AuthMode.SignIn) {
-                Text("Sign in")
-            }
-            TextButton(onClick = { modeName = AuthMode.SignUp.name }, enabled = mode != AuthMode.SignUp) {
-                Text("Create account")
-            }
-            TextButton(onClick = { modeName = AuthMode.Reset.name }, enabled = mode != AuthMode.Reset) {
-                Text("Reset password")
-            }
         }
     }
 }
@@ -696,8 +758,12 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     var prompt by rememberSaveable { mutableStateOf("") }
     var selectedSessionId by rememberSaveable { mutableStateOf<String?>(null) }
     var historyOpen by rememberSaveable { mutableStateOf(false) }
+    var waitingForStrategy by rememberSaveable { mutableStateOf(false) }
+    var strategyBaselineId by rememberSaveable { mutableStateOf<String?>(null) }
+    var strategyPopupId by rememberSaveable { mutableStateOf<String?>(null) }
     val modes = listOf("CEO", "Revenue", "Marketing", "Compliance", "Systems")
     val selectedSession = state.data.coachingSessions.firstOrNull { it.id == selectedSessionId }
+    val strategyPopupSession = state.data.coachingSessions.firstOrNull { it.id == strategyPopupId }
     val context = LocalContext.current
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -721,6 +787,15 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 Toast.makeText(context, "Speech recognition is not available on this device.", Toast.LENGTH_LONG).show()
             }
     }
+    LaunchedEffect(state.saving, state.data.coachingSessions.firstOrNull()?.id, waitingForStrategy) {
+        val latestSession = state.data.coachingSessions.firstOrNull()
+        if (waitingForStrategy && !state.saving && latestSession != null && latestSession.id != strategyBaselineId) {
+            strategyPopupId = latestSession.id
+            waitingForStrategy = false
+            strategyBaselineId = null
+            prompt = ""
+        }
+    }
 
     if (selectedSession != null) {
         ScreenList {
@@ -741,17 +816,17 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     }
 
     FixedScreen {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Eyebrow("Coaching Engine")
-                ScreenHeading("Open a strategic session.")
-            }
-            OutlinedButton(onClick = { historyOpen = true }, enabled = state.data.coachingSessions.isNotEmpty()) {
-                Text("Previous")
+        Eyebrow("Coaching Engine")
+        ScreenHeading("Open a strategic session.")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            OutlinedButton(
+                onClick = { historyOpen = true },
+                enabled = state.data.coachingSessions.isNotEmpty(),
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Previous strategies")
             }
         }
         SingleLineFilterBar(
@@ -790,7 +865,11 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                     Text("Speak", maxLines = 1)
                 }
                 Button(
-                    onClick = { viewModel.submitCoachingPrompt(mode, prompt) },
+                    onClick = {
+                        waitingForStrategy = true
+                        strategyBaselineId = state.data.coachingSessions.firstOrNull()?.id
+                        viewModel.submitCoachingPrompt(mode, prompt)
+                    },
                     enabled = prompt.trim().length >= 3 && !state.saving,
                     modifier = Modifier.weight(1f)
                 ) {
@@ -802,41 +881,29 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         }
     }
 
-    if (historyOpen) {
-        AlertDialog(
-            onDismissRequest = { historyOpen = false },
-            title = { Text("Previous sessions") },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (state.data.coachingSessions.isEmpty()) {
-                        Text("No sessions yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        state.data.coachingSessions.forEach { session ->
-                            CoachingSessionRailItem(
-                                session = session,
-                                voiceLoading = state.voiceLoadingSessionId == session.id,
-                                voicePlaying = state.voicePlayingSessionId == session.id,
-                                onOpen = {
-                                    selectedSessionId = session.id
-                                    historyOpen = false
-                                },
-                                onPlayVoice = { viewModel.playRavenVoice(session) },
-                                onStopVoice = { viewModel.stopRavenVoice() }
-                            )
-                        }
-                    }
-                }
+    if (strategyPopupSession != null) {
+        StrategyReadyDialog(
+            session = strategyPopupSession,
+            onOpen = {
+                selectedSessionId = strategyPopupSession.id
+                strategyPopupId = null
             },
-            confirmButton = {
-                TextButton(onClick = { historyOpen = false }) {
-                    Text("Close")
-                }
-            }
+            onDismiss = { strategyPopupId = null }
+        )
+    }
+
+    if (historyOpen) {
+        CoachingHistoryDrawer(
+            sessions = state.data.coachingSessions,
+            voiceLoadingSessionId = state.voiceLoadingSessionId,
+            voicePlayingSessionId = state.voicePlayingSessionId,
+            onDismiss = { historyOpen = false },
+            onOpen = {
+                selectedSessionId = it
+                historyOpen = false
+            },
+            onPlayVoice = viewModel::playRavenVoice,
+            onStopVoice = viewModel::stopRavenVoice
         )
     }
 }
@@ -924,10 +991,23 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                         saving = state.saving
                     )
                 } else {
+                    val latestThreads = state.data.eliteThreads.sortedByDescending { it.createdAt.orEmpty() }
                     OutlinedButton(onClick = { section = "Schedule" }) {
                         Icon(Icons.Outlined.Schedule, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("Book with Raven")
+                    }
+                    SectionTitle("Latest conversations")
+                    if (latestThreads.isEmpty()) {
+                        EmptyState("No Elite conversations yet.")
+                    } else {
+                        latestThreads.forEach { thread ->
+                            EliteThreadCard(
+                                thread = thread,
+                                onOpen = { viewModel.openEliteThread(thread.id) },
+                                onDelete = { viewModel.deleteEliteThread(thread.id) }
+                            )
+                        }
                     }
                     SectionTitle("Start a conversation")
                     OutlinedTextField(
@@ -955,18 +1035,6 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                         Icon(Icons.Outlined.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("Post conversation")
-                    }
-                    SectionTitle("Latest conversations")
-                    if (state.data.eliteThreads.isEmpty()) {
-                        EmptyState("No Elite conversations yet.")
-                    } else {
-                        state.data.eliteThreads.forEach { thread ->
-                            EliteThreadCard(
-                                thread = thread,
-                                onOpen = { viewModel.openEliteThread(thread.id) },
-                                onDelete = { viewModel.deleteEliteThread(thread.id) }
-                            )
-                        }
                     }
                 }
             }
@@ -1073,10 +1141,7 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
         Eyebrow("Settings")
         ScreenHeading("Workspace settings")
 
-        FeatureCard(
-            title = "Membership",
-            body = "Current plan: ${tierLabel(subscription?.tier)}\nStatus: ${subscription?.status ?: "unknown"}\nCurrent period ends: ${subscription?.currentPeriodEnd?.shortDate() ?: "Not available"}"
-        )
+        MembershipStatusCard(subscription)
 
         SectionTitle("Notifications")
         Card(
@@ -1247,6 +1312,36 @@ private fun NotificationPreferenceRow(
             )
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun MembershipStatusCard(subscription: Subscription?) {
+    val plan = tierLabel(subscription?.tier)
+    val status = subscription?.status?.replace("_", " ")?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+    val period = subscription?.currentPeriodEnd?.shortDate()?.let { "Renews $it" } ?: "Renewal not set"
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Membership", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                MetaBadge(plan, tone = BadgeTone.Gold)
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetaBadge("Plan: $plan", tone = BadgeTone.Gold)
+                MetaBadge(status, tone = if (status.equals("Active", ignoreCase = true)) BadgeTone.Pink else BadgeTone.Neutral)
+                MetaBadge(period, tone = BadgeTone.Neutral)
+            }
+        }
     }
 }
 
@@ -1884,6 +1979,130 @@ private fun CoachingSessionRail(
                             onPlayVoice = { onPlayVoice(session) },
                             onStopVoice = onStopVoice
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrategyReadyDialog(
+    session: CoachingSession,
+    onOpen: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val response = session.response?.jsonObjectOrNull()
+    val strategicMove = response?.get("strategic_move")?.jsonTextOrNull()
+        ?: response?.get("recommendation")?.jsonTextOrNull()
+    val summary = response?.get("summary")?.jsonTextOrNull()
+    val preview = listOfNotNull(strategicMove, summary, session.prompt)
+        .firstOrNull { it.isNotBlank() }
+        ?: "Your new strategy is ready to review."
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                MetaBadge(modeLabel(session.mode), tone = BadgeTone.Gold)
+                Text("Strategy ready")
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = preview.take(420),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 24.sp
+                )
+                session.createdAt?.shortDate()?.let { MetaBadge(it, tone = BadgeTone.Neutral) }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onOpen, shape = RoundedCornerShape(999.dp)) {
+                Text("Open strategy")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+private fun CoachingHistoryDrawer(
+    sessions: List<CoachingSession>,
+    voiceLoadingSessionId: String?,
+    voicePlayingSessionId: String?,
+    onDismiss: () -> Unit,
+    onOpen: (String) -> Unit,
+    onPlayVoice: (CoachingSession) -> Unit,
+    onStopVoice: () -> Unit
+) {
+    val orderedSessions = sessions.sortedByDescending { it.createdAt.orEmpty() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.24f))
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = onDismiss)
+        )
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp),
+            border = BorderStroke(1.dp, Color(0xFFF0DCE6)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .widthIn(min = 292.dp, max = 360.dp)
+                .padding(vertical = 18.dp)
+                .clickable { }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Eyebrow("History")
+                        Text("Previous strategies", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(onClick = onDismiss) {
+                        Text("Close")
+                    }
+                }
+                if (orderedSessions.isEmpty()) {
+                    EmptyState("No previous strategies yet.")
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        orderedSessions.forEach { session ->
+                            CoachingSessionRailItem(
+                                session = session,
+                                voiceLoading = voiceLoadingSessionId == session.id,
+                                voicePlaying = voicePlayingSessionId == session.id,
+                                onOpen = { onOpen(session.id) },
+                                onPlayVoice = { onPlayVoice(session) },
+                                onStopVoice = onStopVoice
+                            )
+                        }
                     }
                 }
             }
