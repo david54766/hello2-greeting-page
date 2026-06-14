@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Prima Donna AI crown">
+  <rect width="512" height="512" rx="112" fill="#fff7fb"/>
+  <path d="M92 181c0-23 18-41 41-41 20 0 37 15 40 34l49 74 77-122c7-12 20-20 35-20s28 8 35 20l77 122 49-74c3-19 20-34 40-34 23 0 41 18 41 41 0 21-16 39-37 41l-45 162c-6 22-26 37-49 37H167c-23 0-43-15-49-37L73 222c-21-2-37-20-37-41Z" fill="#ec008c"/>
+  <path d="M139 286h234c21 0 38 17 38 38v14c0 21-17 38-38 38H139c-21 0-38-17-38-38v-14c0-21 17-38 38-38Z" fill="#e60023"/>
+  <circle cx="256" cy="174" r="26" fill="#fff7fb"/>
+  <circle cx="148" cy="204" r="20" fill="#fff7fb"/>
+  <circle cx="364" cy="204" r="20" fill="#fff7fb"/>
+</svg>

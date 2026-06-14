@@ -69,8 +69,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Premium AI-powered executive business coaching for childcare center owners. Strategic intelligence, on demand." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5c0e414c-be68-4063-87bb-d869be61899b/id-preview-e6f64d41--2deeab71-45bd-45e5-8dc0-4f218025b354.lovable.app-1779161951149.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5c0e414c-be68-4063-87bb-d869be61899b/id-preview-e6f64d41--2deeab71-45bd-45e5-8dc0-4f218025b354.lovable.app-1779161951149.png" },
+      { name: "theme-color", content: "#ec008c" },
     ],
     links: [
+      { rel: "icon", type: "image/svg+xml", href: "/prima-crown-icon.svg" },
+      { rel: "manifest", href: "/site.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

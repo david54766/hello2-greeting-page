@@ -28,6 +28,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
@@ -148,6 +155,7 @@ function Coach() {
   // ---------- Realtime STT (live dictation) ----------
   const [recording, setRecording] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
   const promptRef = useRef(prompt);
@@ -333,6 +341,7 @@ function Coach() {
     setMode(s.mode);
     setPrompt(s.prompt);
     setResponse(normalizeResp(s.response));
+    setHistoryOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -352,11 +361,17 @@ function Coach() {
   const isElite = tier === "elite";
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12 grid lg:grid-cols-[1fr_280px] gap-10">
+    <>
+    <div className="mx-auto max-w-4xl px-6 py-12">
       <div>
-        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition mb-4">
-          <ArrowLeft className="size-4" /> Back to dashboard
-        </Link>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition">
+            <ArrowLeft className="size-4" /> Back to dashboard
+          </Link>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setHistoryOpen(true)}>
+            <History className="size-3.5 mr-2" /> Previous sessions
+          </Button>
+        </div>
         <p className="text-xs uppercase tracking-[0.25em] text-primary">Coaching engine</p>
         <h1 className="mt-2 font-display text-4xl md:text-5xl">Open a strategic session.</h1>
 
@@ -521,8 +536,51 @@ function Coach() {
           </article>
         )}
       </div>
+    </div>
 
-      <aside className="lg:sticky lg:top-24 self-start">
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent className="w-[92vw] overflow-y-auto sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="font-display text-2xl">Previous sessions</SheetTitle>
+            <SheetDescription>
+              Reopen a strategic session when you need to continue from an earlier question.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-2">
+            {history.isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
+            {history.data?.sessions?.length === 0 && <p className="text-sm text-muted-foreground">No sessions yet.</p>}
+            {history.data?.sessions?.map((s: any) => (
+              <div
+                key={s.id}
+                className="group relative rounded-lg border border-border/60 bg-card hover:border-primary/40 transition"
+              >
+                <button
+                  onClick={() => loadFromHistory(s)}
+                  className="w-full text-left p-3 pr-9"
+                >
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs uppercase tracking-wider text-primary">{s.mode}</span>
+                    <span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="mt-2 text-sm line-clamp-2">{s.response?.diagnosis ?? s.response?.insight ?? s.prompt}</p>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPendingDelete(s);
+                  }}
+                  className="absolute top-2 right-2 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition"
+                  aria-label="Delete session"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <aside className="hidden">
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
           <History className="size-3" /> Recent sessions
         </div>
@@ -604,7 +662,7 @@ function Coach() {
         userId={user?.id}
         onSaved={refreshRevenue}
       />
-    </div>
+    </>
   );
 }
 

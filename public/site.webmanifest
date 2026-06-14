@@ -1,0 +1,17 @@
+{
+  "name": "Prima Donna AI",
+  "short_name": "Prima Donna",
+  "description": "Executive AI coaching for childcare leaders.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#fff7fb",
+  "theme_color": "#ec008c",
+  "icons": [
+    {
+      "src": "/prima-crown-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
