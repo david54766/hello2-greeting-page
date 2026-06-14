@@ -2088,6 +2088,7 @@ private fun StrategyReadyDialog(
         ?: "Your new strategy is ready to review."
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.background,
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 MetaBadge(modeLabel(session.mode), tone = BadgeTone.Gold)
