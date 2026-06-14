@@ -1,7 +1,11 @@
 param(
     [string]$MarkdownPath = "handoff\prima-donna-android-handoff.md",
     [string]$OutputDocx = "handoff\Prima Donna AI Android Handoff.docx",
-    [string]$OutputPdf = "handoff\Prima Donna AI Android Handoff.pdf"
+    [string]$OutputPdf = "handoff\Prima Donna AI Android Handoff.pdf",
+    [string]$AssetsDir = "handoff\assets",
+    [string]$ScreensTitle = "Embedded Sample Layout Screens",
+    [string]$DocumentTitle = "Prima Donna AI Android App Handoff",
+    [string]$DocumentSubject = "Native Android app handoff with functions and layout instructions"
 )
 
 $ErrorActionPreference = "Stop"
@@ -194,13 +198,13 @@ try {
     Flush-Table
     Flush-Code
 
-    Add-Para -Text "Embedded Sample Layout Screens" -Style "Heading 1"
+    Add-Para -Text $ScreensTitle -Style "Heading 1"
     $screens = @(
-        @{ Caption = "1. Login screen"; Path = "handoff\assets\01-login.jpg" },
-        @{ Caption = "2. Elite Circle conversations"; Path = "handoff\assets\02-elite.jpg" },
-        @{ Caption = "3. Template Vault"; Path = "handoff\assets\03-vault.jpg" },
-        @{ Caption = "4. Coaching Engine"; Path = "handoff\assets\04-coach.jpg" },
-        @{ Caption = "5. Home center snapshot"; Path = "handoff\assets\05-home.jpg" }
+        @{ Caption = "1. Login screen"; Path = Join-Path $AssetsDir "01-login.jpg" },
+        @{ Caption = "2. Elite Circle conversations"; Path = Join-Path $AssetsDir "02-elite.jpg" },
+        @{ Caption = "3. Template Vault"; Path = Join-Path $AssetsDir "03-vault.jpg" },
+        @{ Caption = "4. Coaching Engine"; Path = Join-Path $AssetsDir "04-coach.jpg" },
+        @{ Caption = "5. Home center snapshot"; Path = Join-Path $AssetsDir "05-home.jpg" }
     )
     foreach ($screen in $screens) {
         Add-Para -Text $screen.Caption -Style "Heading 2"
@@ -213,8 +217,8 @@ try {
     }
 
     try {
-        $doc.BuiltInDocumentProperties.Item("Title").Value = "Prima Donna AI Android App Handoff"
-        $doc.BuiltInDocumentProperties.Item("Subject").Value = "Native Android app handoff with functions and layout instructions"
+        $doc.BuiltInDocumentProperties.Item("Title").Value = $DocumentTitle
+        $doc.BuiltInDocumentProperties.Item("Subject").Value = $DocumentSubject
         $doc.BuiltInDocumentProperties.Item("Author").Value = "Codex"
     } catch {
         Write-Verbose "Word document properties were not writable in this environment."
