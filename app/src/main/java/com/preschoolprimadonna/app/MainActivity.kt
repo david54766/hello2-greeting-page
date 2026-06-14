@@ -80,6 +80,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -396,7 +397,7 @@ private fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        AuthMode.values().forEach { option ->
+                        listOf(AuthMode.SignIn, AuthMode.SignUp).forEach { option ->
                             val selected = option == mode
                             val label = when (option) {
                                 AuthMode.SignIn -> "Sign in"
@@ -425,16 +426,6 @@ private fun LoginScreen(
                                     Text(label, maxLines = 1, fontSize = 12.sp)
                                 }
                             }
-                        }
-                    }
-                    if (mode == AuthMode.SignIn && BuildConfig.DEBUG && BuildConfig.QA_EMAIL.isNotBlank() && BuildConfig.QA_PASSWORD.isNotBlank()) {
-                        OutlinedButton(
-                            onClick = { onSignIn(BuildConfig.QA_EMAIL, BuildConfig.QA_PASSWORD) },
-                            enabled = !state.loading,
-                            shape = RoundedCornerShape(999.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("QA sign in")
                         }
                     }
                     if (mode == AuthMode.SignUp) {
@@ -481,6 +472,16 @@ private fun LoginScreen(
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
+                        if (mode == AuthMode.SignIn) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                TextButton(
+                                    onClick = { modeName = AuthMode.Reset.name },
+                                    enabled = !state.loading
+                                ) {
+                                    Text("Forgot password?")
+                                }
+                            }
+                        }
                     }
                     if (mode == AuthMode.SignUp) {
                         OutlinedTextField(
@@ -1311,7 +1312,18 @@ private fun NotificationPreferenceRow(
                 lineHeight = 18.sp
             )
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = PrimaPink,
+                checkedBorderColor = PrimaPink,
+                uncheckedThumbColor = Color(0xFF6A5C64),
+                uncheckedTrackColor = Color(0xFFF3E3EA),
+                uncheckedBorderColor = Color(0xFFB79EAA)
+            )
+        )
     }
 }
 
@@ -1328,14 +1340,7 @@ private fun MembershipStatusCard(subscription: Subscription?) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Membership", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                MetaBadge(plan, tone = BadgeTone.Gold)
-            }
+            Text("Membership", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 MetaBadge("Plan: $plan", tone = BadgeTone.Gold)
                 MetaBadge(status, tone = if (status.equals("Active", ignoreCase = true)) BadgeTone.Pink else BadgeTone.Neutral)
@@ -1384,7 +1389,7 @@ private fun CenterManagementCard(
                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
             }
             if (confirmingDelete) {
-                Text("Delete this center?", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                Text("Delete this center?", color = Color(0xFF111111), fontWeight = FontWeight.SemiBold)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = onCancelDelete, enabled = !saving, modifier = Modifier.weight(1f)) {
                         Text("Cancel")
@@ -1392,7 +1397,10 @@ private fun CenterManagementCard(
                     Button(
                         onClick = onConfirmDelete,
                         enabled = !saving,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF111111),
+                            contentColor = Color.White
+                        ),
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Outlined.Delete, contentDescription = null)
@@ -1407,7 +1415,12 @@ private fun CenterManagementCard(
                         Spacer(Modifier.width(8.dp))
                         Text("Edit")
                     }
-                    TextButton(onClick = onAskDelete, enabled = center.id != null && !saving, modifier = Modifier.weight(1f)) {
+                    TextButton(
+                        onClick = onAskDelete,
+                        enabled = center.id != null && !saving,
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF111111)),
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Icon(Icons.Outlined.Delete, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("Delete")
