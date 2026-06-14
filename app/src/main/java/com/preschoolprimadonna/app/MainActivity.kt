@@ -52,10 +52,10 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -77,6 +77,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -241,9 +242,6 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
-                    IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
-                    }
                     IconButton(onClick = viewModel::signOut) {
                         Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Sign out")
                     }
@@ -697,6 +695,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     var mode by rememberSaveable { mutableStateOf("CEO") }
     var prompt by rememberSaveable { mutableStateOf("") }
     var selectedSessionId by rememberSaveable { mutableStateOf<String?>(null) }
+    var historyOpen by rememberSaveable { mutableStateOf(false) }
     val modes = listOf("CEO", "Revenue", "Marketing", "Compliance", "Systems")
     val selectedSession = state.data.coachingSessions.firstOrNull { it.id == selectedSessionId }
     val context = LocalContext.current
@@ -742,77 +741,103 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     }
 
     FixedScreen {
-        Eyebrow("Coaching Engine")
-        ScreenHeading("Open a strategic session.")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Eyebrow("Coaching Engine")
+                ScreenHeading("Open a strategic session.")
+            }
+            OutlinedButton(onClick = { historyOpen = true }, enabled = state.data.coachingSessions.isNotEmpty()) {
+                Text("Previous")
+            }
+        }
         SingleLineFilterBar(
             options = modes,
             selected = mode,
             onSelected = { mode = it }
         )
-        BoxWithConstraints(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            val railWidth = if (maxWidth < 380.dp) 126.dp else 148.dp
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Text(
+                text = modeDescription(mode),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            OutlinedTextField(
+                value = prompt,
+                onValueChange = { prompt = it },
+                label = { Text("What's the situation?") },
+                minLines = 5,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = startSpeech,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Outlined.Mic, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Speak", maxLines = 1)
+                }
+                Button(
+                    onClick = { viewModel.submitCoachingPrompt(mode, prompt) },
+                    enabled = prompt.trim().length >= 3 && !state.saving,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (state.saving) "Thinking" else "Move", maxLines = 1)
+                }
+            }
+        }
+    }
+
+    if (historyOpen) {
+        AlertDialog(
+            onDismissRequest = { historyOpen = false },
+            title = { Text("Previous sessions") },
+            text = {
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = modeDescription(mode),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    OutlinedTextField(
-                        value = prompt,
-                        onValueChange = { prompt = it },
-                        label = { Text("What's the situation?") },
-                        minLines = 5,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = startSpeech,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Outlined.Mic, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("Speak", maxLines = 1)
-                        }
-                        Button(
-                            onClick = { viewModel.submitCoachingPrompt(mode, prompt) },
-                            enabled = prompt.trim().length >= 3 && !state.saving,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text(if (state.saving) "Thinking" else "Move", maxLines = 1)
+                    if (state.data.coachingSessions.isEmpty()) {
+                        Text("No sessions yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        state.data.coachingSessions.forEach { session ->
+                            CoachingSessionRailItem(
+                                session = session,
+                                voiceLoading = state.voiceLoadingSessionId == session.id,
+                                voicePlaying = state.voicePlayingSessionId == session.id,
+                                onOpen = {
+                                    selectedSessionId = session.id
+                                    historyOpen = false
+                                },
+                                onPlayVoice = { viewModel.playRavenVoice(session) },
+                                onStopVoice = { viewModel.stopRavenVoice() }
+                            )
                         }
                     }
                 }
-                CoachingSessionRail(
-                    sessions = state.data.coachingSessions,
-                    voiceLoadingSessionId = state.voiceLoadingSessionId,
-                    voicePlayingSessionId = state.voicePlayingSessionId,
-                    onOpen = { selectedSessionId = it.id },
-                    onPlayVoice = { viewModel.playRavenVoice(it) },
-                    onStopVoice = { viewModel.stopRavenVoice() },
-                    modifier = Modifier
-                        .width(railWidth)
-                        .fillMaxHeight()
-                )
+            },
+            confirmButton = {
+                TextButton(onClick = { historyOpen = false }) {
+                    Text("Close")
+                }
             }
-        }
+        )
     }
 }
 
@@ -998,6 +1023,11 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
     var timezone by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.timezone ?: "America/New_York") }
     var editingCenterId by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDeleteCenterId by rememberSaveable { mutableStateOf<String?>(null) }
+    var addCenterOpen by rememberSaveable { mutableStateOf(false) }
+    var emailBriefs by rememberSaveable { mutableStateOf(true) }
+    var eliteReminders by rememberSaveable { mutableStateOf(true) }
+    var inAppAlerts by rememberSaveable { mutableStateOf(true) }
+    var productUpdates by rememberSaveable { mutableStateOf(false) }
 
     var centerName by rememberSaveable { mutableStateOf("") }
     var city by rememberSaveable { mutableStateOf("") }
@@ -1009,22 +1039,106 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
     var staff by rememberSaveable { mutableStateOf("") }
     var notes by rememberSaveable { mutableStateOf("") }
 
+    fun resetCenterForm() {
+        centerName = ""
+        city = ""
+        centerState = ""
+        agesServed = ""
+        enrollment = ""
+        capacity = ""
+        tuition = ""
+        staff = ""
+        notes = ""
+    }
+
+    fun addCenter() {
+        viewModel.addCenter(
+            Center(
+                name = centerName,
+                city = city,
+                state = centerState,
+                agesServed = agesServed,
+                enrollmentSize = enrollment.toIntOrNull(),
+                capacity = capacity.toIntOrNull(),
+                tuitionRange = tuition,
+                staffCount = staff.toIntOrNull(),
+                notes = notes
+            )
+        )
+        resetCenterForm()
+        addCenterOpen = false
+    }
+
     ScreenList {
         Eyebrow("Settings")
-        SectionTitle("Business profile")
-        OutlinedTextField(fullName, { fullName = it }, label = { Text("Your name") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(businessName, { businessName = it }, label = { Text("Business name") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(profileState, { profileState = it }, label = { Text("State") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(timezone, { timezone = it }, label = { Text("Timezone") }, modifier = Modifier.fillMaxWidth())
-        Button(
-            onClick = { viewModel.saveProfile(fullName, businessName, profileState, timezone) },
-            enabled = !state.saving
+        ScreenHeading("Workspace settings")
+
+        FeatureCard(
+            title = "Membership",
+            body = "Current plan: ${tierLabel(subscription?.tier)}\nStatus: ${subscription?.status ?: "unknown"}\nCurrent period ends: ${subscription?.currentPeriodEnd?.shortDate() ?: "Not available"}"
+        )
+
+        SectionTitle("Notifications")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = AppCardShape,
+            border = appCardBorder(),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Save profile")
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                NotificationPreferenceRow(
+                    title = "Email AI brief",
+                    body = "Send daily summaries and strategic reminders.",
+                    checked = emailBriefs,
+                    onCheckedChange = { emailBriefs = it }
+                )
+                NotificationPreferenceRow(
+                    title = "Elite reminders",
+                    body = "Show alerts for Elite Circle activity and replies.",
+                    checked = eliteReminders,
+                    onCheckedChange = { eliteReminders = it }
+                )
+                NotificationPreferenceRow(
+                    title = "In-app alerts",
+                    body = "Keep workspace activity visible when you open the app.",
+                    checked = inAppAlerts,
+                    onCheckedChange = { inAppAlerts = it }
+                )
+                NotificationPreferenceRow(
+                    title = "Product updates",
+                    body = "Occasional AI feature and membership notices.",
+                    checked = productUpdates,
+                    onCheckedChange = { productUpdates = it }
+                )
+            }
         }
+
+        SectionTitle("Business profile")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = AppCardShape,
+            border = appCardBorder(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(fullName, { fullName = it }, label = { Text("Your name") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(businessName, { businessName = it }, label = { Text("Business name") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(profileState, { profileState = it }, label = { Text("State") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(timezone, { timezone = it }, label = { Text("Timezone") }, modifier = Modifier.fillMaxWidth())
+                Button(
+                    onClick = { viewModel.saveProfile(fullName, businessName, profileState, timezone) },
+                    enabled = !state.saving,
+                    shape = RoundedCornerShape(999.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Save profile")
+                }
+            }
+        }
+
         SectionTitle("Your centers")
         if (state.data.centers.isEmpty()) {
-            EmptyState("No centers yet. Add your first below.")
+            EmptyState("No centers yet. Add your first center.")
         } else {
             state.data.centers.forEach { center ->
                 CenterManagementCard(
@@ -1053,58 +1167,86 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
                 )
             }
         }
-        SectionTitle("Add a center")
-        OutlinedTextField(centerName, { centerName = it }, label = { Text("Center name") }, modifier = Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(city, { city = it }, label = { Text("City") }, modifier = Modifier.weight(1f))
-            OutlinedTextField(centerState, { centerState = it }, label = { Text("State") }, modifier = Modifier.weight(1f))
-        }
-        OutlinedTextField(agesServed, { agesServed = it }, label = { Text("Ages served") }, modifier = Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            NumberField(enrollment, { enrollment = it }, "Enrollment", Modifier.weight(1f))
-            NumberField(capacity, { capacity = it }, "Capacity", Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(tuition, { tuition = it }, label = { Text("Tuition range") }, modifier = Modifier.weight(1f))
-            NumberField(staff, { staff = it }, "Staff", Modifier.weight(1f))
-        }
-        OutlinedTextField(notes, { notes = it }, label = { Text("Notes / context for AI") }, minLines = 3, modifier = Modifier.fillMaxWidth())
         Button(
-            onClick = {
-                viewModel.addCenter(
-                    Center(
-                        name = centerName,
-                        city = city,
-                        state = centerState,
-                        agesServed = agesServed,
-                        enrollmentSize = enrollment.toIntOrNull(),
-                        capacity = capacity.toIntOrNull(),
-                        tuitionRange = tuition,
-                        staffCount = staff.toIntOrNull(),
-                        notes = notes
-                    )
-                )
-                centerName = ""
-                city = ""
-                centerState = ""
-                agesServed = ""
-                enrollment = ""
-                capacity = ""
-                tuition = ""
-                staff = ""
-                notes = ""
-            },
-            enabled = centerName.isNotBlank() && !state.saving
+            onClick = { addCenterOpen = true },
+            enabled = !state.saving,
+            shape = RoundedCornerShape(999.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Outlined.Add, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Add center")
         }
-        SectionTitle("Membership")
-        FeatureCard(
-            title = "Current plan: ${tierLabel(subscription?.tier)}",
-            body = "Status: ${subscription?.status ?: "unknown"}\nCurrent period ends: ${subscription?.currentPeriodEnd?.shortDate() ?: "Not available"}"
+    }
+
+    if (addCenterOpen) {
+        AlertDialog(
+            onDismissRequest = { addCenterOpen = false },
+            title = { Text("Add center") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 520.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(centerName, { centerName = it }, label = { Text("Center name") }, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(city, { city = it }, label = { Text("City") }, modifier = Modifier.weight(1f))
+                        OutlinedTextField(centerState, { centerState = it }, label = { Text("State") }, modifier = Modifier.weight(1f))
+                    }
+                    OutlinedTextField(agesServed, { agesServed = it }, label = { Text("Ages served") }, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        NumberField(enrollment, { enrollment = it }, "Enrollment", Modifier.weight(1f))
+                        NumberField(capacity, { capacity = it }, "Capacity", Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(tuition, { tuition = it }, label = { Text("Tuition range") }, modifier = Modifier.weight(1f))
+                        NumberField(staff, { staff = it }, "Staff", Modifier.weight(1f))
+                    }
+                    OutlinedTextField(notes, { notes = it }, label = { Text("Notes / context for AI") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = ::addCenter,
+                    enabled = centerName.isNotBlank() && !state.saving,
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text("Add center")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { addCenterOpen = false }) {
+                    Text("Close")
+                }
+            }
         )
+    }
+}
+
+@Composable
+private fun NotificationPreferenceRow(
+    title: String,
+    body: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 18.sp
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
