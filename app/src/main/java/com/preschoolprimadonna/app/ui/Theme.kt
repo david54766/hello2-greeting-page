@@ -8,8 +8,8 @@ import androidx.compose.ui.graphics.Color
 
 val PrimaPink = Color(0xFFF000A8)
 val PrimaInk = Color(0xFF171016)
-val PrimaSurface = Color(0xFFFFFBFA)
-val PrimaSoft = Color(0xFFFCF3F6)
+val PrimaSurface = Color(0xFFFFF7FA)
+val PrimaSoft = Color(0xFFFFEEF6)
 val PrimaGold = Color(0xFFC49A48)
 
 private val ColorScheme = lightColorScheme(
@@ -23,7 +23,7 @@ private val ColorScheme = lightColorScheme(
     onSurface = PrimaInk,
     surfaceVariant = PrimaSoft,
     onSurfaceVariant = Color(0xFF5F5360),
-    outline = Color(0xFFE7DDE3)
+    outline = Color(0xFFEBD9E3)
 )
 
 @Composable

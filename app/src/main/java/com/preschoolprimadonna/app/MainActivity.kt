@@ -15,8 +15,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,7 +45,6 @@ import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
@@ -53,7 +55,7 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -164,8 +166,7 @@ private enum class AppScreen(val title: String, val icon: ImageVector) {
     Dashboard("Home", Icons.Outlined.Home),
     Coach("Coach", Icons.AutoMirrored.Outlined.Chat),
     Vault("Vault", Icons.Outlined.Folder),
-    Elite("Elite", Icons.Outlined.Star),
-    Billing("Plan", Icons.Outlined.CreditCard),
+    Elite("Elite", Icons.Outlined.WorkspacePremium),
     Settings("Settings", Icons.Outlined.Settings)
 }
 
@@ -258,7 +259,23 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
                     NavigationBarItem(
                         selected = item == screen,
                         onClick = { selectedScreen = item.name },
-                        icon = { Icon(item.icon, contentDescription = item.title) },
+                        icon = {
+                            val selectedElite = item == AppScreen.Elite && item == screen
+                            Box(
+                                modifier = if (selectedElite) {
+                                    Modifier
+                                        .border(
+                                            BorderStroke(1.dp, PrimaPink.copy(alpha = 0.82f)),
+                                            RoundedCornerShape(999.dp)
+                                        )
+                                        .padding(5.dp)
+                                } else {
+                                    Modifier
+                                }
+                            ) {
+                                Icon(item.icon, contentDescription = item.title)
+                            }
+                        },
                         label = {
                             Text(
                                 item.title,
@@ -286,11 +303,10 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
                 .padding(padding)
         ) {
             when (screen) {
-                AppScreen.Dashboard -> DashboardScreen(state, viewModel)
+                AppScreen.Dashboard -> DashboardScreen(state)
                 AppScreen.Coach -> CoachScreen(state, viewModel)
                 AppScreen.Vault -> VaultScreen(state, viewModel)
                 AppScreen.Elite -> EliteScreen(state, viewModel)
-                AppScreen.Billing -> BillingScreen(state)
                 AppScreen.Settings -> SettingsScreen(state, viewModel)
             }
             if (state.loading || state.saving) {
@@ -629,68 +645,49 @@ private fun OnboardingScreen(
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
+private fun DashboardScreen(state: PrimaDonnaState) {
     val data = state.data
     val centers = data.centers
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val firstName = data.profile?.fullName?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() } ?: "operator"
-    val enrollment = centers.sumOf { it.enrollmentSize ?: 0 }
-    val staff = centers.sumOf { it.staffCount ?: 0 }
-    val averageTuition = centers.mapNotNull { tuitionMidpoint(it.tuitionRange) }.averageOrNull()
-    val revenue = if (averageTuition != null && enrollment > 0) (averageTuition * enrollment).roundToInt() else null
     val firstPlayableVideo = data.videos.firstOrNull { it.storagePath != null }
+    val tier = tierLabel(data.subscription?.tier)
+    val showTierBadge = tier.equals("Elite", ignoreCase = true) || tier.equals("Pro", ignoreCase = true)
+    val snapshotCenters = centers.takeIf { it.isNotEmpty() } ?: listOf(
+        Center(name = data.profile?.businessName ?: "Your center")
+    )
 
-    ScreenList {
-        Eyebrow("Command Center")
-        ScreenHeading("Welcome back, $firstName.")
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    FixedScreen {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            MetaBadge(data.profile?.businessName ?: "Your center")
-            MetaBadge("${tierLabel(data.subscription?.tier)} Tier", tone = BadgeTone.Gold)
+            SectionTitle("Center snapshot")
+            if (showTierBadge) {
+                MetaBadge(tier, tone = BadgeTone.Gold)
+            }
         }
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = {
-                val path = firstPlayableVideo?.storagePath
-                if (path == null) {
-                    Toast.makeText(context, "No Raven video is available yet.", Toast.LENGTH_LONG).show()
-                    return@Button
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val cardWidth = maxWidth
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                snapshotCenters.forEach { center ->
+                    CenterSnapshotPage(
+                        center = center,
+                        modifier = Modifier.width(cardWidth)
+                    )
                 }
-                scope.launch {
-                    runCatching { viewModel.signedUrl("raven-videos", path) }
-                        .onSuccess { context.openUrl(it) }
-                        .onFailure { Toast.makeText(context, it.message ?: "Video failed.", Toast.LENGTH_LONG).show() }
-                }
-            },
-            shape = RoundedCornerShape(10.dp),
-            enabled = firstPlayableVideo != null
-        ) {
-            Icon(Icons.Outlined.PlayArrow, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Get daily insights from Raven")
+            }
         }
-        GoldDivider()
-        SectionTitle("Center snapshot")
-        StatCard("Enrollment", if (enrollment > 0) enrollment.toString() else if (centers.isEmpty()) "Add a center" else "Add enrollment")
-        StatCard("Est. monthly revenue", revenue?.let { NumberFormat.getCurrencyInstance().format(it) } ?: "-")
-        StatCard("Children per staff", if (staff > 0 && enrollment > 0) "%.1f".format(enrollment / staff.toDouble()) else "-")
         SectionTitle("Today's strategic recommendation")
         FeatureCard(
             title = firstPlayableVideo?.title ?: "Raven daily brief",
             body = firstPlayableVideo?.description?.takeIf { it.isNotBlank() }
                 ?: "Open the latest published Raven insight from your library."
         )
-        SectionTitle("Daily insights")
-        if (data.videos.isEmpty()) {
-            EmptyState("No Raven videos are published yet.")
-        } else {
-            data.videos.take(4).forEach { video ->
-                VideoRow(video = video, viewModel = viewModel)
-            }
-        }
     }
 }
 
@@ -726,8 +723,8 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
             }
     }
 
-    ScreenList {
-        if (selectedSession != null) {
+    if (selectedSession != null) {
+        ScreenList {
             CoachingSessionDetail(
                 session = selectedSession,
                 voiceLoading = state.voiceLoadingSessionId == selectedSession.id,
@@ -740,66 +737,79 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                     selectedSessionId = null
                 }
             )
-            return@ScreenList
         }
+        return
+    }
 
+    FixedScreen {
         Eyebrow("Coaching Engine")
         ScreenHeading("Open a strategic session.")
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+        SingleLineFilterBar(
+            options = modes,
+            selected = mode,
+            onSelected = { mode = it }
+        )
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
         ) {
-            modes.forEach { option ->
-                AppFilterChip(
-                    selected = mode == option,
-                    onClick = { mode = option },
-                    label = option
-                )
-            }
-        }
-        Text(
-            text = modeDescription(mode),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        OutlinedTextField(
-            value = prompt,
-            onValueChange = { prompt = it },
-            label = { Text("What's the situation?") },
-            minLines = 5,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = startSpeech,
-                modifier = Modifier.weight(1f)
+            val railWidth = if (maxWidth < 380.dp) 126.dp else 148.dp
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(Icons.Outlined.Mic, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Speak")
-            }
-            Button(
-                onClick = { viewModel.submitCoachingPrompt(mode, prompt) },
-                enabled = prompt.trim().length >= 3 && !state.saving,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(if (state.saving) "Thinking..." else "Get the move")
-            }
-        }
-        SectionTitle("Recent sessions")
-        if (state.data.coachingSessions.isEmpty()) {
-            EmptyState("No sessions yet.")
-        } else {
-            state.data.coachingSessions.forEach { session ->
-                SessionCard(
-                    session = session,
-                    voiceLoading = state.voiceLoadingSessionId == session.id,
-                    voicePlaying = state.voicePlayingSessionId == session.id,
-                    onOpen = { selectedSessionId = session.id },
-                    onPlayVoice = { viewModel.playRavenVoice(session) },
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = modeDescription(mode),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    OutlinedTextField(
+                        value = prompt,
+                        onValueChange = { prompt = it },
+                        label = { Text("What's the situation?") },
+                        minLines = 5,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = startSpeech,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Outlined.Mic, contentDescription = null)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Speak", maxLines = 1)
+                        }
+                        Button(
+                            onClick = { viewModel.submitCoachingPrompt(mode, prompt) },
+                            enabled = prompt.trim().length >= 3 && !state.saving,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (state.saving) "Thinking" else "Move", maxLines = 1)
+                        }
+                    }
+                }
+                CoachingSessionRail(
+                    sessions = state.data.coachingSessions,
+                    voiceLoadingSessionId = state.voiceLoadingSessionId,
+                    voicePlayingSessionId = state.voicePlayingSessionId,
+                    onOpen = { selectedSessionId = it.id },
+                    onPlayVoice = { viewModel.playRavenVoice(it) },
                     onStopVoice = { viewModel.stopRavenVoice() },
-                    onDelete = { viewModel.deleteCoachingSession(session.id) }
+                    modifier = Modifier
+                        .width(railWidth)
+                        .fillMaxHeight()
                 )
             }
         }
@@ -834,18 +844,11 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         if (state.data.templates.isEmpty()) {
             EmptyState("The Vault is being curated.")
         } else {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                categories.forEach { option ->
-                    AppFilterChip(
-                        selected = category == option,
-                        onClick = { category = option },
-                        label = option.replaceFirstChar { it.uppercase() }
-                    )
-                }
-            }
+            SingleLineFilterBar(
+                options = categories,
+                selected = category,
+                onSelected = { category = it }
+            )
             filteredTemplates.forEach { item ->
                 TemplateCard(
                     template = item,
@@ -860,30 +863,24 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
-    var section by rememberSaveable { mutableStateOf("Overview") }
+    var section by rememberSaveable { mutableStateOf("Conversations") }
     var threadTitle by rememberSaveable { mutableStateOf("") }
     var threadBody by rememberSaveable { mutableStateOf("") }
     var bookingTopic by rememberSaveable { mutableStateOf("") }
     var replyBody by rememberSaveable(state.selectedEliteThread?.id) { mutableStateOf("") }
-    val options = listOf("Overview", "Board", "Schedule")
+    val options = listOf("Conversations", "Schedule")
+    val currentSection = section.takeIf { it in options } ?: "Conversations"
 
     ScreenList {
         Eyebrow("Elite Circle")
         ScreenHeading("Welcome to the room.")
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            options.forEach { option ->
-                AppFilterChip(
-                    selected = section == option,
-                    onClick = { section = option },
-                    label = option
-                )
-            }
-        }
-        when (section) {
-            "Board" -> {
+        SingleLineFilterBar(
+            options = options,
+            selected = currentSection,
+            onSelected = { section = it }
+        )
+        when (currentSection) {
+            "Conversations" -> {
                 val selectedThread = state.selectedEliteThread
                 if (selectedThread != null) {
                     EliteThreadDetailPanel(
@@ -902,6 +899,11 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                         saving = state.saving
                     )
                 } else {
+                    OutlinedButton(onClick = { section = "Schedule" }) {
+                        Icon(Icons.Outlined.Schedule, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Book with Raven")
+                    }
                     SectionTitle("Start a conversation")
                     OutlinedTextField(
                         value = threadTitle,
@@ -982,58 +984,14 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                     }
                 }
             }
-            else -> {
-                FeatureCard(
-                    title = "Private board and strategy access",
-                    body = "Elite members get 1:1 scheduling, the private conversation board, and Elite-only vault picks."
-                )
-                SectionTitle("Vault picks")
-                state.data.templates.filter { it.tierRequired == "elite" || it.isElite == true }.take(3).forEach {
-                    TemplateCard(template = it, viewModel = viewModel)
-                }
-            }
         }
-    }
-}
-
-@Composable
-private fun BillingScreen(state: PrimaDonnaState) {
-    val subscription = state.data.subscription
-    val currentTier = tierLabel(subscription?.tier)
-    val renewalDate = subscription?.currentPeriodEnd?.shortDate() ?: "Not available"
-
-    ScreenList {
-        Eyebrow("Billing")
-        ScreenHeading("Plan and access.")
-        FeatureCard(
-            title = "Current membership",
-            body = "Tier: $currentTier\nStatus: ${subscription?.status ?: "unknown"}\nCurrent period ends: $renewalDate"
-        )
-        SectionTitle("Plans")
-        PlanCard(
-            title = "Essentials",
-            price = "$97 / mo",
-            body = "Command Center dashboard, core templates, and Raven video guidance.",
-            active = currentTier.equals("Essentials", ignoreCase = true)
-        )
-        PlanCard(
-            title = "Pro",
-            price = "$197 / mo",
-            body = "Adds deeper coaching workflows, expanded vault access, and growth planning support.",
-            active = currentTier.equals("Pro", ignoreCase = true)
-        )
-        PlanCard(
-            title = "Elite",
-            price = "$497 / mo",
-            body = "Includes Elite Circle, 1:1 scheduling, private board access, and Elite-only assets.",
-            active = currentTier.equals("Elite", ignoreCase = true)
-        )
     }
 }
 
 @Composable
 private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     val profile = state.data.profile
+    val subscription = state.data.subscription
     var fullName by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.fullName.orEmpty()) }
     var businessName by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.businessName.orEmpty()) }
     var profileState by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.state.orEmpty()) }
@@ -1144,8 +1102,8 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
         }
         SectionTitle("Membership")
         FeatureCard(
-            title = "Current tier: ${tierLabel(state.data.subscription?.tier)}",
-            body = "Status: ${state.data.subscription?.status ?: "unknown"}"
+            title = "Current plan: ${tierLabel(subscription?.tier)}",
+            body = "Status: ${subscription?.status ?: "unknown"}\nCurrent period ends: ${subscription?.currentPeriodEnd?.shortDate() ?: "Not available"}"
         )
     }
 }
@@ -1296,35 +1254,6 @@ private fun CenterEditCard(
 }
 
 @Composable
-private fun PlanCard(
-    title: String,
-    price: String,
-    body: String,
-    active: Boolean
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = AppCardShape,
-        border = appCardBorder(),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(price, color = PrimaPink, fontWeight = FontWeight.SemiBold)
-                }
-                if (active) {
-                    MetaBadge("Current")
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
 private fun BrandMark(compact: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Image(
@@ -1340,6 +1269,18 @@ private fun BrandMark(compact: Boolean) {
             style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@Composable
+private fun FixedScreen(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        content()
     }
 }
 
@@ -1453,6 +1394,29 @@ private fun AppFilterChip(selected: Boolean, label: String, onClick: () -> Unit)
 }
 
 @Composable
+private fun SingleLineFilterBar(
+    options: List<String>,
+    selected: String,
+    onSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { option ->
+            AppFilterChip(
+                selected = selected == option,
+                onClick = { onSelected(option) },
+                label = option.replaceFirstChar { it.uppercase() }
+            )
+        }
+    }
+}
+
+@Composable
 private fun GoldDivider() {
     HorizontalDivider(
         color = PrimaGold.copy(alpha = 0.45f),
@@ -1478,6 +1442,60 @@ private fun StatCard(label: String, value: String) {
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontFamily = FontFamily.Serif,
                     lineHeight = 32.sp
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun CenterSnapshotPage(center: Center, modifier: Modifier = Modifier) {
+    val enrollment = center.enrollmentSize
+    val revenue = tuitionMidpoint(center.tuitionRange)?.let { tuition ->
+        enrollment?.takeIf { it > 0 }?.let { (tuition * it).roundToInt() }
+    }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        center.name?.takeIf { it.isNotBlank() }?.let {
+            MetaBadge(it, tone = BadgeTone.Neutral)
+        }
+        SnapshotStatCard(
+            label = "Enrollment",
+            value = enrollment?.takeIf { it > 0 }?.toString() ?: "Add enrollment"
+        )
+        SnapshotStatCard(
+            label = "Est. monthly revenue",
+            value = revenue?.let { NumberFormat.getCurrencyInstance().format(it) } ?: "-"
+        )
+        SnapshotStatCard(
+            label = "Facility goal",
+            value = center.capacity?.takeIf { it > 0 }?.toString() ?: "-"
+        )
+    }
+}
+
+@Composable
+private fun SnapshotStatCard(label: String, value: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(
+                label.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontFamily = FontFamily.Serif,
+                    lineHeight = 30.sp
                 )
             )
         }
@@ -1668,6 +1686,122 @@ private fun VideoRow(video: RavenVideo, viewModel: PrimaDonnaViewModel) {
                 enabled = video.storagePath != null
             ) {
                 Text("Play")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoachingSessionRail(
+    sessions: List<CoachingSession>,
+    voiceLoadingSessionId: String?,
+    voicePlayingSessionId: String?,
+    onOpen: (CoachingSession) -> Unit,
+    onPlayVoice: (CoachingSession) -> Unit,
+    onStopVoice: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Previous",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (sessions.isEmpty()) {
+                Text(
+                    text = "No sessions yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sessions.forEach { session ->
+                        CoachingSessionRailItem(
+                            session = session,
+                            voiceLoading = voiceLoadingSessionId == session.id,
+                            voicePlaying = voicePlayingSessionId == session.id,
+                            onOpen = { onOpen(session) },
+                            onPlayVoice = { onPlayVoice(session) },
+                            onStopVoice = onStopVoice
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoachingSessionRailItem(
+    session: CoachingSession,
+    voiceLoading: Boolean,
+    voicePlaying: Boolean,
+    onOpen: () -> Unit,
+    onPlayVoice: () -> Unit,
+    onStopVoice: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)),
+        shape = AppCardShape,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(9.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = modeLabel(session.mode),
+                style = MaterialTheme.typography.labelSmall,
+                color = PrimaPink,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1
+            )
+            Text(
+                text = session.prompt.orEmpty().ifBlank { session.createdAt?.shortDate().orEmpty() },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+            TextButton(
+                onClick = onOpen,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Details", maxLines = 1)
+            }
+            TextButton(
+                onClick = if (voicePlaying) onStopVoice else onPlayVoice,
+                enabled = session.response != null && !voiceLoading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Outlined.PlayArrow, contentDescription = null)
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = when {
+                        voiceLoading -> "Load"
+                        voicePlaying -> "Stop"
+                        else -> "Play"
+                    },
+                    maxLines = 1
+                )
             }
         }
     }
