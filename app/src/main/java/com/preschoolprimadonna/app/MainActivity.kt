@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -76,6 +77,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -843,6 +845,16 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 onValueChange = { prompt = it },
                 label = { Text("What's the situation?") },
                 minLines = 5,
+                shape = AppCardShape,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    disabledContainerColor = Color.White,
+                    focusedBorderColor = PrimaPink,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedLabelColor = PrimaPink,
+                    cursorColor = PrimaPink
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -874,13 +886,23 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 onClick = { historyOpen = true },
                 enabled = state.data.coachingSessions.isNotEmpty(),
                 shape = RoundedCornerShape(999.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.78f)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White.copy(alpha = 0.86f),
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
+                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth(0.86f)
+                    .height(44.dp)
             ) {
-                Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null)
+                Icon(
+                    Icons.AutoMirrored.Outlined.Chat,
+                    contentDescription = null,
+                    modifier = Modifier.size(19.dp)
+                )
                 Spacer(Modifier.width(8.dp))
-                Text("Previous strategies", maxLines = 1)
+                Text("Previous strategies", maxLines = 1, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -2119,21 +2141,21 @@ private fun CoachingHistoryDrawer(
         )
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp),
+            shape = RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp),
             border = BorderStroke(1.dp, Color(0xFFF0DCE6)),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight()
-                .widthIn(min = 292.dp, max = 360.dp)
-                .padding(vertical = 18.dp)
+                .widthIn(min = 288.dp, max = 340.dp)
+                .padding(vertical = 16.dp)
                 .clickable { }
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -2142,7 +2164,11 @@ private fun CoachingHistoryDrawer(
                 ) {
                     Column {
                         Eyebrow("History")
-                        Text("Previous strategies", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Previous strategies",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     TextButton(onClick = onDismiss) {
                         Text("Close")
@@ -2156,7 +2182,7 @@ private fun CoachingHistoryDrawer(
                             .fillMaxWidth()
                             .weight(1f)
                             .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         orderedSessions.forEach { session ->
                             CoachingSessionRailItem(
@@ -2185,49 +2211,77 @@ private fun CoachingSessionRailItem(
     onStopVoice: () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = AppCardShape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.62f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(9.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = modeLabel(session.mode),
-                style = MaterialTheme.typography.labelSmall,
-                color = PrimaPink,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = modeLabel(session.mode),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PrimaPink,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+                Spacer(Modifier.weight(1f))
+                session.createdAt?.shortDate()?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
             Text(
                 text = session.prompt.orEmpty().ifBlank { session.createdAt?.shortDate().orEmpty() },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            TextButton(
-                onClick = onOpen,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Details", maxLines = 1)
-            }
-            TextButton(
-                onClick = if (voicePlaying) onStopVoice else onPlayVoice,
-                enabled = session.response != null && !voiceLoading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Outlined.PlayArrow, contentDescription = null)
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = when {
-                        voiceLoading -> "Load"
-                        voicePlaying -> "Stop"
-                        else -> "Play"
-                    },
-                    maxLines = 1
-                )
+                TextButton(
+                    onClick = onOpen,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(34.dp)
+                ) {
+                    Text("Details", maxLines = 1, fontWeight = FontWeight.SemiBold)
+                }
+                TextButton(
+                    onClick = if (voicePlaying) onStopVoice else onPlayVoice,
+                    enabled = session.response != null && !voiceLoading,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(34.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = when {
+                            voiceLoading -> "Load"
+                            voicePlaying -> "Stop"
+                            else -> "Play"
+                        },
+                        maxLines = 1,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
