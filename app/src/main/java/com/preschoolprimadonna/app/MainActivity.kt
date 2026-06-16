@@ -1584,11 +1584,11 @@ private fun BrandMark(compact: Boolean) {
             painter = painterResource(id = R.drawable.prima_donna_logo),
             contentDescription = "Prima Donna AI",
             modifier = Modifier
-                .width(if (compact) 86.dp else 154.dp)
-                .height(if (compact) 40.dp else 72.dp),
+                .width(if (compact) 132.dp else 220.dp)
+                .height(if (compact) 46.dp else 78.dp),
             contentScale = ContentScale.Fit
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
             text = "AI",
             color = PrimaPink,
