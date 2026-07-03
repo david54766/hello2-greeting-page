@@ -362,17 +362,14 @@ Requirements:
 - Default tab is Conversations, not Overview.
 - Eyebrow: `ELITE CIRCLE`.
 - Large serif title: `Welcome to the room.`
-- Two chips:
-  - Conversations
-  - Schedule
-- `Book with Raven` capsule button below chips; takes user to booking/schedule flow.
+- Conversation access only. Do not include a Schedule chip, Zoom links, meeting slots, or a `Book with Raven` CTA.
 - Latest conversations list:
   - White cards.
   - Title, author/team/date, message excerpt.
   - Replies count.
   - Open button with icon.
   - Delete icon where allowed.
-- Schedule view should show upcoming/past booking state and a clear booking entry.
+- Raven/Zoom meeting scheduling is retired for Elite members.
 
 ### Settings
 
@@ -428,7 +425,6 @@ Build or verify these functions on iOS:
 | Elite | Fetch conversations |
 | Elite | Open conversation |
 | Elite | Delete conversation where allowed |
-| Elite | Open booking/schedule |
 | Settings | Read current plan |
 | Settings | Read/add/edit centers |
 

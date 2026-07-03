@@ -8,7 +8,6 @@ const corsHeaders = {
 
 type SupabaseClient = ReturnType<typeof createClient>;
 type MobileContext = { supabase: SupabaseClient; userId: string };
-type RavenSlot = { starts_at: string; ends_at: string };
 type StructuredResponse = {
   diagnosis: string;
   impact: string;
@@ -74,13 +73,12 @@ Deno.serve(async (req) => {
       case 'delete_elite_thread':
         return jsonResponse(await deleteEliteThread(context, data));
       case 'list_raven_slots':
-        return jsonResponse(await generateOpenSlots(context.supabase));
+        return jsonResponse({ slots: [], timezone: null, disabled: true });
       case 'list_raven_bookings':
-        return jsonResponse(await listRavenBookings(context));
+        return jsonResponse({ bookings: [], disabled: true });
       case 'book_raven_slot':
-        return jsonResponse(await bookRavenSlot(context, data));
       case 'cancel_raven_booking':
-        return jsonResponse(await cancelRavenBooking(context, data));
+        return jsonResponse({ ok: false, message: 'Elite meeting scheduling has been removed.' }, 410);
       default:
         return jsonResponse({ error: 'Unknown action' }, 400);
     }
@@ -297,91 +295,6 @@ async function deleteEliteThread({ supabase }: MobileContext, data: Record<strin
   const { error } = await supabase.from('elite_threads').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   return { ok: true };
-}
-
-async function listRavenBookings({ supabase, userId }: MobileContext) {
-  const { data, error } = await supabase.from('raven_bookings').select('id, starts_at, ends_at, status, topic, created_at').eq('user_id', userId).order('starts_at', { ascending: false });
-  if (error) throw new Error(error.message);
-  return { bookings: data ?? [] };
-}
-
-async function bookRavenSlot({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
-  const startsAt = readString(data.starts_at, 'starts_at', 1, 100);
-  const endsAt = readString(data.ends_at, 'ends_at', 1, 100);
-  const topic = typeof data.topic === 'string' && data.topic.trim() ? data.topic.trim().slice(0, 500) : null;
-  const { slots } = await generateOpenSlots(supabase);
-  const requestedStart = new Date(startsAt).toISOString();
-  const requestedEnd = new Date(endsAt).toISOString();
-  if (!slots.some((slot) => slot.starts_at === requestedStart && slot.ends_at === requestedEnd)) return { ok: false, message: 'That slot is no longer available. Pick another.' };
-  const { data: conflict } = await supabase.from('raven_bookings').select('id').eq('status', 'booked').eq('starts_at', requestedStart).maybeSingle();
-  if (conflict) return { ok: false, message: 'That slot was just booked. Pick another.' };
-  const { error } = await supabase.from('raven_bookings').insert({ user_id: userId, starts_at: requestedStart, ends_at: requestedEnd, topic });
-  if (error) return { ok: false, message: error.message };
-  return { ok: true };
-}
-
-async function cancelRavenBooking({ supabase }: MobileContext, data: Record<string, unknown>) {
-  const id = readUuid(data.id, 'id');
-  const { error } = await supabase.from('raven_bookings').update({ status: 'cancelled' }).eq('id', id).eq('status', 'booked');
-  if (error) return { ok: false, message: error.message };
-  return { ok: true };
-}
-
-async function generateOpenSlots(supabase: SupabaseClient): Promise<{ slots: RavenSlot[]; timezone: string }> {
-  const [{ data: settingsRow }, { data: windows }] = await Promise.all([
-    supabase.from('raven_meeting_settings').select('timezone, advance_days, buffer_minutes').eq('singleton', true).maybeSingle(),
-    supabase.from('raven_availability').select('weekday, start_time, end_time, slot_minutes, active').eq('active', true),
-  ]);
-  const settings = settingsRow ?? { timezone: 'America/New_York', advance_days: 30, buffer_minutes: 0 };
-  const timezone = settings.timezone || 'America/New_York';
-  const advanceDays = Number(settings.advance_days ?? 30);
-  const horizon = new Date();
-  horizon.setUTCDate(horizon.getUTCDate() + advanceDays);
-  const { data: existing } = await supabase.from('raven_bookings').select('starts_at').eq('status', 'booked').gte('starts_at', new Date().toISOString()).lte('starts_at', horizon.toISOString());
-  const taken = new Set((existing ?? []).map((booking: any) => new Date(booking.starts_at).toISOString()));
-  const slots: RavenSlot[] = [];
-  const start = new Date();
-  for (let day = 0; day <= advanceDays; day++) {
-    const date = new Date(start);
-    date.setDate(date.getDate() + day);
-    const wdShort = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'short' }).format(date);
-    const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(wdShort);
-    for (const window of (windows ?? []).filter((item: any) => item.weekday === weekday)) {
-      const [startHour, startMinute] = String(window.start_time).split(':').map(Number);
-      const [endHour, endMinute] = String(window.end_time).split(':').map(Number);
-      const slotMinutes = Number(window.slot_minutes);
-      const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
-      let cursor = startHour * 60 + startMinute;
-      const end = endHour * 60 + endMinute;
-      while (cursor + slotMinutes <= end) {
-        const hh = String(Math.floor(cursor / 60)).padStart(2, '0');
-        const mm = String(cursor % 60).padStart(2, '0');
-        const startsAt = wallTimeToUtcIso(dateStr, `${hh}:${mm}`, timezone);
-        if (startsAt && new Date(startsAt).getTime() > Date.now()) {
-          const normalizedStart = new Date(startsAt).toISOString();
-          const endsAt = new Date(new Date(normalizedStart).getTime() + slotMinutes * 60000).toISOString();
-          if (!taken.has(normalizedStart)) slots.push({ starts_at: normalizedStart, ends_at: endsAt });
-        }
-        cursor += slotMinutes;
-      }
-    }
-  }
-  slots.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  return { slots, timezone };
-}
-
-function wallTimeToUtcIso(dateStr: string, timeStr: string, timezone: string): string | null {
-  try {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute] = timeStr.split(':').map(Number);
-    const guess = Date.UTC(year, month - 1, day, hour, minute);
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(guess));
-    const get = (type: string) => parseInt(parts.find((part) => part.type === type)!.value, 10);
-    const asTimezone = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') === 24 ? 0 : get('hour'), get('minute'));
-    return new Date(guess - (asTimezone - guess)).toISOString();
-  } catch {
-    return null;
-  }
 }
 
 async function loadProfileNames(supabase: SupabaseClient, ids: string[]) {

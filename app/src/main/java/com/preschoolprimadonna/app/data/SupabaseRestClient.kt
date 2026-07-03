@@ -61,10 +61,6 @@ class SupabaseRestClient {
         const val LIST_THREADS = "ed759d5fefb644e4e280c13ac67a9ef31842917a7b657b3fdb5fe0e03e18a69c"
         const val CREATE_THREAD = "c060c6d01170e66edff932b8eab3bb5093309c354a251f1c3dde1b262fdeda55"
         const val DELETE_THREAD = "490af8a295d7a209cd6be9304ca3139a49654b9e1714e63d5db1d9a3409c83af"
-        const val RAVEN_SLOTS = "4499dd31b82fccefb8f99aab64e091a105345deb03fba9328fa5cd96cc9717fe"
-        const val RAVEN_BOOKINGS = "4b19acfe2011ea53fcf81328c3f6eb02ac92a28540f75a00812d63795882beba"
-        const val BOOK_RAVEN = "d7f2869be7c48ec79af89ab76699b8b344383567780d3e8e3e99c32b6ee4b72d"
-        const val CANCEL_RAVEN = "31bce3cc7098b2c5d1737dec38a357a85071fbd32fb7c1d986393e6c3e7565ca"
     }
 
     suspend fun signIn(email: String, password: String): AuthSession {
@@ -272,33 +268,6 @@ class SupabaseRestClient {
     suspend fun deleteEliteThread(session: AuthSession, threadId: String) {
         val payload = buildJsonObject { put("id", threadId) }
         mobileApiOrServerFunction(session, "delete_elite_thread", ServerFunctions.DELETE_THREAD, method = "POST", data = payload)
-    }
-
-    suspend fun getRavenSlots(session: AuthSession): Pair<List<RavenSlot>, String?> {
-        val result = mobileApiOrServerFunction(session, "list_raven_slots", ServerFunctions.RAVEN_SLOTS)
-        val slots = result["slots"]?.jsonArray ?: JsonArray(emptyList())
-        val timezone = result["timezone"]?.jsonPrimitive?.contentOrNull
-        return json.decodeFromJsonElement<List<RavenSlot>>(slots) to timezone
-    }
-
-    suspend fun getRavenBookings(session: AuthSession): List<RavenBooking> {
-        val result = mobileApiOrServerFunction(session, "list_raven_bookings", ServerFunctions.RAVEN_BOOKINGS)
-        val bookings = result["bookings"]?.jsonArray ?: JsonArray(emptyList())
-        return json.decodeFromJsonElement(bookings)
-    }
-
-    suspend fun bookRavenSlot(session: AuthSession, slot: RavenSlot, topic: String) {
-        val payload = buildJsonObject {
-            put("starts_at", slot.startsAt)
-            slot.endsAt?.let { put("ends_at", it) }
-            topic.trim().takeIf { it.isNotBlank() }?.let { put("topic", it) }
-        }
-        mobileApiOrServerFunction(session, "book_raven_slot", ServerFunctions.BOOK_RAVEN, method = "POST", data = payload)
-    }
-
-    suspend fun cancelRavenBooking(session: AuthSession, bookingId: String) {
-        val payload = buildJsonObject { put("id", bookingId) }
-        mobileApiOrServerFunction(session, "cancel_raven_booking", ServerFunctions.CANCEL_RAVEN, method = "POST", data = payload)
     }
 
     suspend fun updateProfile(

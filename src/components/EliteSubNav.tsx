@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Crown, MessageSquare, Calendar } from "lucide-react";
+import { Crown, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +7,6 @@ import { getEliteUpdates } from "@/lib/elite-updates.functions";
 
 const LS_KEYS = {
   conversations: "elite:lastSeen:conversations",
-  schedule: "elite:lastSeen:schedule",
 } as const;
 
 function isNewer(latest: string | null, seen: string | null) {
@@ -31,9 +30,8 @@ export function EliteSubNav() {
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const [seen, setSeen] = useState<{ conversations: string | null; schedule: string | null }>(() => ({
+  const [seen, setSeen] = useState<{ conversations: string | null }>(() => ({
     conversations: typeof window !== "undefined" ? localStorage.getItem(LS_KEYS.conversations) : null,
-    schedule: typeof window !== "undefined" ? localStorage.getItem(LS_KEYS.schedule) : null,
   }));
 
   // Mark current tab as seen when active
@@ -43,14 +41,9 @@ export function EliteSubNav() {
       localStorage.setItem(LS_KEYS.conversations, data.conversationsLatest);
       setSeen((s) => ({ ...s, conversations: data.conversationsLatest }));
     }
-    if (pathname.startsWith("/elite-schedule") && data.scheduleLatest) {
-      localStorage.setItem(LS_KEYS.schedule, data.scheduleLatest);
-      setSeen((s) => ({ ...s, schedule: data.scheduleLatest }));
-    }
   }, [pathname, data]);
 
   const convoNew = isNewer(data?.conversationsLatest ?? null, seen.conversations);
-  const schedNew = isNewer(data?.scheduleLatest ?? null, seen.schedule);
 
   return (
     <nav className="flex flex-wrap gap-2">
@@ -60,10 +53,6 @@ export function EliteSubNav() {
       <Link to="/elite-circle" className={linkClass} activeProps={{ className: `${linkClass} ${activeClass}` }}>
         <MessageSquare className="size-3.5" /> Conversations
         {convoNew && <NotificationDot />}
-      </Link>
-      <Link to="/elite-schedule" className={linkClass} activeProps={{ className: `${linkClass} ${activeClass}` }}>
-        <Calendar className="size-3.5" /> Schedule
-        {schedNew && <NotificationDot />}
       </Link>
     </nav>
   );

@@ -12,7 +12,6 @@ import com.preschoolprimadonna.app.data.CoachingSession
 import com.preschoolprimadonna.app.data.DashboardData
 import com.preschoolprimadonna.app.data.EliteReply
 import com.preschoolprimadonna.app.data.EliteThread
-import com.preschoolprimadonna.app.data.RavenSlot
 import com.preschoolprimadonna.app.data.SessionStore
 import com.preschoolprimadonna.app.data.SupabaseRestClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -446,30 +445,6 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun bookRavenSlot(slot: RavenSlot, topic: String) {
-        val session = _state.value.session ?: return
-        viewModelScope.launch {
-            runSavingAction("Raven session booked.") {
-                withRefreshRetry(session) { activeSession ->
-                    api.bookRavenSlot(activeSession, slot, topic)
-                    loadData(activeSession)
-                }
-            }
-        }
-    }
-
-    fun cancelRavenBooking(bookingId: String) {
-        val session = _state.value.session ?: return
-        viewModelScope.launch {
-            runSavingAction("Booking cancelled.") {
-                withRefreshRetry(session) { activeSession ->
-                    api.cancelRavenBooking(activeSession, bookingId)
-                    loadData(activeSession)
-                }
-            }
-        }
-    }
-
     fun flagNativeEndpointTodo(feature: String) {
         _state.update {
             it.copy(
@@ -499,9 +474,6 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             val videos = async { api.getVideos(session) }
             val sessions = async { api.getCoachingSessions(session, userId) }
             val eliteThreads = async { runCatching { api.getEliteThreads(session) }.getOrDefault(emptyList()) }
-            val ravenSlots = async { runCatching { api.getRavenSlots(session) }.getOrDefault(emptyList<RavenSlot>() to null) }
-            val ravenBookings = async { runCatching { api.getRavenBookings(session) }.getOrDefault(emptyList()) }
-            val (slots, timezone) = ravenSlots.await()
             DashboardData(
                 profile = profile.await(),
                 subscription = subscription.await(),
@@ -509,10 +481,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 templates = templates.await(),
                 videos = videos.await(),
                 coachingSessions = sessions.await(),
-                eliteThreads = eliteThreads.await(),
-                ravenSlots = slots,
-                ravenBookings = ravenBookings.await(),
-                ravenTimezone = timezone
+                eliteThreads = eliteThreads.await()
             )
         }
         _state.update {

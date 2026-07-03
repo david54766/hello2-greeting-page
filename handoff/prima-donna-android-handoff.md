@@ -32,7 +32,7 @@ Current confirmed native screens:
 - Home dashboard locked around center snapshot, facility goal, and Raven daily brief card.
 - Coaching Engine with fixed strategy prompt, mode chips, strategy-ready popup, previous strategy history, and Raven voice playback.
 - Template Vault with one-line horizontal category filters and resource cards.
-- Elite Circle defaulting to conversations with Book with Raven entry into scheduling.
+- Elite Circle defaulting to conversations only. Raven/Zoom meeting scheduling is retired.
 - Settings with profile, centers, notification preferences, current plan, and add/edit center flows.
 
 ## 3. Mac Setup Instructions
@@ -138,8 +138,7 @@ Main Android files:
 
 - `EliteScreen(...)` defaults to Conversations.
 - `createEliteThread`, `openEliteThread`, `replyEliteThread`, and `deleteEliteThread` call `mobile-api` Elite thread actions.
-- `Book with Raven` switches into the schedule tab.
-- `bookRavenSlot(slot, topic)` and `cancelRavenBooking(bookingId)` call mobile API scheduling actions.
+- Do not include Zoom links, Raven meeting scheduling, booking slots, booking cancellation, or a `Book with Raven` CTA.
 
 ## 7. Supabase Edge Function: `mobile-api`
 
@@ -156,12 +155,12 @@ Actions:
 | `get_elite_thread` | Elite/admin | Returns a thread with replies. |
 | `reply_elite_thread` | Elite/admin | Adds a reply. |
 | `delete_elite_thread` | Elite/admin | Deletes a thread. |
-| `list_raven_slots` | Elite/admin | Generates open Raven booking slots. |
-| `list_raven_bookings` | Elite/admin | Lists the current user's active Raven bookings. |
-| `book_raven_slot` | Elite/admin | Books a Raven session. |
-| `cancel_raven_booking` | Elite/admin | Cancels a booking. |
+| `list_raven_slots` | Elite/admin | Legacy compatibility only; returns an empty disabled scheduler response. |
+| `list_raven_bookings` | Elite/admin | Legacy compatibility only; returns an empty disabled scheduler response. |
+| `book_raven_slot` | Elite/admin | Legacy compatibility only; returns `410` because meeting scheduling is retired. |
+| `cancel_raven_booking` | Elite/admin | Legacy compatibility only; returns `410` because meeting scheduling is retired. |
 
-Access rule: all Elite board/scheduling actions require an active `elite` subscription or admin role. Coaching and voice are authenticated-user actions.
+Access rule: all Elite board actions require an active `elite` subscription or admin role. Coaching and voice are authenticated-user actions.
 
 ## 8. Visual and Layout System
 
@@ -226,8 +225,8 @@ Layout conventions:
 ### Elite
 
 - Default tab is Conversations.
-- Show `Book with Raven` button above latest conversations.
-- Schedule tab handles bookings and open slots.
+- Do not show a `Book with Raven` button or a Schedule tab.
+- Raven/Zoom meeting scheduling is retired; Elite should focus on private conversations.
 - Current bottom nav icon is a centered crown with selected pink outline.
 
 ### Settings
@@ -279,10 +278,9 @@ Latest successful Android checks passed on this branch:
 The attached screenshots are the target state for visual continuity:
 
 1. Login screen: centered brand, sign-in card, temp sign-in.
-2. Elite Circle: conversations default, Book with Raven, latest conversations.
+2. Elite Circle: conversations default, latest conversations.
 3. Template Vault: one-line filters, template cards.
 4. Coaching Engine: white prompt box, Speak/Move row, tightened previous strategies.
 5. Home: center snapshot, Elite badge, center metrics, strategic recommendation.
 
 See the embedded screenshots in the Word version of this handoff for layout reference.
-

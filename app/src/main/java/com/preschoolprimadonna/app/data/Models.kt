@@ -118,22 +118,6 @@ data class EliteThreadDetail(
     val replies: List<EliteReply> = emptyList()
 )
 
-@Serializable
-data class RavenSlot(
-    @SerialName("starts_at") val startsAt: String,
-    @SerialName("ends_at") val endsAt: String? = null
-)
-
-@Serializable
-data class RavenBooking(
-    val id: String,
-    @SerialName("starts_at") val startsAt: String? = null,
-    @SerialName("ends_at") val endsAt: String? = null,
-    val status: String? = null,
-    val topic: String? = null,
-    @SerialName("created_at") val createdAt: String? = null
-)
-
 data class DashboardData(
     val profile: Profile? = null,
     val subscription: Subscription? = null,
@@ -141,8 +125,5 @@ data class DashboardData(
     val templates: List<TemplateItem> = emptyList(),
     val videos: List<RavenVideo> = emptyList(),
     val coachingSessions: List<CoachingSession> = emptyList(),
-    val eliteThreads: List<EliteThread> = emptyList(),
-    val ravenSlots: List<RavenSlot> = emptyList(),
-    val ravenBookings: List<RavenBooking> = emptyList(),
-    val ravenTimezone: String? = null
+    val eliteThreads: List<EliteThread> = emptyList()
 )

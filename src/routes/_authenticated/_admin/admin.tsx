@@ -25,7 +25,6 @@ import { toast } from "sonner";
 import { Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { RavenVideosAdmin } from "@/components/admin/RavenVideosAdmin";
 import { TemplateVaultManager } from "@/components/admin/TemplateVaultManager";
-import { RavenScheduleAdmin } from "@/components/admin/RavenScheduleAdmin";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — Prima Donna AI™" }] }),
@@ -304,11 +303,6 @@ function Admin() {
         <RavenVideosAdmin />
       </section>
 
-      <div className="gold-divider mt-12" />
-
-      <section className="mt-10">
-        <RavenScheduleAdmin />
-      </section>
     </div>
   );
 }

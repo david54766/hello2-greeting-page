@@ -55,7 +55,6 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.AlertDialog
@@ -117,8 +116,6 @@ import com.preschoolprimadonna.app.data.Center
 import com.preschoolprimadonna.app.data.CoachingSession
 import com.preschoolprimadonna.app.data.EliteReply
 import com.preschoolprimadonna.app.data.EliteThread
-import com.preschoolprimadonna.app.data.RavenBooking
-import com.preschoolprimadonna.app.data.RavenSlot
 import com.preschoolprimadonna.app.data.RavenVideo
 import com.preschoolprimadonna.app.data.Subscription
 import com.preschoolprimadonna.app.data.TemplateItem
@@ -981,127 +978,70 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
-    var section by rememberSaveable { mutableStateOf("Conversations") }
     var threadTitle by rememberSaveable { mutableStateOf("") }
     var threadBody by rememberSaveable { mutableStateOf("") }
-    var bookingTopic by rememberSaveable { mutableStateOf("") }
     var replyBody by rememberSaveable(state.selectedEliteThread?.id) { mutableStateOf("") }
-    val options = listOf("Conversations", "Schedule")
-    val currentSection = section.takeIf { it in options } ?: "Conversations"
 
     ScreenList {
         Eyebrow("Elite Circle")
         ScreenHeading("Welcome to the room.")
-        SingleLineFilterBar(
-            options = options,
-            selected = currentSection,
-            onSelected = { section = it }
-        )
-        when (currentSection) {
-            "Conversations" -> {
-                val selectedThread = state.selectedEliteThread
-                if (selectedThread != null) {
-                    EliteThreadDetailPanel(
-                        thread = selectedThread,
-                        replies = state.eliteReplies,
-                        replyBody = replyBody,
-                        onReplyChange = { replyBody = it },
-                        onBack = {
-                            replyBody = ""
-                            viewModel.closeEliteThread()
-                        },
-                        onReply = {
-                            viewModel.replyEliteThread(selectedThread.id, replyBody)
-                            replyBody = ""
-                        },
-                        saving = state.saving
+        val selectedThread = state.selectedEliteThread
+        if (selectedThread != null) {
+            EliteThreadDetailPanel(
+                thread = selectedThread,
+                replies = state.eliteReplies,
+                replyBody = replyBody,
+                onReplyChange = { replyBody = it },
+                onBack = {
+                    replyBody = ""
+                    viewModel.closeEliteThread()
+                },
+                onReply = {
+                    viewModel.replyEliteThread(selectedThread.id, replyBody)
+                    replyBody = ""
+                },
+                saving = state.saving
+            )
+        } else {
+            val latestThreads = state.data.eliteThreads.sortedByDescending { it.createdAt.orEmpty() }
+            SectionTitle("Latest conversations")
+            if (latestThreads.isEmpty()) {
+                EmptyState("No Elite conversations yet.")
+            } else {
+                latestThreads.forEach { thread ->
+                    EliteThreadCard(
+                        thread = thread,
+                        onOpen = { viewModel.openEliteThread(thread.id) },
+                        onDelete = { viewModel.deleteEliteThread(thread.id) }
                     )
-                } else {
-                    val latestThreads = state.data.eliteThreads.sortedByDescending { it.createdAt.orEmpty() }
-                    OutlinedButton(onClick = { section = "Schedule" }) {
-                        Icon(Icons.Outlined.Schedule, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Book with Raven")
-                    }
-                    SectionTitle("Latest conversations")
-                    if (latestThreads.isEmpty()) {
-                        EmptyState("No Elite conversations yet.")
-                    } else {
-                        latestThreads.forEach { thread ->
-                            EliteThreadCard(
-                                thread = thread,
-                                onOpen = { viewModel.openEliteThread(thread.id) },
-                                onDelete = { viewModel.deleteEliteThread(thread.id) }
-                            )
-                        }
-                    }
-                    SectionTitle("Start a conversation")
-                    OutlinedTextField(
-                        value = threadTitle,
-                        onValueChange = { threadTitle = it },
-                        label = { Text("Title") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = threadBody,
-                        onValueChange = { threadBody = it },
-                        label = { Text("What should the room know?") },
-                        minLines = 4,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Button(
-                        onClick = {
-                            viewModel.createEliteThread(threadTitle, threadBody)
-                            threadTitle = ""
-                            threadBody = ""
-                        },
-                        enabled = threadTitle.trim().length >= 3 && threadBody.trim().length >= 3 && !state.saving
-                    ) {
-                        Icon(Icons.Outlined.Add, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Post conversation")
-                    }
                 }
             }
-            "Schedule" -> {
-                val activeBookings = state.data.ravenBookings.filter { it.isActiveRavenBooking() }
-                FeatureCard(
-                    title = "Schedule with Raven",
-                    body = "Times shown in ${state.data.ravenTimezone ?: ZoneId.systemDefault().id}."
-                )
-                SectionTitle("Your bookings")
-                if (activeBookings.isEmpty()) {
-                    EmptyState("No Raven sessions booked.")
-                } else {
-                    activeBookings.forEach { booking ->
-                        RavenBookingCard(
-                            booking = booking,
-                            onCancel = { viewModel.cancelRavenBooking(booking.id) }
-                        )
-                    }
-                }
-                SectionTitle("Book a session")
-                OutlinedTextField(
-                    value = bookingTopic,
-                    onValueChange = { bookingTopic = it },
-                    label = { Text("Focus topic (optional)") },
-                    minLines = 2,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                val visibleSlots = state.data.ravenSlots.take(12)
-                if (visibleSlots.isEmpty()) {
-                    EmptyState("No Raven availability is open right now.")
-                } else {
-                    visibleSlots.forEach { slot ->
-                        val booked = activeBookings.any { sameSlot(it.startsAt, slot.startsAt) }
-                        RavenSlotCard(
-                            slot = slot,
-                            booked = booked,
-                            onBook = { viewModel.bookRavenSlot(slot, bookingTopic) }
-                        )
-                    }
-                }
+            SectionTitle("Start a conversation")
+            OutlinedTextField(
+                value = threadTitle,
+                onValueChange = { threadTitle = it },
+                label = { Text("Title") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = threadBody,
+                onValueChange = { threadBody = it },
+                label = { Text("What should the room know?") },
+                minLines = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = {
+                    viewModel.createEliteThread(threadTitle, threadBody)
+                    threadTitle = ""
+                    threadBody = ""
+                },
+                enabled = threadTitle.trim().length >= 3 && threadBody.trim().length >= 3 && !state.saving
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Post conversation")
             }
         }
     }
@@ -2576,69 +2516,6 @@ private fun EliteThreadCard(thread: EliteThread, onOpen: () -> Unit, onDelete: (
 }
 
 @Composable
-private fun RavenBookingCard(booking: RavenBooking, onCancel: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = AppCardShape,
-        border = appCardBorder(),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Text(
-                text = booking.startsAt?.timeRange(booking.endsAt) ?: "Raven session",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = booking.topic?.takeIf { it.isNotBlank() } ?: "Strategy session",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                MetaBadge(booking.status ?: "booked", modifier = Modifier.weight(1f, fill = false))
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onCancel) {
-                    Text("Cancel")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RavenSlotCard(slot: RavenSlot, booked: Boolean, onBook: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = AppCardShape,
-        border = appCardBorder(),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Outlined.Schedule, contentDescription = null, tint = PrimaPink)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(slot.startsAt.timeRange(slot.endsAt), fontWeight = FontWeight.SemiBold)
-                Text(
-                    text = slot.startsAt.shortDateTime().substringBefore(" "),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            if (booked) {
-                MetaBadge("Booked")
-            } else {
-                Button(onClick = onBook, shape = RoundedCornerShape(10.dp)) {
-                    Text("Book")
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun NumberField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) {
     OutlinedTextField(
         value = value,
@@ -2747,20 +2624,4 @@ private fun String.timeRange(end: String?): String {
         }.getOrNull()
     }
     return if (endText.isNullOrBlank()) startText else "$startText - $endText"
-}
-
-private fun sameSlot(left: String?, right: String?): Boolean {
-    if (left.isNullOrBlank() || right.isNullOrBlank()) return false
-    val leftInstant = runCatching { OffsetDateTime.parse(left).toInstant() }.getOrNull()
-    val rightInstant = runCatching { OffsetDateTime.parse(right).toInstant() }.getOrNull()
-    return if (leftInstant != null && rightInstant != null) {
-        leftInstant == rightInstant
-    } else {
-        left.take(16) == right.take(16)
-    }
-}
-
-private fun RavenBooking.isActiveRavenBooking(): Boolean {
-    val normalized = status?.trim()?.lowercase()
-    return normalized !in setOf("cancelled", "canceled", "completed", "declined")
 }
