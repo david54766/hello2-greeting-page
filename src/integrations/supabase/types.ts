@@ -364,6 +364,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          coaching_replies: boolean
+          created_at: string
+          daily_brief: boolean
+          elite_activity: boolean
+          marketing: boolean
+          quiet_hours_end: number | null
+          quiet_hours_start: number | null
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coaching_replies?: boolean
+          created_at?: string
+          daily_brief?: boolean
+          elite_activity?: boolean
+          marketing?: boolean
+          quiet_hours_end?: number | null
+          quiet_hours_start?: number | null
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coaching_replies?: boolean
+          created_at?: string
+          daily_brief?: boolean
+          elite_activity?: boolean
+          marketing?: boolean
+          quiet_hours_end?: number | null
+          quiet_hours_start?: number | null
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           business_name: string | null
@@ -400,6 +439,86 @@ export type Database = {
           timezone?: string
           tuition_range?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      push_notification_deliveries: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json | null
+          error: string | null
+          id: string
+          provider_message_id: string | null
+          status: string
+          title: string | null
+          token_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          error?: string | null
+          id?: string
+          provider_message_id?: string | null
+          status?: string
+          title?: string | null
+          token_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          error?: string | null
+          id?: string
+          provider_message_id?: string | null
+          status?: string
+          title?: string | null
+          token_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_notification_deliveries_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "push_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_tokens: {
+        Row: {
+          created_at: string
+          device_label: string | null
+          id: string
+          last_seen_at: string
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_label?: string | null
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_label?: string | null
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
