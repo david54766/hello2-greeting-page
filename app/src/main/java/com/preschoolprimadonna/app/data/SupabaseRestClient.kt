@@ -25,7 +25,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.net.SocketTimeoutException
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 
 @Serializable
 private data class OptionalAuthSession(
@@ -49,7 +51,12 @@ private data class OptionalAuthSession(
 }
 
 class SupabaseRestClient {
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .callTimeout(120, TimeUnit.SECONDS)
+        .build()
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
@@ -211,9 +218,13 @@ class SupabaseRestClient {
     }
 
     suspend fun synthesizeRavenVoice(session: AuthSession, text: String): ByteArray {
-        val result = mobileApi(session, "synthesize_raven_voice", buildJsonObject {
-            put("text", text.trim().take(5000))
-        })
+        val result = try {
+            mobileApi(session, "synthesize_raven_voice", buildJsonObject {
+                put("text", ravenVoicePayload(text))
+            })
+        } catch (error: SocketTimeoutException) {
+            throw IllegalStateException("Raven voice took too long to generate. Try a shorter strategy response or play it again.")
+        }
         val audio = result["audio_base64"]?.jsonPrimitive?.contentOrNull
             ?: throw IllegalStateException("No Raven audio returned")
         return Base64.getDecoder().decode(audio)
@@ -368,6 +379,20 @@ class SupabaseRestClient {
         }
     }
 
+    private fun ravenVoicePayload(text: String): String {
+        val clean = text.trim().replace(Regex("\\s+"), " ")
+        if (clean.length <= RAVEN_VOICE_TEXT_LIMIT) return clean
+
+        val clipped = clean.take(RAVEN_VOICE_TEXT_LIMIT)
+        val sentence = clipped.substringBeforeLast(".", missingDelimiterValue = "").trim()
+        if (sentence.length >= MIN_RAVEN_SENTENCE_TRIM) return "$sentence."
+
+        return clipped
+            .substringBeforeLast(" ", missingDelimiterValue = clipped)
+            .trimEnd('.', ',', ';', ':')
+            .trim()
+    }
+
     private suspend inline fun <reified T> select(
         session: AuthSession,
         table: String,
@@ -492,6 +517,11 @@ class SupabaseRestClient {
             }
             payload
         }
+    }
+
+    private companion object {
+        const val RAVEN_VOICE_TEXT_LIMIT = 1800
+        const val MIN_RAVEN_SENTENCE_TRIM = 600
     }
 
 }
