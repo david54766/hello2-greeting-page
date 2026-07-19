@@ -57,6 +57,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
@@ -1043,10 +1044,17 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
     var threadTitle by rememberSaveable { mutableStateOf("") }
     var threadBody by rememberSaveable { mutableStateOf("") }
     var replyBody by rememberSaveable(state.selectedEliteThread?.id) { mutableStateOf("") }
+    val subscription = state.data.subscription
+    val hasEliteAccess = state.data.isAdmin ||
+        (subscription?.tier == "elite" && subscription.status == "active")
 
     ScreenList {
         Eyebrow("Elite Circle")
         ScreenHeading("Welcome to the room.")
+        if (!hasEliteAccess) {
+            EliteLockedCard(currentPlan = tierLabel(subscription?.tier))
+            return@ScreenList
+        }
         val selectedThread = state.selectedEliteThread
         if (selectedThread != null) {
             EliteThreadDetailPanel(
@@ -1128,6 +1136,46 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 Spacer(Modifier.width(8.dp))
                 Text("Post conversation")
             }
+        }
+    }
+}
+
+@Composable
+private fun EliteLockedCard(currentPlan: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(PrimaPink.copy(alpha = 0.14f), RoundedCornerShape(999.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = PrimaPink,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+            Text(
+                text = "Elite Circle locked",
+                fontSize = 24.sp,
+                fontFamily = FontFamily.Serif,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Current plan: $currentPlan. Elite conversations are available only to active Elite members.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 22.sp
+            )
         }
     }
 }

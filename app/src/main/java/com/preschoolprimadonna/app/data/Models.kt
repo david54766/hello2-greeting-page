@@ -131,6 +131,7 @@ data class EliteThreadDetail(
 data class DashboardData(
     val profile: Profile? = null,
     val subscription: Subscription? = null,
+    val isAdmin: Boolean = false,
     val notificationPreferences: NotificationPreferences = NotificationPreferences(),
     val centers: List<Center> = emptyList(),
     val templates: List<TemplateItem> = emptyList(),

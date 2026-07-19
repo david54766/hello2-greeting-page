@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireEliteAccess } from "@/lib/elite-access.functions";
 
 const ImageUrlsSchema = z
   .array(z.string().url().max(1000))
@@ -11,7 +12,8 @@ const ImageUrlsSchema = z
 export const listThreads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await requireEliteAccess(supabase, userId);
     const { data, error } = await supabase
       .from("elite_threads")
       .select("id, user_id, title, body, image_urls, pinned, created_at, updated_at")
@@ -56,6 +58,7 @@ export const createThread = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    await requireEliteAccess(supabase, userId);
     const { data: row, error } = await supabase
       .from("elite_threads")
       .insert({ user_id: userId, title: data.title, body: data.body, image_urls: data.image_urls ?? [] })
@@ -69,7 +72,8 @@ export const getThread = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await requireEliteAccess(supabase, userId);
     const { data: thread, error } = await supabase
       .from("elite_threads")
       .select("id, user_id, title, body, image_urls, pinned, created_at, updated_at")
@@ -105,6 +109,7 @@ export const replyToThread = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    await requireEliteAccess(supabase, userId);
     const { error } = await supabase.from("elite_thread_replies").insert({
       thread_id: data.thread_id,
       user_id: userId,
@@ -120,7 +125,8 @@ export const deleteThread = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await requireEliteAccess(supabase, userId);
     const { error } = await supabase.from("elite_threads").delete().eq("id", data.id);
     if (error) return { ok: false, message: error.message };
     return { ok: true };

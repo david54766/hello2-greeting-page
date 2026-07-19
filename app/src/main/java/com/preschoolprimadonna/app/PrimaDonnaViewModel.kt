@@ -535,6 +535,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         val data = supervisorScope {
             val profile = async { api.getProfile(session, userId) }
             val subscription = async { api.getSubscription(session, userId) }
+            val isAdmin = async { runCatching { api.isAdmin(session, userId) }.getOrDefault(false) }
             val notificationPreferences = async {
                 runCatching { api.getNotificationPreferences(session, userId) }
                     .getOrNull()
@@ -544,17 +545,26 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             val templates = async { api.getTemplates(session) }
             val videos = async { api.getVideos(session) }
             val sessions = async { api.getCoachingSessions(session, userId) }
-            val eliteThreads = async { runCatching { api.getEliteThreads(session) }.getOrDefault(emptyList()) }
             val todayRecommendation = async { runCatching { api.getTodayRecommendation(session) }.getOrNull() }
+            val resolvedSubscription = subscription.await()
+            val resolvedIsAdmin = isAdmin.await()
+            val hasEliteAccess = resolvedIsAdmin ||
+                (resolvedSubscription?.tier == "elite" && resolvedSubscription.status == "active")
+            val eliteThreads = if (hasEliteAccess) {
+                runCatching { api.getEliteThreads(session) }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
             DashboardData(
                 profile = profile.await(),
-                subscription = subscription.await(),
+                subscription = resolvedSubscription,
+                isAdmin = resolvedIsAdmin,
                 notificationPreferences = notificationPreferences.await(),
                 centers = centers.await(),
                 templates = templates.await(),
                 videos = videos.await(),
                 coachingSessions = sessions.await(),
-                eliteThreads = eliteThreads.await(),
+                eliteThreads = eliteThreads,
                 todayRecommendation = todayRecommendation.await()
             )
         }

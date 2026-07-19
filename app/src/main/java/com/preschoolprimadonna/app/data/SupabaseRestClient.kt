@@ -51,6 +51,11 @@ private data class OptionalAuthSession(
     }
 }
 
+@Serializable
+private data class UserRoleRow(
+    val role: String? = null
+)
+
 class SupabaseRestClient {
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -169,6 +174,16 @@ class SupabaseRestClient {
             params = mapOf("user_id" to "eq.$userId"),
             limit = 1
         ).firstOrNull()
+    }
+
+    suspend fun isAdmin(session: AuthSession, userId: String): Boolean {
+        return select<UserRoleRow>(
+            session = session,
+            table = "user_roles",
+            select = "role",
+            params = mapOf("user_id" to "eq.$userId", "role" to "eq.admin"),
+            limit = 1
+        ).isNotEmpty()
     }
 
     suspend fun getNotificationPreferences(session: AuthSession, userId: String): NotificationPreferences? {
