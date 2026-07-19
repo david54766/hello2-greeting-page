@@ -194,8 +194,14 @@ private enum class AuthMode {
     Reset
 }
 
+private val AppContentMaxWidth = 760.dp
 private val AppCardShape = RoundedCornerShape(8.dp)
 private const val ELITE_ATTACHMENT_LIMIT = 8
+
+private fun Modifier.appContentWidth(): Modifier =
+    this
+        .widthIn(max = AppContentMaxWidth)
+        .fillMaxWidth()
 
 @Composable
 private fun appCardBorder(): BorderStroke =
@@ -420,7 +426,7 @@ private fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.appContentWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 BrandMark(compact = false)
@@ -431,7 +437,7 @@ private fun LoginScreen(
                 shape = RoundedCornerShape(28.dp),
                 border = BorderStroke(1.dp, Color(0xFFF0DCE6)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.appContentWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(22.dp),
@@ -660,7 +666,9 @@ private fun ResetPasswordScreen(
     Box(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .align(Alignment.Center)
+                .fillMaxHeight()
+                .appContentWidth()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
@@ -783,7 +791,7 @@ private fun OnboardingScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.appContentWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 BrandMark(compact = false)
@@ -794,7 +802,7 @@ private fun OnboardingScreen(
                 shape = RoundedCornerShape(28.dp),
                 border = BorderStroke(1.dp, Color(0xFFF0DCE6)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.appContentWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(22.dp),
@@ -1933,22 +1941,32 @@ private fun BrandMark(compact: Boolean) {
 
 @Composable
 private fun FixedScreen(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        content()
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .appContentWidth()
+                .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            content()
+        }
     }
 }
 
 @Composable
 private fun ScreenList(content: @Composable ColumnScope.() -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxHeight()
+                .appContentWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -2212,20 +2230,33 @@ private fun DailyRecommendationCard(
                 overflow = TextOverflow.Ellipsis
             )
             video?.storagePath?.let { path ->
-                OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            runCatching { viewModel.signedUrl("raven-videos", path) }
-                                .onSuccess { context.openUrl(it) }
-                                .onFailure { Toast.makeText(context, it.message ?: "Video failed.", Toast.LENGTH_LONG).show() }
+                val buttonShape = RoundedCornerShape(999.dp)
+                Row(
+                    modifier = Modifier
+                        .height(54.dp)
+                        .clip(buttonShape)
+                        .border(
+                            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.72f)),
+                            buttonShape
+                        )
+                        .clickable {
+                            scope.launch {
+                                runCatching { viewModel.signedUrl("raven-videos", path) }
+                                    .onSuccess { context.openUrl(it) }
+                                    .onFailure { Toast.makeText(context, it.message ?: "Video failed.", Toast.LENGTH_LONG).show() }
+                            }
                         }
-                    },
-                    shape = RoundedCornerShape(999.dp),
-                    modifier = Modifier.height(42.dp)
+                        .padding(horizontal = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Outlined.PlayArrow, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(video.title ?: "Play Raven insight", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        text = video.title ?: "Play Raven insight",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
