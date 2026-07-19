@@ -181,7 +181,7 @@ class SupabaseRestClient {
             session = session,
             table = "templates",
             select = "*",
-            params = mapOf("order" to "category.asc,created_at.asc")
+            params = mapOf("order" to "category.asc,created_at.desc")
         )
     }
 

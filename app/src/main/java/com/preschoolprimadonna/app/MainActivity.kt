@@ -55,6 +55,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.AlertDialog
@@ -237,6 +238,11 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
     }
 
     val screen = runCatching { AppScreen.valueOf(selectedScreen) }.getOrDefault(AppScreen.Dashboard)
+    LaunchedEffect(screen) {
+        if (screen == AppScreen.Vault) {
+            viewModel.refresh()
+        }
+    }
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -246,6 +252,9 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 actions = {
+                    IconButton(onClick = viewModel::refresh) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
+                    }
                     IconButton(onClick = viewModel::signOut) {
                         Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = "Sign out")
                     }
