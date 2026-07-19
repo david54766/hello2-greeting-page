@@ -125,5 +125,6 @@ data class DashboardData(
     val templates: List<TemplateItem> = emptyList(),
     val videos: List<RavenVideo> = emptyList(),
     val coachingSessions: List<CoachingSession> = emptyList(),
-    val eliteThreads: List<EliteThread> = emptyList()
+    val eliteThreads: List<EliteThread> = emptyList(),
+    val todayRecommendation: String? = null
 )

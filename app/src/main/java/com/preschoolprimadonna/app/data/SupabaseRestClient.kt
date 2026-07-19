@@ -67,8 +67,11 @@ class SupabaseRestClient {
 
     private object ServerFunctions {
         const val RUN_COACHING = "a4a21ef578913f4db5a54cf2f4ae7347a8fa87028bb88e27156a7c4fe191b62c"
+        const val TODAY_RECOMMENDATION = "888a6cf6656e518e13491e5818c5c55374e34b0a70f191aa06b96da73e50d29f"
         const val LIST_THREADS = "ed759d5fefb644e4e280c13ac67a9ef31842917a7b657b3fdb5fe0e03e18a69c"
         const val CREATE_THREAD = "c060c6d01170e66edff932b8eab3bb5093309c354a251f1c3dde1b262fdeda55"
+        const val GET_THREAD = "2708943f773c3c19f5379f9fc764ba17f7fc97cd69787eac0d6cfc3508575816"
+        const val REPLY_THREAD = "217400c3f492d5f842bc0b88b8f44f89fba1b80d8e3232ccb1fd184625ec4938"
         const val DELETE_THREAD = "490af8a295d7a209cd6be9304ca3139a49654b9e1714e63d5db1d9a3409c83af"
     }
 
@@ -198,6 +201,12 @@ class SupabaseRestClient {
         )
     }
 
+    suspend fun getTodayRecommendation(session: AuthSession): String? {
+        val result = serverFunction(session, ServerFunctions.TODAY_RECOMMENDATION)
+        result.throwIfServerResultError()
+        return result["recommendation"]?.jsonPrimitive?.contentOrNull
+    }
+
     suspend fun getCoachingSessions(session: AuthSession, userId: String): List<CoachingSession> {
         return select(
             session = session,
@@ -316,11 +325,12 @@ class SupabaseRestClient {
             put("image_urls", JsonArray(emptyList()))
         }
         mobileApiOrServerFunction(session, "create_elite_thread", ServerFunctions.CREATE_THREAD, method = "POST", data = payload)
+            .throwIfServerResultError()
     }
 
     suspend fun getEliteThread(session: AuthSession, threadId: String): EliteThreadDetail {
         val payload = buildJsonObject { put("id", threadId) }
-        val result = mobileApi(session, "get_elite_thread", payload)
+        val result = mobileApiOrServerFunction(session, "get_elite_thread", ServerFunctions.GET_THREAD, data = payload)
         val thread = result["thread"] ?: error("Conversation was not found")
         val replies = result["replies"]?.jsonArray ?: JsonArray(emptyList())
         return EliteThreadDetail(
@@ -335,12 +345,14 @@ class SupabaseRestClient {
             put("body", body.trim())
             put("image_urls", JsonArray(emptyList()))
         }
-        mobileApi(session, "reply_elite_thread", payload)
+        mobileApiOrServerFunction(session, "reply_elite_thread", ServerFunctions.REPLY_THREAD, method = "POST", data = payload)
+            .throwIfServerResultError()
     }
 
     suspend fun deleteEliteThread(session: AuthSession, threadId: String) {
         val payload = buildJsonObject { put("id", threadId) }
         mobileApiOrServerFunction(session, "delete_elite_thread", ServerFunctions.DELETE_THREAD, method = "POST", data = payload)
+            .throwIfServerResultError()
     }
 
     suspend fun updateProfile(
@@ -629,6 +641,10 @@ class SupabaseRestClient {
         if (resultError != null && resultError !is JsonNull) {
             val message = resultError.jsonPrimitive.contentOrNull ?: resultError.toString()
             if (message.isNotBlank()) throw IllegalStateException(message)
+        }
+        if (this["ok"]?.jsonPrimitive?.booleanOrNull == false) {
+            val message = this["message"]?.jsonPrimitive?.contentOrNull ?: "Request failed"
+            throw IllegalStateException(message)
         }
     }
 

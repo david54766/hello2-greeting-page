@@ -476,6 +476,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             val videos = async { api.getVideos(session) }
             val sessions = async { api.getCoachingSessions(session, userId) }
             val eliteThreads = async { runCatching { api.getEliteThreads(session) }.getOrDefault(emptyList()) }
+            val todayRecommendation = async { runCatching { api.getTodayRecommendation(session) }.getOrNull() }
             DashboardData(
                 profile = profile.await(),
                 subscription = subscription.await(),
@@ -483,7 +484,8 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 templates = templates.await(),
                 videos = videos.await(),
                 coachingSessions = sessions.await(),
-                eliteThreads = eliteThreads.await()
+                eliteThreads = eliteThreads.await(),
+                todayRecommendation = todayRecommendation.await()
             )
         }
         _state.update {

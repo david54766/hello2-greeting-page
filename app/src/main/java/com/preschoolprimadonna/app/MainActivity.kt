@@ -83,8 +83,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -324,7 +322,7 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
                 .padding(padding)
         ) {
             when (screen) {
-                AppScreen.Dashboard -> DashboardScreen(state)
+                AppScreen.Dashboard -> DashboardScreen(state, viewModel)
                 AppScreen.Coach -> CoachScreen(state, viewModel)
                 AppScreen.Vault -> VaultScreen(state, viewModel)
                 AppScreen.Elite -> EliteScreen(state, viewModel)
@@ -739,10 +737,11 @@ private fun OnboardingScreen(
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun DashboardScreen(state: PrimaDonnaState) {
+private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     val data = state.data
     val centers = data.centers
     val firstPlayableVideo = data.videos.firstOrNull { it.storagePath != null }
+    val recommendation = data.todayRecommendation?.takeIf { it.isNotBlank() }
     val tier = tierLabel(data.subscription?.tier)
     val showTierBadge = tier.equals("Elite", ignoreCase = true) || tier.equals("Pro", ignoreCase = true)
     val snapshotCenters = centers.takeIf { it.isNotEmpty() } ?: listOf(
@@ -781,10 +780,10 @@ private fun DashboardScreen(state: PrimaDonnaState) {
             }
         }
         SectionTitle("Today's strategic recommendation")
-        FeatureCard(
-            title = firstPlayableVideo?.title ?: "Raven daily brief",
-            body = firstPlayableVideo?.description?.takeIf { it.isNotBlank() }
-                ?: "Open the latest published Raven insight from your library."
+        DailyRecommendationCard(
+            recommendation = recommendation ?: "Open the latest published Raven insight from your library.",
+            video = firstPlayableVideo,
+            viewModel = viewModel
         )
     }
 }
@@ -1094,10 +1093,6 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
     var editingCenterId by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDeleteCenterId by rememberSaveable { mutableStateOf<String?>(null) }
     var addCenterOpen by rememberSaveable { mutableStateOf(false) }
-    var emailBriefs by rememberSaveable { mutableStateOf(true) }
-    var eliteReminders by rememberSaveable { mutableStateOf(true) }
-    var inAppAlerts by rememberSaveable { mutableStateOf(true) }
-    var productUpdates by rememberSaveable { mutableStateOf(false) }
 
     var centerName by rememberSaveable { mutableStateOf("") }
     var city by rememberSaveable { mutableStateOf("") }
@@ -1144,41 +1139,6 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
         ScreenHeading("Workspace settings")
 
         MembershipStatusCard(subscription)
-
-        SectionTitle("Notifications")
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = AppCardShape,
-            border = appCardBorder(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                NotificationPreferenceRow(
-                    title = "Email AI brief",
-                    body = "Send daily summaries and strategic reminders.",
-                    checked = emailBriefs,
-                    onCheckedChange = { emailBriefs = it }
-                )
-                NotificationPreferenceRow(
-                    title = "Elite reminders",
-                    body = "Show alerts for Elite Circle activity and replies.",
-                    checked = eliteReminders,
-                    onCheckedChange = { eliteReminders = it }
-                )
-                NotificationPreferenceRow(
-                    title = "In-app alerts",
-                    body = "Keep workspace activity visible when you open the app.",
-                    checked = inAppAlerts,
-                    onCheckedChange = { inAppAlerts = it }
-                )
-                NotificationPreferenceRow(
-                    title = "Product updates",
-                    body = "Occasional AI feature and membership notices.",
-                    checked = productUpdates,
-                    onCheckedChange = { productUpdates = it }
-                )
-            }
-        }
 
         SectionTitle("Business profile")
         Card(
@@ -1337,42 +1297,6 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
                     Text("Close")
                 }
             }
-        )
-    }
-}
-
-@Composable
-private fun NotificationPreferenceRow(
-    title: String,
-    body: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Text(
-                body,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 18.sp
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaPink,
-                checkedBorderColor = PrimaPink,
-                uncheckedThumbColor = Color(0xFF6A5C64),
-                uncheckedTrackColor = Color(0xFFF3E3EA),
-                uncheckedBorderColor = Color(0xFFB79EAA)
-            )
         )
     }
 }
@@ -1823,6 +1747,54 @@ private fun FeatureCard(title: String, body: String) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 22.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun DailyRecommendationCard(
+    recommendation: String,
+    video: RavenVideo?,
+    viewModel: PrimaDonnaViewModel
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Raven daily brief", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = recommendation,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 21.sp,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+            video?.storagePath?.let { path ->
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            runCatching { viewModel.signedUrl("raven-videos", path) }
+                                .onSuccess { context.openUrl(it) }
+                                .onFailure { Toast.makeText(context, it.message ?: "Video failed.", Toast.LENGTH_LONG).show() }
+                        }
+                    },
+                    shape = RoundedCornerShape(999.dp),
+                    modifier = Modifier.height(42.dp)
+                ) {
+                    Icon(Icons.Outlined.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(video.title ?: "Play Raven insight", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
         }
     }
 }

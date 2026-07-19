@@ -100,7 +100,7 @@ class ServerFunctionCodec(private val json: Json) {
             if (node !is JsonObject) return node
             val tag = node["t"]?.jsonPrimitive?.intOrNull ?: return node
             return when (tag) {
-                0 -> JsonPrimitive(node["s"]?.jsonPrimitive?.doubleOrNull ?: 0.0)
+                0 -> decodeNumber(node["s"]?.jsonPrimitive)
                 1 -> JsonPrimitive(unescape(node["s"]?.jsonPrimitive?.contentOrNull.orEmpty()))
                 2 -> decodeSpecial(node["s"]?.jsonPrimitive?.int ?: 1)
                 4 -> refs[node["i"]?.jsonPrimitive?.intOrNull] ?: JsonNull
@@ -110,6 +110,12 @@ class ServerFunctionCodec(private val json: Json) {
                 25 -> decodeCustom(node)
                 else -> JsonNull
             }
+        }
+
+        private fun decodeNumber(value: JsonPrimitive?): JsonPrimitive {
+            val raw = value?.contentOrNull.orEmpty()
+            raw.toLongOrNull()?.let { return JsonPrimitive(it) }
+            return JsonPrimitive(value?.doubleOrNull ?: 0.0)
         }
 
         private fun decodeSpecial(code: Int): JsonElement {
