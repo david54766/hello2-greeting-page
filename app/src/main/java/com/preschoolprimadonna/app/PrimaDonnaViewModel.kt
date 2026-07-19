@@ -1,6 +1,7 @@
 package com.preschoolprimadonna.app
 
 import android.app.Application
+import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
@@ -391,12 +392,12 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         _state.update { it.copy(voiceLoadingSessionId = null, voicePlayingSessionId = null) }
     }
 
-    fun createEliteThread(title: String, body: String) {
+    fun createEliteThread(title: String, body: String, imageUrls: List<String> = emptyList()) {
         val session = _state.value.session ?: return
         viewModelScope.launch {
             runSavingAction("Conversation posted.") {
                 withRefreshRetry(session) { activeSession ->
-                    api.createEliteThread(activeSession, title, body)
+                    api.createEliteThread(activeSession, title, body, imageUrls)
                     loadData(activeSession)
                 }
             }
@@ -431,12 +432,12 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         _state.update { it.copy(selectedEliteThread = null, eliteReplies = emptyList(), error = null) }
     }
 
-    fun replyEliteThread(threadId: String, body: String) {
+    fun replyEliteThread(threadId: String, body: String, imageUrls: List<String> = emptyList()) {
         val session = _state.value.session ?: return
         viewModelScope.launch {
             runSavingAction("Reply posted.") {
                 withRefreshRetry(session) { activeSession ->
-                    api.replyEliteThread(activeSession, threadId, body)
+                    api.replyEliteThread(activeSession, threadId, body, imageUrls)
                     loadData(activeSession)
                     val detail = api.getEliteThread(activeSession, threadId)
                     _state.update {
@@ -444,6 +445,29 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 }
             }
+        }
+    }
+
+    suspend fun uploadEliteImage(context: Context, uri: Uri): String {
+        val session = _state.value.session ?: error("Please sign in again before adding images.")
+        val userId = session.user?.id ?: _state.value.user?.id ?: error("User account was not loaded.")
+        val resolver = context.contentResolver
+        val contentType = resolver.getType(uri)?.lowercase().orEmpty()
+        val extension = when (contentType) {
+            "image/jpeg", "image/jpg" -> "jpg"
+            "image/png" -> "png"
+            "image/webp" -> "webp"
+            "image/gif" -> "gif"
+            else -> error("Use a JPG, PNG, WEBP, or GIF image.")
+        }
+        val bytes = withContext(Dispatchers.IO) {
+            resolver.openInputStream(uri)?.use { it.readBytes() }
+        } ?: error("Could not read that image.")
+        if (bytes.size > ELITE_IMAGE_MAX_BYTES) {
+            error("Images must be 5 MB or smaller.")
+        }
+        return withRefreshRetry(session) { activeSession ->
+            api.uploadEliteImage(activeSession, userId, bytes, contentType, extension)
         }
     }
 
@@ -751,6 +775,10 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     override fun onCleared() {
         releaseRavenPlayer()
         super.onCleared()
+    }
+
+    private companion object {
+        const val ELITE_IMAGE_MAX_BYTES = 5 * 1024 * 1024
     }
 
     private fun deviceName(): String {

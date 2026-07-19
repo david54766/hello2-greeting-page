@@ -127,7 +127,7 @@ export const deleteThread = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await requireEliteAccess(supabase, userId);
-    const { error } = await supabase.from("elite_threads").delete().eq("id", data.id);
+    const { error } = await supabase.from("elite_threads").delete().eq("id", data.id).eq("user_id", userId);
     if (error) return { ok: false, message: error.message };
     return { ok: true };
   });

@@ -28,6 +28,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.InterruptedIOException
 import java.net.SocketTimeoutException
 import java.util.Base64
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @Serializable
@@ -343,11 +344,16 @@ class SupabaseRestClient {
         return json.decodeFromJsonElement(threads)
     }
 
-    suspend fun createEliteThread(session: AuthSession, title: String, body: String) {
+    suspend fun createEliteThread(
+        session: AuthSession,
+        title: String,
+        body: String,
+        imageUrls: List<String> = emptyList()
+    ) {
         val payload = buildJsonObject {
             put("title", title.trim())
             put("body", body.trim())
-            put("image_urls", JsonArray(emptyList()))
+            put("image_urls", imageUrls.toJsonArray())
         }
         mobileApiOrServerFunction(session, "create_elite_thread", ServerFunctions.CREATE_THREAD, method = "POST", data = payload)
             .throwIfServerResultError()
@@ -364,11 +370,16 @@ class SupabaseRestClient {
         )
     }
 
-    suspend fun replyEliteThread(session: AuthSession, threadId: String, body: String) {
+    suspend fun replyEliteThread(
+        session: AuthSession,
+        threadId: String,
+        body: String,
+        imageUrls: List<String> = emptyList()
+    ) {
         val payload = buildJsonObject {
             put("thread_id", threadId)
             put("body", body.trim())
-            put("image_urls", JsonArray(emptyList()))
+            put("image_urls", imageUrls.toJsonArray())
         }
         mobileApiOrServerFunction(session, "reply_elite_thread", ServerFunctions.REPLY_THREAD, method = "POST", data = payload)
             .throwIfServerResultError()
@@ -412,6 +423,24 @@ class SupabaseRestClient {
             .header("Prefer", "return=minimal")
             .build()
         execute(request)
+    }
+
+    suspend fun uploadEliteImage(
+        session: AuthSession,
+        userId: String,
+        bytes: ByteArray,
+        contentType: String,
+        extension: String
+    ): String {
+        val cleanExtension = extension.trim().trimStart('.').lowercase().ifBlank { "jpg" }
+        val path = "$userId/${System.currentTimeMillis()}-${UUID.randomUUID()}.$cleanExtension"
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/storage/v1/object/elite-images/$path", session)
+            .post(bytes.toRequestBody(contentType.toMediaType()))
+            .header("Content-Type", contentType)
+            .header("x-upsert", "false")
+            .build()
+        execute(request)
+        return "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/elite-images/$path"
     }
 
     suspend fun registerPushToken(
@@ -561,6 +590,10 @@ class SupabaseRestClient {
             put("staff_count", center.staffCount ?: 0)
             put("notes", center.notes.orEmpty())
         }
+    }
+
+    private fun List<String>.toJsonArray(): JsonArray {
+        return JsonArray(map { JsonPrimitive(it) })
     }
 
     private fun ravenVoicePayloadChunks(text: String): List<String> {

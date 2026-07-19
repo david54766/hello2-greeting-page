@@ -290,9 +290,9 @@ async function replyEliteThread({ supabase, userId }: MobileContext, data: Recor
   return { ok: true };
 }
 
-async function deleteEliteThread({ supabase }: MobileContext, data: Record<string, unknown>) {
+async function deleteEliteThread({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
   const id = readUuid(data.id, 'id');
-  const { error } = await supabase.from('elite_threads').delete().eq('id', id);
+  const { error } = await supabase.from('elite_threads').delete().eq('id', id).eq('user_id', userId);
   if (error) return { ok: false, message: error.message };
   return { ok: true };
 }

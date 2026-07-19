@@ -102,6 +102,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -121,6 +122,7 @@ import androidx.core.net.toUri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.google.firebase.messaging.FirebaseMessaging
 import com.preschoolprimadonna.app.data.Center
 import com.preschoolprimadonna.app.data.CoachingSession
@@ -193,6 +195,7 @@ private enum class AuthMode {
 }
 
 private val AppCardShape = RoundedCornerShape(8.dp)
+private const val ELITE_ATTACHMENT_LIMIT = 8
 
 @Composable
 private fun appCardBorder(): BorderStroke =
@@ -681,10 +684,17 @@ private fun OnboardingScreen(
     onSignOut: () -> Unit
 ) {
     val profile = state.data.profile
+    val detectedTimezone = remember { ZoneId.systemDefault().id }
     var fullName by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.fullName.orEmpty()) }
     var businessName by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.businessName.orEmpty()) }
     var profileState by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.state.orEmpty()) }
-    var timezone by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.timezone ?: "America/New_York") }
+    var timezone by rememberSaveable(profile?.updatedAt, detectedTimezone) {
+        mutableStateOf(
+            profile?.timezone
+                ?.takeIf { it.isNotBlank() && it != "America/New_York" }
+                ?: detectedTimezone
+        )
+    }
     var centerName by rememberSaveable { mutableStateOf("") }
     var city by rememberSaveable { mutableStateOf("") }
     var centerState by rememberSaveable { mutableStateOf("") }
@@ -696,39 +706,128 @@ private fun OnboardingScreen(
     var notes by rememberSaveable { mutableStateOf("") }
     val canSubmit = !state.saving && businessName.isNotBlank() && centerName.isNotBlank()
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFFFF8FB),
+                        Color(0xFFFFEFF6),
+                        Color(0xFFFFFBF8)
+                    )
+                )
+            )
+    ) {
         ScreenList {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BrandMark(compact = true)
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onSignOut) {
+                TextButton(onClick = onSignOut, enabled = !state.saving) {
                     Text("Sign out")
                 }
             }
             Eyebrow("Setup")
-            SectionTitle("Business profile")
-            OutlinedTextField(fullName, { fullName = it }, label = { Text("Your name") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(businessName, { businessName = it }, label = { Text("Business name") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(profileState, { profileState = it }, label = { Text("State") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(timezone, { timezone = it }, label = { Text("Timezone") }, modifier = Modifier.weight(1f))
+            ScreenHeading("Set up your command center.")
+            MetaBadge("Timezone: $timezone", tone = BadgeTone.Neutral)
+
+            OnboardingSection("Business profile") {
+                OutlinedTextField(
+                    fullName,
+                    { fullName = it },
+                    label = { Text("Your name") },
+                    singleLine = true,
+                    shape = AppCardShape,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    businessName,
+                    { businessName = it },
+                    label = { Text("Business name") },
+                    singleLine = true,
+                    shape = AppCardShape,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        profileState,
+                        { profileState = it },
+                        label = { Text("State") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        timezone,
+                        { timezone = it },
+                        label = { Text("Timezone") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
-            SectionTitle("First center")
-            OutlinedTextField(centerName, { centerName = it }, label = { Text("Center name") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(city, { city = it }, label = { Text("City") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(centerState, { centerState = it }, label = { Text("State") }, modifier = Modifier.weight(1f))
+
+            OnboardingSection("First center") {
+                OutlinedTextField(
+                    centerName,
+                    { centerName = it },
+                    label = { Text("Center name") },
+                    singleLine = true,
+                    shape = AppCardShape,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        city,
+                        { city = it },
+                        label = { Text("City") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        centerState,
+                        { centerState = it },
+                        label = { Text("State") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                OutlinedTextField(
+                    agesServed,
+                    { agesServed = it },
+                    label = { Text("Ages served") },
+                    singleLine = true,
+                    shape = AppCardShape,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    NumberField(enrollment, { enrollment = it }, "Enrollment", Modifier.weight(1f))
+                    NumberField(capacity, { capacity = it }, "Capacity", Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        tuition,
+                        { tuition = it },
+                        label = { Text("Tuition range") },
+                        singleLine = true,
+                        shape = AppCardShape,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NumberField(staff, { staff = it }, "Staff", Modifier.weight(1f))
+                }
+                OutlinedTextField(
+                    notes,
+                    { notes = it },
+                    label = { Text("Notes / context for AI") },
+                    minLines = 3,
+                    shape = AppCardShape,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-            OutlinedTextField(agesServed, { agesServed = it }, label = { Text("Ages served") }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumberField(enrollment, { enrollment = it }, "Enrollment", Modifier.weight(1f))
-                NumberField(capacity, { capacity = it }, "Capacity", Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(tuition, { tuition = it }, label = { Text("Tuition range") }, modifier = Modifier.weight(1f))
-                NumberField(staff, { staff = it }, "Staff", Modifier.weight(1f))
-            }
-            OutlinedTextField(notes, { notes = it }, label = { Text("Notes / context for AI") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+
             Button(
                 onClick = {
                     onSubmit(
@@ -750,7 +849,10 @@ private fun OnboardingScreen(
                     )
                 },
                 enabled = canSubmit,
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(999.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
             ) {
                 Icon(Icons.Outlined.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -759,6 +861,27 @@ private fun OnboardingScreen(
         }
         if (state.saving) {
             LoadingScrim()
+        }
+    }
+}
+
+@Composable
+private fun OnboardingSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            content()
         }
     }
 }
@@ -1043,10 +1166,14 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
 private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     var threadTitle by rememberSaveable { mutableStateOf("") }
     var threadBody by rememberSaveable { mutableStateOf("") }
+    var threadImageUrls by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var replyBody by rememberSaveable(state.selectedEliteThread?.id) { mutableStateOf("") }
+    var replyImageUrls by rememberSaveable(state.selectedEliteThread?.id) { mutableStateOf(emptyList<String>()) }
     val subscription = state.data.subscription
+    val userId = state.user?.id ?: state.session?.user?.id
     val hasEliteAccess = state.data.isAdmin ||
         (subscription?.tier == "elite" && subscription.status == "active")
+    val context = LocalContext.current
 
     ScreenList {
         Eyebrow("Elite Circle")
@@ -1064,12 +1191,17 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 onReplyChange = { replyBody = it },
                 onBack = {
                     replyBody = ""
+                    replyImageUrls = emptyList()
                     viewModel.closeEliteThread()
                 },
                 onReply = {
-                    viewModel.replyEliteThread(selectedThread.id, replyBody)
+                    viewModel.replyEliteThread(selectedThread.id, replyBody, replyImageUrls)
                     replyBody = ""
+                    replyImageUrls = emptyList()
                 },
+                replyImageUrls = replyImageUrls,
+                onReplyImageUrlsChange = { replyImageUrls = it },
+                uploadImage = { uri -> viewModel.uploadEliteImage(context, uri) },
                 onReportThread = { reason, details ->
                     viewModel.reportEliteContent(
                         threadId = selectedThread.id,
@@ -1104,6 +1236,7 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 latestThreads.forEach { thread ->
                     EliteThreadCard(
                         thread = thread,
+                        canDelete = thread.userId != null && thread.userId == userId,
                         onOpen = { viewModel.openEliteThread(thread.id) },
                         onDelete = { viewModel.deleteEliteThread(thread.id) }
                     )
@@ -1124,11 +1257,18 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 minLines = 4,
                 modifier = Modifier.fillMaxWidth()
             )
+            EliteImageAttachments(
+                imageUrls = threadImageUrls,
+                onImageUrlsChange = { threadImageUrls = it },
+                uploadImage = { uri -> viewModel.uploadEliteImage(context, uri) },
+                enabled = !state.saving
+            )
             Button(
                 onClick = {
-                    viewModel.createEliteThread(threadTitle, threadBody)
+                    viewModel.createEliteThread(threadTitle, threadBody, threadImageUrls)
                     threadTitle = ""
                     threadBody = ""
+                    threadImageUrls = emptyList()
                 },
                 enabled = threadTitle.trim().length >= 3 && threadBody.trim().length >= 3 && !state.saving
             ) {
@@ -1184,10 +1324,17 @@ private fun EliteLockedCard(currentPlan: String) {
 private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     val profile = state.data.profile
     val subscription = state.data.subscription
+    val detectedTimezone = remember { ZoneId.systemDefault().id }
     var fullName by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.fullName.orEmpty()) }
     var businessName by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.businessName.orEmpty()) }
     var profileState by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.state.orEmpty()) }
-    var timezone by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.timezone ?: "America/New_York") }
+    var timezone by rememberSaveable(profile?.updatedAt, detectedTimezone) {
+        mutableStateOf(
+            profile?.timezone
+                ?.takeIf { it.isNotBlank() && it != "America/New_York" }
+                ?: detectedTimezone
+        )
+    }
     var editingCenterId by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDeleteCenterId by rememberSaveable { mutableStateOf<String?>(null) }
     var addCenterOpen by rememberSaveable { mutableStateOf(false) }
@@ -2601,6 +2748,9 @@ private fun EliteThreadDetailPanel(
     onReplyChange: (String) -> Unit,
     onBack: () -> Unit,
     onReply: () -> Unit,
+    replyImageUrls: List<String>,
+    onReplyImageUrlsChange: (List<String>) -> Unit,
+    uploadImage: suspend (Uri) -> String,
     onReportThread: (String, String) -> Unit,
     onReportReply: (String, String, String) -> Unit,
     saving: Boolean
@@ -2630,6 +2780,7 @@ private fun EliteThreadDetailPanel(
             )
             Spacer(Modifier.height(12.dp))
             Text(thread.body.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AttachmentGallery(thread.imageUrls)
             Spacer(Modifier.height(12.dp))
             OutlinedButton(
                 onClick = { reportingThread = true },
@@ -2662,6 +2813,7 @@ private fun EliteThreadDetailPanel(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(reply.body.orEmpty())
+                    AttachmentGallery(reply.imageUrls)
                     Spacer(Modifier.height(8.dp))
                     TextButton(
                         onClick = { reportingReplyId = reply.id },
@@ -2683,6 +2835,12 @@ private fun EliteThreadDetailPanel(
         label = { Text("Reply") },
         minLines = 4,
         modifier = Modifier.fillMaxWidth()
+    )
+    EliteImageAttachments(
+        imageUrls = replyImageUrls,
+        onImageUrlsChange = onReplyImageUrlsChange,
+        uploadImage = uploadImage,
+        enabled = !saving
     )
     Button(
         onClick = onReply,
@@ -2713,6 +2871,114 @@ private fun EliteThreadDetailPanel(
                 reportingReplyId = null
             }
         )
+    }
+}
+
+@Composable
+private fun EliteImageAttachments(
+    imageUrls: List<String>,
+    onImageUrlsChange: (List<String>) -> Unit,
+    uploadImage: suspend (Uri) -> String,
+    enabled: Boolean
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var uploading by rememberSaveable { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        val remainingSlots = (ELITE_ATTACHMENT_LIMIT - imageUrls.size).coerceAtLeast(0)
+        val selectedUris = uris.take(remainingSlots)
+        if (uris.size > remainingSlots) {
+            Toast.makeText(context, "Up to $ELITE_ATTACHMENT_LIMIT images can be attached.", Toast.LENGTH_SHORT).show()
+        }
+        if (selectedUris.isEmpty()) return@rememberLauncherForActivityResult
+        uploading = true
+        scope.launch {
+            runCatching {
+                selectedUris.map { uri -> uploadImage(uri) }
+            }.onSuccess { uploaded ->
+                onImageUrlsChange((imageUrls + uploaded).distinct().take(ELITE_ATTACHMENT_LIMIT))
+            }.onFailure { throwable ->
+                Toast.makeText(
+                    context,
+                    throwable.message?.takeIf { it.isNotBlank() } ?: "Image upload failed.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            uploading = false
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AttachmentGallery(
+            urls = imageUrls,
+            onRemove = { url -> onImageUrlsChange(imageUrls.filterNot { it == url }) }
+        )
+        OutlinedButton(
+            onClick = { launcher.launch("image/*") },
+            enabled = enabled && !uploading && imageUrls.size < ELITE_ATTACHMENT_LIMIT,
+            shape = RoundedCornerShape(999.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                when {
+                    uploading -> "Uploading images..."
+                    imageUrls.isEmpty() -> "Add images"
+                    else -> "Add more images"
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttachmentGallery(
+    urls: List<String>,
+    onRemove: ((String) -> Unit)? = null
+) {
+    val cleanUrls = urls.filter { it.isNotBlank() }
+    if (cleanUrls.isEmpty()) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        cleanUrls.forEach { url ->
+            Box(
+                modifier = Modifier
+                    .size(76.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, AppCardShape)
+                    .clip(AppCardShape)
+            ) {
+                AsyncImage(
+                    model = url,
+                    contentDescription = "Attached image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (onRemove != null) {
+                    IconButton(
+                        onClick = { onRemove(url) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(2.dp)
+                            .size(28.dp)
+                            .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(999.dp))
+                    ) {
+                        Icon(
+                            Icons.Outlined.Delete,
+                            contentDescription = "Remove image",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2778,7 +3044,12 @@ private fun EliteReportDialog(
 }
 
 @Composable
-private fun EliteThreadCard(thread: EliteThread, onOpen: () -> Unit, onDelete: () -> Unit) {
+private fun EliteThreadCard(
+    thread: EliteThread,
+    canDelete: Boolean,
+    onOpen: () -> Unit,
+    onDelete: () -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = AppCardShape,
@@ -2801,10 +3072,14 @@ private fun EliteThreadCard(thread: EliteThread, onOpen: () -> Unit, onDelete: (
                 text = thread.body.orEmpty().take(320),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            AttachmentGallery(thread.imageUrls)
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${thread.replyCount ?: 0} replies",
+                    text = buildList {
+                        add("${thread.replyCount ?: 0} replies")
+                        if (thread.imageUrls.isNotEmpty()) add("${thread.imageUrls.size} images")
+                    }.joinToString(" - "),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f)
@@ -2814,8 +3089,10 @@ private fun EliteThreadCard(thread: EliteThread, onOpen: () -> Unit, onDelete: (
                     Spacer(Modifier.width(6.dp))
                     Text("Open")
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Outlined.Delete, contentDescription = "Delete conversation")
+                if (canDelete) {
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Outlined.Delete, contentDescription = "Delete conversation")
+                    }
                 }
             }
         }
