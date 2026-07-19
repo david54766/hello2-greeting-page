@@ -39,6 +39,16 @@ data class Subscription(
 )
 
 @Serializable
+data class NotificationPreferences(
+    @SerialName("user_id") val userId: String? = null,
+    @SerialName("email_brief") val emailBrief: Boolean = true,
+    @SerialName("elite_reminders") val eliteReminders: Boolean = true,
+    @SerialName("ai_product_updates") val aiProductUpdates: Boolean = false,
+    @SerialName("push_alerts") val pushAlerts: Boolean = true,
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
 data class Center(
     val id: String? = null,
     @SerialName("user_id") val userId: String? = null,
@@ -121,6 +131,7 @@ data class EliteThreadDetail(
 data class DashboardData(
     val profile: Profile? = null,
     val subscription: Subscription? = null,
+    val notificationPreferences: NotificationPreferences = NotificationPreferences(),
     val centers: List<Center> = emptyList(),
     val templates: List<TemplateItem> = emptyList(),
     val videos: List<RavenVideo> = emptyList(),

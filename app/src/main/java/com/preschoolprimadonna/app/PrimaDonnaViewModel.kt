@@ -13,6 +13,7 @@ import com.preschoolprimadonna.app.data.CoachingSession
 import com.preschoolprimadonna.app.data.DashboardData
 import com.preschoolprimadonna.app.data.EliteReply
 import com.preschoolprimadonna.app.data.EliteThread
+import com.preschoolprimadonna.app.data.NotificationPreferences
 import com.preschoolprimadonna.app.data.SessionStore
 import com.preschoolprimadonna.app.data.SupabaseRestClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -228,6 +229,19 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             runSavingAction("Profile saved.") {
                 withRefreshRetry(session) { activeSession ->
                     api.updateProfile(activeSession, userId, fullName, businessName, state, timezone)
+                    loadData(activeSession)
+                }
+            }
+        }
+    }
+
+    fun saveNotificationPreferences(preferences: NotificationPreferences) {
+        val session = _state.value.session ?: return
+        val userId = _state.value.user?.id ?: return
+        viewModelScope.launch {
+            runSavingAction("Notification preferences saved.") {
+                withRefreshRetry(session) { activeSession ->
+                    api.saveNotificationPreferences(activeSession, userId, preferences)
                     loadData(activeSession)
                 }
             }
@@ -521,6 +535,11 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         val data = supervisorScope {
             val profile = async { api.getProfile(session, userId) }
             val subscription = async { api.getSubscription(session, userId) }
+            val notificationPreferences = async {
+                runCatching { api.getNotificationPreferences(session, userId) }
+                    .getOrNull()
+                    ?: NotificationPreferences(userId = userId)
+            }
             val centers = async { api.getCenters(session, userId) }
             val templates = async { api.getTemplates(session) }
             val videos = async { api.getVideos(session) }
@@ -530,6 +549,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             DashboardData(
                 profile = profile.await(),
                 subscription = subscription.await(),
+                notificationPreferences = notificationPreferences.await(),
                 centers = centers.await(),
                 templates = templates.await(),
                 videos = videos.await(),

@@ -171,6 +171,16 @@ class SupabaseRestClient {
         ).firstOrNull()
     }
 
+    suspend fun getNotificationPreferences(session: AuthSession, userId: String): NotificationPreferences? {
+        return select<NotificationPreferences>(
+            session = session,
+            table = "notification_preferences",
+            select = "*",
+            params = mapOf("user_id" to "eq.$userId"),
+            limit = 1
+        ).firstOrNull()
+    }
+
     suspend fun getCenters(session: AuthSession, userId: String): List<Center> {
         return select(
             session = session,
@@ -405,7 +415,29 @@ class SupabaseRestClient {
             put("device_model", deviceName)
         }
         val url = "${BuildConfig.SUPABASE_URL}/rest/v1/push_tokens".toHttpUrl().newBuilder()
-            .addQueryParameter("on_conflict", "token")
+            .addQueryParameter("on_conflict", "user_id,token")
+            .build()
+        val request = baseRequest(url.toString(), session)
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "resolution=merge-duplicates,return=minimal")
+            .build()
+        execute(request)
+    }
+
+    suspend fun saveNotificationPreferences(
+        session: AuthSession,
+        userId: String,
+        preferences: NotificationPreferences
+    ) {
+        val body = buildJsonObject {
+            put("user_id", userId)
+            put("email_brief", preferences.emailBrief)
+            put("elite_reminders", preferences.eliteReminders)
+            put("ai_product_updates", preferences.aiProductUpdates)
+            put("push_alerts", preferences.pushAlerts)
+        }
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/notification_preferences".toHttpUrl().newBuilder()
+            .addQueryParameter("on_conflict", "user_id")
             .build()
         val request = baseRequest(url.toString(), session)
             .post(body.toString().toRequestBody(jsonMediaType))

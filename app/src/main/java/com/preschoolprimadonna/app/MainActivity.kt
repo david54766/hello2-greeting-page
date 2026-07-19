@@ -87,6 +87,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -124,6 +125,7 @@ import com.preschoolprimadonna.app.data.Center
 import com.preschoolprimadonna.app.data.CoachingSession
 import com.preschoolprimadonna.app.data.EliteReply
 import com.preschoolprimadonna.app.data.EliteThread
+import com.preschoolprimadonna.app.data.NotificationPreferences
 import com.preschoolprimadonna.app.data.RavenVideo
 import com.preschoolprimadonna.app.data.Subscription
 import com.preschoolprimadonna.app.data.TemplateItem
@@ -1211,6 +1213,13 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
             }
         }
 
+        SectionTitle("Notifications")
+        NotificationPreferencesCard(
+            preferences = state.data.notificationPreferences,
+            saving = state.saving,
+            onSave = viewModel::saveNotificationPreferences
+        )
+
         SectionTitle("Your centers")
         if (state.data.centers.isEmpty()) {
             EmptyState("No centers yet. Add your first center.")
@@ -1369,6 +1378,93 @@ private fun MembershipStatusCard(subscription: Subscription?) {
                 MetaBadge(period, tone = BadgeTone.Neutral)
             }
         }
+    }
+}
+
+@Composable
+private fun NotificationPreferencesCard(
+    preferences: NotificationPreferences,
+    saving: Boolean,
+    onSave: (NotificationPreferences) -> Unit
+) {
+    var emailBrief by rememberSaveable(preferences.updatedAt) { mutableStateOf(preferences.emailBrief) }
+    var eliteReminders by rememberSaveable(preferences.updatedAt) { mutableStateOf(preferences.eliteReminders) }
+    var aiProductUpdates by rememberSaveable(preferences.updatedAt) { mutableStateOf(preferences.aiProductUpdates) }
+    var pushAlerts by rememberSaveable(preferences.updatedAt) { mutableStateOf(preferences.pushAlerts) }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            NotificationPreferenceRow(
+                label = "Daily AI brief",
+                body = "Allow daily center snapshots and recommendations.",
+                checked = emailBrief,
+                onCheckedChange = { emailBrief = it }
+            )
+            NotificationPreferenceRow(
+                label = "Elite reminders",
+                body = "Allow Elite Circle reminders and premium member alerts.",
+                checked = eliteReminders,
+                onCheckedChange = { eliteReminders = it }
+            )
+            NotificationPreferenceRow(
+                label = "AI product updates",
+                body = "Allow occasional updates when new AI tools are released.",
+                checked = aiProductUpdates,
+                onCheckedChange = { aiProductUpdates = it }
+            )
+            NotificationPreferenceRow(
+                label = "App push alerts",
+                body = "Allow Android app notifications for this account.",
+                checked = pushAlerts,
+                onCheckedChange = { pushAlerts = it }
+            )
+            Button(
+                onClick = {
+                    onSave(
+                        preferences.copy(
+                            emailBrief = emailBrief,
+                            eliteReminders = eliteReminders,
+                            aiProductUpdates = aiProductUpdates,
+                            pushAlerts = pushAlerts
+                        )
+                    )
+                },
+                enabled = !saving,
+                shape = RoundedCornerShape(999.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save notification settings")
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationPreferenceRow(
+    label: String,
+    body: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(label, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

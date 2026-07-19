@@ -29,7 +29,7 @@ const DEFAULT_NOTIFICATIONS = {
   emailBrief: true,
   eliteReminders: true,
   aiProductUpdates: false,
-  browserAlerts: true,
+  pushAlerts: true,
 };
 
 function Settings() {
@@ -58,17 +58,7 @@ function Settings() {
       });
     });
 
-    const raw = window.localStorage.getItem(`${NOTIFICATION_STORAGE_KEY}:${user.id}`);
-    if (!raw) {
-      setNotifications(DEFAULT_NOTIFICATIONS);
-      return;
-    }
-
-    try {
-      setNotifications({ ...DEFAULT_NOTIFICATIONS, ...JSON.parse(raw) });
-    } catch {
-      setNotifications(DEFAULT_NOTIFICATIONS);
-    }
+    void loadNotificationPreferences(user.id);
   }, [user]);
 
   const save = async (e: FormEvent) => {
@@ -99,9 +89,58 @@ function Settings() {
     }
   };
 
-  const saveNotifications = () => {
+  const loadNotificationPreferences = async (userId: string) => {
+    const { data, error } = await (supabase as any)
+      .from("notification_preferences")
+      .select("email_brief,elite_reminders,ai_product_updates,push_alerts")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!error && data) {
+      setNotifications({
+        emailBrief: data.email_brief ?? true,
+        eliteReminders: data.elite_reminders ?? true,
+        aiProductUpdates: data.ai_product_updates ?? false,
+        pushAlerts: data.push_alerts ?? true,
+      });
+      return;
+    }
+
+    const raw = window.localStorage.getItem(`${NOTIFICATION_STORAGE_KEY}:${userId}`);
+    if (!raw) {
+      setNotifications(DEFAULT_NOTIFICATIONS);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      setNotifications({
+        ...DEFAULT_NOTIFICATIONS,
+        ...parsed,
+        pushAlerts: parsed.pushAlerts ?? parsed.browserAlerts ?? DEFAULT_NOTIFICATIONS.pushAlerts,
+      });
+    } catch {
+      setNotifications(DEFAULT_NOTIFICATIONS);
+    }
+  };
+
+  const saveNotifications = async () => {
     if (!user) return;
-    window.localStorage.setItem(`${NOTIFICATION_STORAGE_KEY}:${user.id}`, JSON.stringify(notifications));
+    const { error } = await (supabase as any)
+      .from("notification_preferences")
+      .upsert({
+        user_id: user.id,
+        email_brief: notifications.emailBrief,
+        elite_reminders: notifications.eliteReminders,
+        ai_product_updates: notifications.aiProductUpdates,
+        push_alerts: notifications.pushAlerts,
+      }, { onConflict: "user_id" });
+
+    if (error) {
+      window.localStorage.setItem(`${NOTIFICATION_STORAGE_KEY}:${user.id}`, JSON.stringify(notifications));
+      return toast.error(`${error.message}. Saved locally until the notification migration is applied.`);
+    }
+
     toast.success("Notification preferences saved.");
   };
 
@@ -237,8 +276,8 @@ function NotificationSettings({
       <div className="mt-6 space-y-4">
         <ToggleRow
           icon={<Mail className="size-4" />}
-          label="Email AI brief"
-          hint="Send the daily center snapshot and recommendation to your inbox."
+          label="Daily AI brief"
+          hint="Allow daily center snapshots and recommendations."
           checked={settings.emailBrief}
           onChange={(v) => update("emailBrief", v)}
         />
@@ -258,10 +297,10 @@ function NotificationSettings({
         />
         <ToggleRow
           icon={<Bell className="size-4" />}
-          label="In-app alerts"
-          hint="Show dashboard alerts and status reminders while you are signed in."
-          checked={settings.browserAlerts}
-          onChange={(v) => update("browserAlerts", v)}
+          label="App push alerts"
+          hint="Allow Android app notifications for this account."
+          checked={settings.pushAlerts}
+          onChange={(v) => update("pushAlerts", v)}
         />
       </div>
 

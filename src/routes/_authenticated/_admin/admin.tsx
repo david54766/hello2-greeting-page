@@ -18,11 +18,12 @@ import {
   listEliteSignupRequests,
   decideEliteSignupRequest,
 } from "@/lib/elite-signup.functions";
+import { sendPushNotification } from "@/lib/push-notifications.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Bell, Send, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { RavenVideosAdmin } from "@/components/admin/RavenVideosAdmin";
 import { TemplateVaultManager } from "@/components/admin/TemplateVaultManager";
 
@@ -148,6 +149,10 @@ function Admin() {
         <Stat label="Elite" value={counts.elite} />
         <Stat label="Total sessions" value={counts.sessions} />
       </section>
+
+      <div className="gold-divider mt-12" />
+
+      <PushNotificationsAdmin />
 
       <div className="gold-divider mt-12" />
 
@@ -313,6 +318,104 @@ function Stat({ label, value }: { label: string; value: number }) {
       <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-2 font-display text-3xl">{value}</div>
     </div>
+  );
+}
+
+function PushNotificationsAdmin() {
+  const sendPushFn = useServerFn(sendPushNotification);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [audience, setAudience] = useState<"all" | "essentials" | "pro" | "elite">("all");
+  const [preferenceKey, setPreferenceKey] = useState<"push_alerts" | "email_brief" | "elite_reminders" | "ai_product_updates">("push_alerts");
+  const [sending, setSending] = useState(false);
+
+  const submit = async () => {
+    if (title.trim().length < 3 || body.trim().length < 3) return;
+    setSending(true);
+    const result = await sendPushFn({
+      data: {
+        title,
+        body,
+        audience,
+        preferenceKey,
+      },
+    });
+    setSending(false);
+    if (result.ok) {
+      toast.success(`${result.message} Sent: ${result.sent}. Skipped: ${result.skipped}.`);
+      setTitle("");
+      setBody("");
+    } else {
+      toast.error(`${result.message} Sent: ${result.sent}. Failed: ${result.failed}. Skipped: ${result.skipped}.`);
+    }
+  };
+
+  return (
+    <section className="mt-10 rounded-2xl border border-border/60 bg-card p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-primary">
+            <Bell className="size-4" /> Push notifications
+          </div>
+          <h2 className="mt-2 font-display text-2xl">Send an app alert</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sends only to registered Android devices whose saved notification settings allow the selected category.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Field label="Audience">
+          <select
+            value={audience}
+            onChange={(e) => setAudience(e.target.value as typeof audience)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">All members</option>
+            <option value="essentials">Essentials</option>
+            <option value="pro">Pro</option>
+            <option value="elite">Elite</option>
+          </select>
+        </Field>
+        <Field label="Allowed category">
+          <select
+            value={preferenceKey}
+            onChange={(e) => setPreferenceKey(e.target.value as typeof preferenceKey)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="push_alerts">General app alert</option>
+            <option value="email_brief">Daily Raven brief</option>
+            <option value="elite_reminders">Elite reminder</option>
+            <option value="ai_product_updates">AI product update</option>
+          </select>
+        </Field>
+        <div className="sm:col-span-2">
+          <Field label="Title">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="New Raven insight is ready" />
+          </Field>
+        </div>
+        <div className="sm:col-span-2">
+          <Field label="Message">
+            <Textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              maxLength={240}
+              rows={3}
+              placeholder="Open Prima Donna AI to review today's recommendation."
+            />
+          </Field>
+        </div>
+      </div>
+
+      <Button
+        onClick={submit}
+        disabled={sending || title.trim().length < 3 || body.trim().length < 3}
+        className="mt-5 rounded-full"
+      >
+        <Send className="mr-2 size-4" />
+        {sending ? "Sending..." : "Send push"}
+      </Button>
+    </section>
   );
 }
 
