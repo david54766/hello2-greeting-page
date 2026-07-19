@@ -66,6 +66,7 @@ class SupabaseRestClient {
     private val jsonMediaType = "application/json".toMediaType()
 
     private object ServerFunctions {
+        const val RUN_COACHING = "a4a21ef578913f4db5a54cf2f4ae7347a8fa87028bb88e27156a7c4fe191b62c"
         const val LIST_THREADS = "ed759d5fefb644e4e280c13ac67a9ef31842917a7b657b3fdb5fe0e03e18a69c"
         const val CREATE_THREAD = "c060c6d01170e66edff932b8eab3bb5093309c354a251f1c3dde1b262fdeda55"
         const val DELETE_THREAD = "490af8a295d7a209cd6be9304ca3139a49654b9e1714e63d5db1d9a3409c83af"
@@ -215,7 +216,17 @@ class SupabaseRestClient {
             put("mode", mode.lowercase())
             put("prompt", prompt.trim())
         }
-        return mobileApi(session, "run_coaching", payload)
+        val result = try {
+            mobileApi(session, "run_coaching", payload)
+        } catch (error: IllegalStateException) {
+            if (error.canFallbackToWebCoaching()) {
+                serverFunction(session, ServerFunctions.RUN_COACHING, method = "POST", data = payload)
+            } else {
+                throw error
+            }
+        }
+        result.throwIfServerResultError()
+        return result
     }
 
     suspend fun synthesizeRavenVoiceChunks(session: AuthSession, text: String): List<ByteArray> {
@@ -567,6 +578,20 @@ class SupabaseRestClient {
             "\"code\":\"not_found\"" in payload ||
             "\"code\":404" in payload ||
             "http 404" in payload
+    }
+
+    private fun IllegalStateException.canFallbackToWebCoaching(): Boolean {
+        val payload = message.orEmpty().lowercase()
+        return isMissingMobileApi() ||
+            "ai strategy key is not configured" in payload
+    }
+
+    private fun JsonObject.throwIfServerResultError() {
+        val resultError = this["error"]
+        if (resultError != null && resultError !is JsonNull) {
+            val message = resultError.jsonPrimitive.contentOrNull ?: resultError.toString()
+            if (message.isNotBlank()) throw IllegalStateException(message)
+        }
     }
 
     private fun baseRequest(url: String, session: AuthSession? = null): Request.Builder {
