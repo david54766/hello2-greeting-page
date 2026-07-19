@@ -243,10 +243,8 @@ class SupabaseRestClient {
         part: Int,
         totalParts: Int
     ): ByteArray {
-        val result = try {
-            mobileApi(session, "synthesize_raven_voice", buildJsonObject {
-                put("text", text)
-            })
+        return try {
+            synthesizeRavenVoiceMobile(session, text)
         } catch (error: SocketTimeoutException) {
             throw ravenVoiceTimeout(part, totalParts)
         } catch (error: InterruptedIOException) {
@@ -254,10 +252,44 @@ class SupabaseRestClient {
                 throw ravenVoiceTimeout(part, totalParts)
             }
             throw error
+        } catch (error: IllegalStateException) {
+            if (error.canFallbackToWebVoice()) {
+                try {
+                    synthesizeRavenVoiceWebStream(session, text)
+                } catch (timeout: SocketTimeoutException) {
+                    throw ravenVoiceTimeout(part, totalParts)
+                } catch (interrupted: InterruptedIOException) {
+                    if (interrupted.message.orEmpty().contains("timeout", ignoreCase = true)) {
+                        throw ravenVoiceTimeout(part, totalParts)
+                    }
+                    throw interrupted
+                }
+            } else {
+                throw error
+            }
         }
+    }
+
+    private suspend fun synthesizeRavenVoiceMobile(session: AuthSession, text: String): ByteArray {
+        val result = mobileApi(session, "synthesize_raven_voice", buildJsonObject {
+            put("text", text)
+        })
         val audio = result["audio_base64"]?.jsonPrimitive?.contentOrNull
             ?: throw IllegalStateException("No Raven audio returned")
         return Base64.getDecoder().decode(audio)
+    }
+
+    private suspend fun synthesizeRavenVoiceWebStream(session: AuthSession, text: String): ByteArray {
+        val request = Request.Builder()
+            .url("${BuildConfig.WEB_APP_URL.trimEnd('/')}/api/tts-stream")
+            .header("Authorization", "Bearer ${session.accessToken}")
+            .header("Content-Type", "application/json")
+            .header("accept", "audio/mpeg")
+            .post(buildJsonObject {
+                put("text", text)
+            }.toString().toRequestBody(jsonMediaType))
+            .build()
+        return executeBytes(request)
     }
 
     suspend fun deleteCoachingSession(session: AuthSession, userId: String, sessionId: String) {
@@ -586,6 +618,12 @@ class SupabaseRestClient {
             "ai strategy key is not configured" in payload
     }
 
+    private fun IllegalStateException.canFallbackToWebVoice(): Boolean {
+        val payload = message.orEmpty().lowercase()
+        return isMissingMobileApi() ||
+            "raven voice is not configured" in payload
+    }
+
     private fun JsonObject.throwIfServerResultError() {
         val resultError = this["error"]
         if (resultError != null && resultError !is JsonNull) {
@@ -608,6 +646,16 @@ class SupabaseRestClient {
             val payload = response.body.string()
             if (!response.isSuccessful) {
                 throw IllegalStateException(payload.ifBlank { "HTTP ${response.code}" })
+            }
+            payload
+        }
+    }
+
+    private suspend fun executeBytes(request: Request): ByteArray = withContext(Dispatchers.IO) {
+        client.newCall(request).execute().use { response ->
+            val payload = response.body.bytes()
+            if (!response.isSuccessful) {
+                throw IllegalStateException(payload.toString(Charsets.UTF_8).ifBlank { "HTTP ${response.code}" })
             }
             payload
         }
