@@ -75,9 +75,6 @@ function ThreadList({ onOpen, userId }: { onOpen: (id: string) => void; userId?:
           <p className="mt-2 text-muted-foreground">A private board for members. Share wins, ask questions, swap playbooks.</p>
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline" className="rounded-full">
-            <Link to="/elite-schedule"><Calendar className="size-4 mr-2" /> Schedule with Raven</Link>
-          </Button>
           <Button onClick={() => setShowForm((s) => !s)} className="rounded-full">
             {showForm ? "Cancel" : "Start a conversation"}
           </Button>

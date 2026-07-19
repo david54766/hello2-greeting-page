@@ -430,16 +430,11 @@ function EliteMemberView({ userId: _userId }: { userId?: string }) {
         <EliteSubNav />
       </div>
 
-      <div className="mt-8 grid sm:grid-cols-2 gap-4">
-        <Link to="/elite-circle" className="group rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/10 to-transparent p-6 hover:border-elite transition">
+      <div className="mt-8">
+        <Link to="/elite-circle" className="group block rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/10 to-transparent p-6 hover:border-elite transition">
           <MessageSquare className="size-6 text-elite-foreground" />
           <h3 className="mt-3 font-display text-xl">Conversations</h3>
           <p className="mt-1 text-sm text-muted-foreground">Private board for members. Share wins, ask questions, swap playbooks.</p>
-        </Link>
-        <Link to="/elite-schedule" className="group rounded-2xl border border-elite/40 bg-gradient-to-br from-elite/10 to-transparent p-6 hover:border-elite transition">
-          <Calendar className="size-6 text-elite-foreground" />
-          <h3 className="mt-3 font-display text-xl">Schedule with Raven</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Book a 1:1 strategy session at one of Raven's open times.</p>
         </Link>
       </div>
 
