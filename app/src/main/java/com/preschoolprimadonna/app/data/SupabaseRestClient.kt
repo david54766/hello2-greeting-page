@@ -369,11 +369,15 @@ class SupabaseRestClient {
             .post(body.toString().toRequestBody(jsonMediaType))
             .build()
         val response = json.decodeFromString<JsonObject>(execute(request))
-        val relative = response["signedURL"]?.toString()?.trim('"')
-            ?: response["signedUrl"]?.toString()?.trim('"')
+        val relative = response["signedURL"]?.jsonPrimitive?.contentOrNull
+            ?: response["signedUrl"]?.jsonPrimitive?.contentOrNull
             ?: error("No signed URL returned")
         return if (relative.startsWith("http")) {
             relative
+        } else if (relative.startsWith("/storage/v1/")) {
+            "${BuildConfig.SUPABASE_URL}$relative"
+        } else if (relative.startsWith("/object/")) {
+            "${BuildConfig.SUPABASE_URL}/storage/v1$relative"
         } else {
             "${BuildConfig.SUPABASE_URL}$relative"
         }
