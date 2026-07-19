@@ -705,9 +705,10 @@ private fun OnboardingScreen(
     var staff by rememberSaveable { mutableStateOf("") }
     var notes by rememberSaveable { mutableStateOf("") }
     val canSubmit = !state.saving && businessName.isNotBlank() && centerName.isNotBlank()
+    val fieldShape = RoundedCornerShape(16.dp)
 
     Box(
-        Modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
@@ -719,169 +720,208 @@ private fun OnboardingScreen(
                 )
             )
     ) {
-        ScreenList {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BrandMark(compact = true)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onSignOut, enabled = !state.saving) {
-                    Text("Sign out")
-                }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                BrandMark(compact = false)
             }
-            Eyebrow("Setup")
-            ScreenHeading("Set up your command center.")
-            MetaBadge("Timezone: $timezone", tone = BadgeTone.Neutral)
+            Spacer(Modifier.height(22.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.96f)),
+                shape = RoundedCornerShape(28.dp),
+                border = BorderStroke(1.dp, Color(0xFFF0DCE6)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Set up",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontFamily = FontFamily.Serif,
+                        color = Color(0xFF201A1E)
+                    )
+                    Text(
+                        text = "Create your private AI command center.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    MetaBadge("Timezone: $timezone", tone = BadgeTone.Neutral)
 
-            OnboardingSection("Business profile") {
-                OutlinedTextField(
-                    fullName,
-                    { fullName = it },
-                    label = { Text("Your name") },
-                    singleLine = true,
-                    shape = AppCardShape,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    businessName,
-                    { businessName = it },
-                    label = { Text("Business name") },
-                    singleLine = true,
-                    shape = AppCardShape,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Business profile", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     OutlinedTextField(
-                        profileState,
-                        { profileState = it },
-                        label = { Text("State") },
+                        value = fullName,
+                        onValueChange = { fullName = it },
+                        label = { Text("Your name") },
                         singleLine = true,
-                        shape = AppCardShape,
-                        modifier = Modifier.weight(1f)
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
-                        timezone,
-                        { timezone = it },
+                        value = businessName,
+                        onValueChange = { businessName = it },
+                        label = { Text("Business name") },
+                        singleLine = true,
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = profileState,
+                        onValueChange = { profileState = it },
+                        label = { Text("Business state") },
+                        singleLine = true,
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = timezone,
+                        onValueChange = { timezone = it },
                         label = { Text("Timezone") },
                         singleLine = true,
-                        shape = AppCardShape,
-                        modifier = Modifier.weight(1f)
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
-            }
 
-            OnboardingSection("First center") {
-                OutlinedTextField(
-                    centerName,
-                    { centerName = it },
-                    label = { Text("Center name") },
-                    singleLine = true,
-                    shape = AppCardShape,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("First center", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     OutlinedTextField(
-                        city,
-                        { city = it },
-                        label = { Text("City") },
+                        value = centerName,
+                        onValueChange = { centerName = it },
+                        label = { Text("Center name") },
                         singleLine = true,
-                        shape = AppCardShape,
-                        modifier = Modifier.weight(1f)
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = city,
+                            onValueChange = { city = it },
+                            label = { Text("City") },
+                            singleLine = true,
+                            shape = fieldShape,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = centerState,
+                            onValueChange = { centerState = it },
+                            label = { Text("State") },
+                            singleLine = true,
+                            shape = fieldShape,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                     OutlinedTextField(
-                        centerState,
-                        { centerState = it },
-                        label = { Text("State") },
+                        value = agesServed,
+                        onValueChange = { agesServed = it },
+                        label = { Text("Ages served") },
                         singleLine = true,
-                        shape = AppCardShape,
-                        modifier = Modifier.weight(1f)
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
-                OutlinedTextField(
-                    agesServed,
-                    { agesServed = it },
-                    label = { Text("Ages served") },
-                    singleLine = true,
-                    shape = AppCardShape,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    NumberField(enrollment, { enrollment = it }, "Enrollment", Modifier.weight(1f))
-                    NumberField(capacity, { capacity = it }, "Capacity", Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = enrollment,
+                            onValueChange = { enrollment = it.filter(Char::isDigit) },
+                            label = { Text("Enrollment") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            shape = fieldShape,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = capacity,
+                            onValueChange = { capacity = it.filter(Char::isDigit) },
+                            label = { Text("Capacity") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            shape = fieldShape,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                     OutlinedTextField(
-                        tuition,
-                        { tuition = it },
+                        value = tuition,
+                        onValueChange = { tuition = it },
                         label = { Text("Tuition range") },
                         singleLine = true,
-                        shape = AppCardShape,
-                        modifier = Modifier.weight(1f)
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    NumberField(staff, { staff = it }, "Staff", Modifier.weight(1f))
-                }
-                OutlinedTextField(
-                    notes,
-                    { notes = it },
-                    label = { Text("Notes / context for AI") },
-                    minLines = 3,
-                    shape = AppCardShape,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                    OutlinedTextField(
+                        value = staff,
+                        onValueChange = { staff = it.filter(Char::isDigit) },
+                        label = { Text("Staff") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Notes / context for AI") },
+                        minLines = 3,
+                        shape = fieldShape,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-            Button(
-                onClick = {
-                    onSubmit(
-                        fullName.trim(),
-                        businessName.trim(),
-                        profileState.trim(),
-                        timezone.trim(),
-                        Center(
-                            name = centerName.trim(),
-                            city = city.trim(),
-                            state = centerState.trim(),
-                            agesServed = agesServed.trim(),
-                            enrollmentSize = enrollment.toIntOrNull(),
-                            capacity = capacity.toIntOrNull(),
-                            tuitionRange = tuition.trim(),
-                            staffCount = staff.toIntOrNull(),
-                            notes = notes.trim()
-                        )
-                    )
-                },
-                enabled = canSubmit,
-                shape = RoundedCornerShape(999.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-            ) {
-                Icon(Icons.Outlined.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(if (state.saving) "Saving..." else "Save setup")
+                    Button(
+                        onClick = {
+                            onSubmit(
+                                fullName.trim(),
+                                businessName.trim(),
+                                profileState.trim(),
+                                timezone.trim(),
+                                Center(
+                                    name = centerName.trim(),
+                                    city = city.trim(),
+                                    state = centerState.trim(),
+                                    agesServed = agesServed.trim(),
+                                    enrollmentSize = enrollment.toIntOrNull(),
+                                    capacity = capacity.toIntOrNull(),
+                                    tuitionRange = tuition.trim(),
+                                    staffCount = staff.toIntOrNull(),
+                                    notes = notes.trim()
+                                )
+                            )
+                        },
+                        enabled = canSubmit,
+                        shape = RoundedCornerShape(999.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                    ) {
+                        Icon(Icons.Outlined.Add, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (state.saving) "Saving..." else "Save setup")
+                    }
+                    TextButton(
+                        onClick = onSignOut,
+                        enabled = !state.saving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Sign out")
+                    }
+                }
             }
+            Spacer(Modifier.height(18.dp))
+            Text(
+                text = "Prima Donna AI",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         if (state.saving) {
             LoadingScrim()
-        }
-    }
-}
-
-@Composable
-private fun OnboardingSection(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
-        shape = AppCardShape,
-        border = appCardBorder(),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            content()
         }
     }
 }
