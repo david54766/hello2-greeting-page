@@ -1,9 +1,12 @@
 package com.preschoolprimadonna.app
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.Context
 import android.net.Uri
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.widget.Toast
@@ -113,8 +116,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.messaging.FirebaseMessaging
 import com.preschoolprimadonna.app.data.Center
 import com.preschoolprimadonna.app.data.CoachingSession
 import com.preschoolprimadonna.app.data.EliteReply
@@ -195,6 +200,10 @@ private fun appCardBorder(): BorderStroke =
 private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedScreen by rememberSaveable { mutableStateOf(AppScreen.Dashboard.name) }
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
 
     LaunchedEffect(state.error, state.message) {
         val notice = state.error ?: state.message
@@ -226,6 +235,21 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
             onResetPassword = viewModel::requestPasswordReset
         )
         return
+    }
+
+    LaunchedEffect(state.session.accessToken, state.user?.id) {
+        if (state.user != null) {
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            @Suppress("DEPRECATION")
+            FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+                if (token.isNotBlank()) viewModel.registerPushToken(token)
+            }
+        }
     }
 
     val needsOnboarding = !state.loading &&

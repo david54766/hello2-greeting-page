@@ -389,6 +389,31 @@ class SupabaseRestClient {
         execute(request)
     }
 
+    suspend fun registerPushToken(
+        session: AuthSession,
+        userId: String,
+        token: String,
+        appVersion: String,
+        deviceName: String
+    ) {
+        val body = buildJsonObject {
+            put("user_id", userId)
+            put("token", token)
+            put("platform", "android")
+            put("enabled", true)
+            put("app_version", appVersion)
+            put("device_model", deviceName)
+        }
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/push_tokens".toHttpUrl().newBuilder()
+            .addQueryParameter("on_conflict", "token")
+            .build()
+        val request = baseRequest(url.toString(), session)
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "resolution=merge-duplicates,return=minimal")
+            .build()
+        execute(request)
+    }
+
     suspend fun updateProfile(
         session: AuthSession,
         userId: String,

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Prima Donna AI</string>
+    <string name="default_notification_channel_id">prima_donna_updates</string>
 </resources>

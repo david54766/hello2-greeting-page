@@ -3,6 +3,7 @@ package com.preschoolprimadonna.app
 import android.app.Application
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.preschoolprimadonna.app.data.AuthSession
@@ -478,6 +479,24 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun registerPushToken(token: String) {
+        val session = _state.value.session ?: return
+        val userId = session.user?.id ?: _state.value.user?.id ?: return
+        viewModelScope.launch {
+            runCatching {
+                withRefreshRetry(session) { activeSession ->
+                    api.registerPushToken(
+                        session = activeSession,
+                        userId = activeSession.user?.id ?: userId,
+                        token = token,
+                        appVersion = BuildConfig.VERSION_NAME,
+                        deviceName = deviceName()
+                    )
+                }
+            }
+        }
+    }
+
     fun flagNativeEndpointTodo(feature: String) {
         _state.update {
             it.copy(
@@ -702,6 +721,15 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     override fun onCleared() {
         releaseRavenPlayer()
         super.onCleared()
+    }
+
+    private fun deviceName(): String {
+        val manufacturer = Build.MANUFACTURER.orEmpty().replaceFirstChar { it.uppercase() }
+        val model = Build.MODEL.orEmpty()
+        return listOf(manufacturer, model)
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+            .ifBlank { "Android" }
     }
 }
 
