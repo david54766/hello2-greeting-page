@@ -36,16 +36,6 @@ android {
         )
         buildConfigField(
             "String",
-            "QA_EMAIL",
-            "\"${localProperties.getProperty("QA_EMAIL", "")}\""
-        )
-        buildConfigField(
-            "String",
-            "QA_PASSWORD",
-            "\"${localProperties.getProperty("QA_PASSWORD", "")}\""
-        )
-        buildConfigField(
-            "String",
             "WEB_APP_URL",
             "\"${localProperties.getProperty("WEB_APP_URL", "https://app.thepreschoolprimadonna.com")}\""
         )

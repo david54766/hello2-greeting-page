@@ -511,18 +511,6 @@ private fun LoginScreen(
                             }
                         )
                     }
-                    if (mode == AuthMode.SignIn && BuildConfig.DEBUG && BuildConfig.QA_EMAIL.isNotBlank() && BuildConfig.QA_PASSWORD.isNotBlank()) {
-                        OutlinedButton(
-                            onClick = { onSignIn(BuildConfig.QA_EMAIL, BuildConfig.QA_PASSWORD) },
-                            enabled = !state.loading,
-                            shape = RoundedCornerShape(999.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                        ) {
-                            Text("Temp sign in")
-                        }
-                    }
                     if (mode == AuthMode.Reset) {
                         TextButton(
                             onClick = { modeName = AuthMode.SignIn.name },
