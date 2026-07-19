@@ -366,11 +366,15 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          ai_product_updates: boolean
           coaching_replies: boolean
           created_at: string
           daily_brief: boolean
           elite_activity: boolean
+          elite_reminders: boolean
+          email_brief: boolean
           marketing: boolean
+          push_alerts: boolean
           quiet_hours_end: number | null
           quiet_hours_start: number | null
           timezone: string
@@ -378,11 +382,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_product_updates?: boolean
           coaching_replies?: boolean
           created_at?: string
           daily_brief?: boolean
           elite_activity?: boolean
+          elite_reminders?: boolean
+          email_brief?: boolean
           marketing?: boolean
+          push_alerts?: boolean
           quiet_hours_end?: number | null
           quiet_hours_start?: number | null
           timezone?: string
@@ -390,11 +398,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_product_updates?: boolean
           coaching_replies?: boolean
           created_at?: string
           daily_brief?: boolean
           elite_activity?: boolean
+          elite_reminders?: boolean
+          email_brief?: boolean
           marketing?: boolean
+          push_alerts?: boolean
           quiet_hours_end?: number | null
           quiet_hours_start?: number | null
           timezone?: string
@@ -444,36 +456,57 @@ export type Database = {
       }
       push_notification_deliveries: {
         Row: {
+          admin_user_id: string | null
+          audience: string | null
           body: string | null
           created_at: string
           data: Json | null
           error: string | null
+          error_summary: string | null
+          failed_count: number
           id: string
+          preference_key: string | null
           provider_message_id: string | null
+          sent_count: number
+          skipped_count: number
           status: string
           title: string | null
           token_id: string | null
           user_id: string | null
         }
         Insert: {
+          admin_user_id?: string | null
+          audience?: string | null
           body?: string | null
           created_at?: string
           data?: Json | null
           error?: string | null
+          error_summary?: string | null
+          failed_count?: number
           id?: string
+          preference_key?: string | null
           provider_message_id?: string | null
+          sent_count?: number
+          skipped_count?: number
           status?: string
           title?: string | null
           token_id?: string | null
           user_id?: string | null
         }
         Update: {
+          admin_user_id?: string | null
+          audience?: string | null
           body?: string | null
           created_at?: string
           data?: Json | null
           error?: string | null
+          error_summary?: string | null
+          failed_count?: number
           id?: string
+          preference_key?: string | null
           provider_message_id?: string | null
+          sent_count?: number
+          skipped_count?: number
           status?: string
           title?: string | null
           token_id?: string | null
@@ -491,8 +524,11 @@ export type Database = {
       }
       push_tokens: {
         Row: {
+          app_version: string | null
           created_at: string
           device_label: string | null
+          device_model: string | null
+          enabled: boolean
           id: string
           last_seen_at: string
           platform: string
@@ -501,8 +537,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          app_version?: string | null
           created_at?: string
           device_label?: string | null
+          device_model?: string | null
+          enabled?: boolean
           id?: string
           last_seen_at?: string
           platform?: string
@@ -511,8 +550,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          app_version?: string | null
           created_at?: string
           device_label?: string | null
+          device_model?: string | null
+          enabled?: boolean
           id?: string
           last_seen_at?: string
           platform?: string
