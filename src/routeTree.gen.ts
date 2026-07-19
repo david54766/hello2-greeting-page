@@ -30,7 +30,6 @@ import { Route as AuthenticatedEliteGateRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
-import { Route as AuthenticatedEliteGateEliteScheduleRouteImport } from './routes/_authenticated/_elite-gate.elite-schedule'
 import { Route as AuthenticatedEliteGateEliteCircleRouteImport } from './routes/_authenticated/_elite-gate.elite-circle'
 import { Route as AuthenticatedAdminAdminCookieLogRouteImport } from './routes/_authenticated/_admin/admin-cookie-log'
 import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin-analytics'
@@ -139,12 +138,6 @@ const ApiPublicEliteApplyRoute = ApiPublicEliteApplyRouteImport.update({
   path: '/api/public/elite-apply',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedEliteGateEliteScheduleRoute =
-  AuthenticatedEliteGateEliteScheduleRouteImport.update({
-    id: '/elite-schedule',
-    path: '/elite-schedule',
-    getParentRoute: () => AuthenticatedEliteGateRoute,
-  } as any)
 const AuthenticatedEliteGateEliteCircleRoute =
   AuthenticatedEliteGateEliteCircleRouteImport.update({
     id: '/elite-circle',
@@ -196,7 +189,6 @@ export interface FileRoutesByFullPath {
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
-  '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
@@ -222,7 +214,6 @@ export interface FileRoutesByTo {
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
-  '/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
@@ -252,7 +243,6 @@ export interface FileRoutesById {
   '/_authenticated/_admin/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/_authenticated/_admin/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/_authenticated/_elite-gate/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
-  '/_authenticated/_elite-gate/elite-schedule': typeof AuthenticatedEliteGateEliteScheduleRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
@@ -280,7 +270,6 @@ export interface FileRouteTypes {
     | '/admin-analytics'
     | '/admin-cookie-log'
     | '/elite-circle'
-    | '/elite-schedule'
     | '/api/public/elite-apply'
     | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
@@ -306,7 +295,6 @@ export interface FileRouteTypes {
     | '/admin-analytics'
     | '/admin-cookie-log'
     | '/elite-circle'
-    | '/elite-schedule'
     | '/api/public/elite-apply'
     | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
@@ -335,7 +323,6 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/admin-analytics'
     | '/_authenticated/_admin/admin-cookie-log'
     | '/_authenticated/_elite-gate/elite-circle'
-    | '/_authenticated/_elite-gate/elite-schedule'
     | '/api/public/elite-apply'
     | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
@@ -507,13 +494,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEliteApplyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/_elite-gate/elite-schedule': {
-      id: '/_authenticated/_elite-gate/elite-schedule'
-      path: '/elite-schedule'
-      fullPath: '/elite-schedule'
-      preLoaderRoute: typeof AuthenticatedEliteGateEliteScheduleRouteImport
-      parentRoute: typeof AuthenticatedEliteGateRoute
-    }
     '/_authenticated/_elite-gate/elite-circle': {
       id: '/_authenticated/_elite-gate/elite-circle'
       path: '/elite-circle'
@@ -569,15 +549,12 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedEliteGateRouteChildren {
   AuthenticatedEliteGateEliteCircleRoute: typeof AuthenticatedEliteGateEliteCircleRoute
-  AuthenticatedEliteGateEliteScheduleRoute: typeof AuthenticatedEliteGateEliteScheduleRoute
 }
 
 const AuthenticatedEliteGateRouteChildren: AuthenticatedEliteGateRouteChildren =
   {
     AuthenticatedEliteGateEliteCircleRoute:
       AuthenticatedEliteGateEliteCircleRoute,
-    AuthenticatedEliteGateEliteScheduleRoute:
-      AuthenticatedEliteGateEliteScheduleRoute,
   }
 
 const AuthenticatedEliteGateRouteWithChildren =
