@@ -25,6 +25,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.io.InterruptedIOException
 import java.net.SocketTimeoutException
 import java.util.Base64
 import java.util.concurrent.TimeUnit
@@ -217,13 +218,31 @@ class SupabaseRestClient {
         return mobileApi(session, "run_coaching", payload)
     }
 
-    suspend fun synthesizeRavenVoice(session: AuthSession, text: String): ByteArray {
+    suspend fun synthesizeRavenVoiceChunks(session: AuthSession, text: String): List<ByteArray> {
+        val chunks = ravenVoicePayloadChunks(text)
+        if (chunks.isEmpty()) throw IllegalStateException("This session does not have a saved response to play.")
+        return chunks.mapIndexed { index, chunk ->
+            synthesizeRavenVoiceChunk(session, chunk, index + 1, chunks.size)
+        }
+    }
+
+    private suspend fun synthesizeRavenVoiceChunk(
+        session: AuthSession,
+        text: String,
+        part: Int,
+        totalParts: Int
+    ): ByteArray {
         val result = try {
             mobileApi(session, "synthesize_raven_voice", buildJsonObject {
-                put("text", ravenVoicePayload(text))
+                put("text", text)
             })
         } catch (error: SocketTimeoutException) {
-            throw IllegalStateException("Raven voice took too long to generate. Try a shorter strategy response or play it again.")
+            throw ravenVoiceTimeout(part, totalParts)
+        } catch (error: InterruptedIOException) {
+            if (error.message.orEmpty().contains("timeout", ignoreCase = true)) {
+                throw ravenVoiceTimeout(part, totalParts)
+            }
+            throw error
         }
         val audio = result["audio_base64"]?.jsonPrimitive?.contentOrNull
             ?: throw IllegalStateException("No Raven audio returned")
@@ -379,18 +398,64 @@ class SupabaseRestClient {
         }
     }
 
-    private fun ravenVoicePayload(text: String): String {
+    private fun ravenVoicePayloadChunks(text: String): List<String> {
         val clean = text.trim().replace(Regex("\\s+"), " ")
-        if (clean.length <= RAVEN_VOICE_TEXT_LIMIT) return clean
+        if (clean.isBlank()) return emptyList()
 
-        val clipped = clean.take(RAVEN_VOICE_TEXT_LIMIT)
-        val sentence = clipped.substringBeforeLast(".", missingDelimiterValue = "").trim()
-        if (sentence.length >= MIN_RAVEN_SENTENCE_TRIM) return "$sentence."
+        val chunks = mutableListOf<String>()
+        val current = StringBuilder()
+        clean.split(Regex("(?<=[.!?])\\s+"))
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { sentence ->
+                if (sentence.length > RAVEN_VOICE_CHUNK_LIMIT) {
+                    flushRavenChunk(current, chunks)
+                    chunks += splitLongRavenVoicePiece(sentence)
+                } else if (current.isEmpty()) {
+                    current.append(sentence)
+                } else if (current.length + 1 + sentence.length <= RAVEN_VOICE_CHUNK_LIMIT) {
+                    current.append(' ').append(sentence)
+                } else {
+                    flushRavenChunk(current, chunks)
+                    current.append(sentence)
+                }
+            }
+        flushRavenChunk(current, chunks)
+        return chunks
 
-        return clipped
-            .substringBeforeLast(" ", missingDelimiterValue = clipped)
-            .trimEnd('.', ',', ';', ':')
-            .trim()
+    }
+
+    private fun splitLongRavenVoicePiece(text: String): List<String> {
+        val chunks = mutableListOf<String>()
+        val current = StringBuilder()
+        text.split(" ")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { word ->
+                if (word.length > RAVEN_VOICE_CHUNK_LIMIT) {
+                    flushRavenChunk(current, chunks)
+                    word.chunked(RAVEN_VOICE_CHUNK_LIMIT).forEach { chunks += it }
+                } else if (current.isEmpty()) {
+                    current.append(word)
+                } else if (current.length + 1 + word.length <= RAVEN_VOICE_CHUNK_LIMIT) {
+                    current.append(' ').append(word)
+                } else {
+                    flushRavenChunk(current, chunks)
+                    current.append(word)
+                }
+            }
+        flushRavenChunk(current, chunks)
+        return chunks
+    }
+
+    private fun flushRavenChunk(current: StringBuilder, chunks: MutableList<String>) {
+        val chunk = current.toString().trim()
+        if (chunk.isNotBlank()) chunks += chunk
+        current.clear()
+    }
+
+    private fun ravenVoiceTimeout(part: Int, totalParts: Int): IllegalStateException {
+        return IllegalStateException("Raven voice timed out on part $part of $totalParts. Try again in a moment.")
     }
 
     private suspend inline fun <reified T> select(
@@ -520,8 +585,7 @@ class SupabaseRestClient {
     }
 
     private companion object {
-        const val RAVEN_VOICE_TEXT_LIMIT = 1800
-        const val MIN_RAVEN_SENTENCE_TRIM = 600
+        const val RAVEN_VOICE_CHUNK_LIMIT = 650
     }
 
 }

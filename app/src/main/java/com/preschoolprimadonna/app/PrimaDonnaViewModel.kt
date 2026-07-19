@@ -348,15 +348,17 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 )
             }
             runCatching {
-                val audio = withRefreshRetry(authSession) { activeSession ->
-                    api.synthesizeRavenVoice(activeSession, text)
+                val audioChunks = withRefreshRetry(authSession) { activeSession ->
+                    api.synthesizeRavenVoiceChunks(activeSession, text)
                 }
-                val file = withContext(Dispatchers.IO) {
-                    File(getApplication<Application>().cacheDir, "raven_voice_${session.id}.mp3").apply {
-                        writeBytes(audio)
+                val files = withContext(Dispatchers.IO) {
+                    audioChunks.mapIndexed { index, audio ->
+                        File(getApplication<Application>().cacheDir, "raven_voice_${session.id}_$index.mp3").apply {
+                            writeBytes(audio)
+                        }
                     }
                 }
-                startRavenPlayback(session.id, file)
+                startRavenPlayback(session.id, files)
             }.onFailure { throwable ->
                 _state.update {
                     it.copy(
@@ -590,18 +592,51 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         return runCatching { URLDecoder.decode(value, Charsets.UTF_8.name()) }.getOrDefault(value)
     }
 
-    private fun startRavenPlayback(sessionId: String, file: File) {
+    private fun startRavenPlayback(sessionId: String, files: List<File>) {
+        if (files.isEmpty()) {
+            _state.update {
+                it.copy(
+                    voiceLoadingSessionId = null,
+                    voicePlayingSessionId = null,
+                    error = "Raven voice could not generate audio for this strategy."
+                )
+            }
+            return
+        }
         releaseRavenPlayer()
+        _state.update {
+            it.copy(
+                voiceLoadingSessionId = null,
+                voicePlayingSessionId = sessionId,
+                error = null,
+                message = null
+            )
+        }
+        playRavenFile(sessionId, files, index = 0)
+    }
+
+    private fun playRavenFile(sessionId: String, files: List<File>, index: Int) {
+        if (index >= files.size) {
+            releaseRavenPlayer()
+            _state.update { state ->
+                if (state.voicePlayingSessionId == sessionId) {
+                    state.copy(voicePlayingSessionId = null)
+                } else {
+                    state
+                }
+            }
+            return
+        }
+        val file = files[index]
         val player = MediaPlayer().apply {
             setDataSource(file.absolutePath)
-            setOnCompletionListener {
-                releaseRavenPlayer()
-                _state.update { state ->
-                    if (state.voicePlayingSessionId == sessionId) {
-                        state.copy(voicePlayingSessionId = null)
-                    } else {
-                        state
-                    }
+            setOnCompletionListener { completedPlayer ->
+                if (voicePlayer === completedPlayer) {
+                    voicePlayer = null
+                }
+                completedPlayer.release()
+                if (_state.value.voicePlayingSessionId == sessionId) {
+                    playRavenFile(sessionId, files, index + 1)
                 }
             }
             setOnErrorListener { _, _, _ ->
@@ -619,14 +654,6 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             start()
         }
         voicePlayer = player
-        _state.update {
-            it.copy(
-                voiceLoadingSessionId = null,
-                voicePlayingSessionId = sessionId,
-                error = null,
-                message = null
-            )
-        }
     }
 
     private fun releaseRavenPlayer() {
