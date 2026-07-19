@@ -447,6 +447,37 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun reportEliteContent(
+        threadId: String,
+        replyId: String?,
+        reason: String,
+        details: String,
+        reportedTitle: String?,
+        reportedBody: String?,
+        reportedAuthor: String?
+    ) {
+        val session = _state.value.session ?: return
+        val userId = session.user?.id ?: _state.value.user?.id ?: return
+        viewModelScope.launch {
+            runSavingAction("Report sent for compliance review.") {
+                withRefreshRetry(session) { activeSession ->
+                    val activeUserId = activeSession.user?.id ?: userId
+                    api.reportEliteContent(
+                        activeSession,
+                        activeUserId,
+                        threadId,
+                        replyId,
+                        reason,
+                        details,
+                        reportedTitle,
+                        reportedBody,
+                        reportedAuthor
+                    )
+                }
+            }
+        }
+    }
+
     fun flagNativeEndpointTodo(feature: String) {
         _state.update {
             it.copy(

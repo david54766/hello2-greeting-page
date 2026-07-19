@@ -51,6 +51,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Mic
@@ -1034,6 +1035,29 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 onReply = {
                     viewModel.replyEliteThread(selectedThread.id, replyBody)
                     replyBody = ""
+                },
+                onReportThread = { reason, details ->
+                    viewModel.reportEliteContent(
+                        threadId = selectedThread.id,
+                        replyId = null,
+                        reason = reason,
+                        details = details,
+                        reportedTitle = selectedThread.title,
+                        reportedBody = selectedThread.body,
+                        reportedAuthor = selectedThread.authorName
+                    )
+                },
+                onReportReply = { replyId, reason, details ->
+                    val reply = state.eliteReplies.firstOrNull { it.id == replyId }
+                    viewModel.reportEliteContent(
+                        threadId = selectedThread.id,
+                        replyId = replyId,
+                        reason = reason,
+                        details = details,
+                        reportedTitle = selectedThread.title,
+                        reportedBody = reply?.body,
+                        reportedAuthor = reply?.authorName
+                    )
                 },
                 saving = state.saving
             )
@@ -2409,8 +2433,13 @@ private fun EliteThreadDetailPanel(
     onReplyChange: (String) -> Unit,
     onBack: () -> Unit,
     onReply: () -> Unit,
+    onReportThread: (String, String) -> Unit,
+    onReportReply: (String, String, String) -> Unit,
     saving: Boolean
 ) {
+    var reportingThread by rememberSaveable { mutableStateOf(false) }
+    var reportingReplyId by rememberSaveable { mutableStateOf<String?>(null) }
+
     TextButton(onClick = onBack) {
         Text("Back to conversations")
     }
@@ -2433,6 +2462,17 @@ private fun EliteThreadDetailPanel(
             )
             Spacer(Modifier.height(12.dp))
             Text(thread.body.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { reportingThread = true },
+                enabled = !saving,
+                shape = RoundedCornerShape(999.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Report")
+            }
         }
     }
     SectionTitle("Replies")
@@ -2454,6 +2494,16 @@ private fun EliteThreadDetailPanel(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(reply.body.orEmpty())
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(
+                        onClick = { reportingReplyId = reply.id },
+                        enabled = !saving,
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Report")
+                    }
                 }
             }
         }
@@ -2476,6 +2526,87 @@ private fun EliteThreadDetailPanel(
         Spacer(Modifier.width(8.dp))
         Text("Post reply")
     }
+    val activeReplyId = reportingReplyId
+    if (reportingThread || activeReplyId != null) {
+        EliteReportDialog(
+            targetLabel = if (activeReplyId == null) "conversation" else "reply",
+            saving = saving,
+            onDismiss = {
+                reportingThread = false
+                reportingReplyId = null
+            },
+            onSubmit = { reason, details ->
+                if (activeReplyId == null) {
+                    onReportThread(reason, details)
+                } else {
+                    onReportReply(activeReplyId, reason, details)
+                }
+                reportingThread = false
+                reportingReplyId = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun EliteReportDialog(
+    targetLabel: String,
+    saving: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String, String) -> Unit
+) {
+    val reasons = listOf("Compliance concern", "Privacy concern", "Inappropriate content", "Spam", "Other")
+    var selectedReason by rememberSaveable { mutableStateOf(reasons.first()) }
+    var details by rememberSaveable { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "Report $targetLabel",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Send this $targetLabel to the admin team for compliance review.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                SingleLineFilterBar(
+                    options = reasons,
+                    selected = selectedReason,
+                    onSelected = { selectedReason = it }
+                )
+                OutlinedTextField(
+                    value = details,
+                    onValueChange = { details = it },
+                    label = { Text("Details, optional") },
+                    minLines = 3,
+                    shape = AppCardShape,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(selectedReason, details) },
+                enabled = !saving,
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Send report")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !saving) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable

@@ -355,6 +355,40 @@ class SupabaseRestClient {
             .throwIfServerResultError()
     }
 
+    suspend fun reportEliteContent(
+        session: AuthSession,
+        userId: String,
+        threadId: String,
+        replyId: String?,
+        reason: String,
+        details: String,
+        reportedTitle: String?,
+        reportedBody: String?,
+        reportedAuthor: String?
+    ) {
+        val metadata = buildJsonObject {
+            put("thread_id", threadId)
+            put("target", if (replyId.isNullOrBlank()) "thread" else "reply")
+            replyId?.takeIf { it.isNotBlank() }?.let { put("reply_id", it) }
+            put("reason", reason.trim())
+            put("details", details.trim())
+            reportedTitle?.takeIf { it.isNotBlank() }?.let { put("reported_title", it.trim().take(240)) }
+            reportedBody?.takeIf { it.isNotBlank() }?.let { put("reported_body", it.trim().take(1600)) }
+            reportedAuthor?.takeIf { it.isNotBlank() }?.let { put("reported_author", it.trim().take(160)) }
+            put("source", "android")
+        }
+        val body = buildJsonObject {
+            put("user_id", userId)
+            put("event_type", "elite_conversation_report")
+            put("metadata", metadata)
+        }
+        val request = baseRequest("${BuildConfig.SUPABASE_URL}/rest/v1/usage_events", session)
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "return=minimal")
+            .build()
+        execute(request)
+    }
+
     suspend fun updateProfile(
         session: AuthSession,
         userId: String,
