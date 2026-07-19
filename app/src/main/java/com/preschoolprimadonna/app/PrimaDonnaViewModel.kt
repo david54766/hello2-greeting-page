@@ -663,10 +663,20 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun Throwable.readableMessage(): String {
-        return message
-            ?.replace("{", "")
-            ?.replace("}", "")
-            ?.takeIf { it.isNotBlank() }
+        val raw = message.orEmpty()
+        val lower = raw.lowercase()
+        return when {
+            "invalid_credentials" in lower || "invalid login credentials" in lower ->
+                "Invalid email or password. Please try again."
+            "email not confirmed" in lower ->
+                "Please confirm your email before signing in."
+            "rate limit" in lower || "too many requests" in lower ->
+                "Too many attempts. Please wait a moment and try again."
+            else -> raw
+                .replace("{", "")
+                .replace("}", "")
+                .takeIf { it.isNotBlank() }
+        }
             ?: "Something went wrong."
     }
 

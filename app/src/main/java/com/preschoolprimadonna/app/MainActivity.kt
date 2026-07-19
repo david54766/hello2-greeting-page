@@ -211,14 +211,6 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    LaunchedEffect(state.error, state.message) {
-        val notice = state.error ?: state.message
-        if (!notice.isNullOrBlank()) {
-            snackbarHostState.showSnackbar(notice)
-            viewModel.clearNotice()
-        }
-    }
-
     if (state.loading && state.session == null && state.passwordRecoverySession == null) {
         FullScreenLoading()
         return
@@ -238,7 +230,8 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
             state = state,
             onSignIn = viewModel::signIn,
             onSignUp = viewModel::signUp,
-            onResetPassword = viewModel::requestPasswordReset
+            onResetPassword = viewModel::requestPasswordReset,
+            onClearNotice = viewModel::clearNotice
         )
         return
     }
@@ -270,6 +263,13 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
     }
 
     val screen = runCatching { AppScreen.valueOf(selectedScreen) }.getOrDefault(AppScreen.Dashboard)
+    LaunchedEffect(state.error, state.message) {
+        val notice = state.error ?: state.message
+        if (!notice.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(notice)
+            viewModel.clearNotice()
+        }
+    }
     LaunchedEffect(screen) {
         if (screen == AppScreen.Vault) {
             viewModel.refresh()
@@ -371,7 +371,8 @@ private fun LoginScreen(
     state: PrimaDonnaState,
     onSignIn: (String, String) -> Unit,
     onSignUp: (String, String, String) -> Unit,
-    onResetPassword: (String) -> Unit
+    onResetPassword: (String) -> Unit,
+    onClearNotice: () -> Unit
 ) {
     var modeName by rememberSaveable { mutableStateOf(AuthMode.SignIn.name) }
     val mode = runCatching { AuthMode.valueOf(modeName) }.getOrDefault(AuthMode.SignIn)
@@ -388,6 +389,14 @@ private fun LoginScreen(
         password.length >= 8 &&
         password == confirmPassword
     val canReset = !state.loading && email.isNotBlank()
+    val authNotice = state.error ?: state.message
+    val context = LocalContext.current
+
+    LaunchedEffect(authNotice) {
+        if (!authNotice.isNullOrBlank()) {
+            Toast.makeText(context, authNotice, Toast.LENGTH_LONG).show()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -447,10 +456,17 @@ private fun LoginScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    AuthNotice(
+                        message = authNotice,
+                        isError = state.error != null
+                    )
                     if (mode == AuthMode.SignUp) {
                         OutlinedTextField(
                             value = fullName,
-                            onValueChange = { fullName = it },
+                            onValueChange = {
+                                fullName = it
+                                onClearNotice()
+                            },
                             label = { Text("Your name") },
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                             singleLine = true,
@@ -460,7 +476,10 @@ private fun LoginScreen(
                     }
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = {
+                            email = it
+                            onClearNotice()
+                        },
                         label = { Text("Email") },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
@@ -473,7 +492,10 @@ private fun LoginScreen(
                     if (mode != AuthMode.Reset) {
                         OutlinedTextField(
                             value = password,
-                            onValueChange = { password = it },
+                            onValueChange = {
+                                password = it
+                                onClearNotice()
+                            },
                             label = { Text("Password") },
                             keyboardActions = KeyboardActions(
                                 onDone = {
@@ -502,7 +524,10 @@ private fun LoginScreen(
                         if (mode == AuthMode.SignIn) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                 TextButton(
-                                    onClick = { modeName = AuthMode.Reset.name },
+                                    onClick = {
+                                        modeName = AuthMode.Reset.name
+                                        onClearNotice()
+                                    },
                                     enabled = !state.loading
                                 ) {
                                     Text("Forgot password?")
@@ -513,7 +538,10 @@ private fun LoginScreen(
                     if (mode == AuthMode.SignUp) {
                         OutlinedTextField(
                             value = confirmPassword,
-                            onValueChange = { confirmPassword = it },
+                            onValueChange = {
+                                confirmPassword = it
+                                onClearNotice()
+                            },
                             label = { Text("Confirm password") },
                             keyboardActions = KeyboardActions(
                                 onDone = {
@@ -572,7 +600,10 @@ private fun LoginScreen(
                     }
                     if (mode == AuthMode.Reset) {
                         TextButton(
-                            onClick = { modeName = AuthMode.SignIn.name },
+                            onClick = {
+                                modeName = AuthMode.SignIn.name
+                                onClearNotice()
+                            },
                             enabled = !state.loading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -588,6 +619,29 @@ private fun LoginScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun AuthNotice(message: String?, isError: Boolean) {
+    val cleanMessage = message?.trim()?.takeIf { it.isNotBlank() } ?: return
+    val borderColor = if (isError) Color(0xFFE24A8D) else PrimaGold
+    val background = if (isError) Color(0xFFFFF0F7) else Color(0xFFFFF8E8)
+    val textColor = if (isError) Color(0xFF7C123F) else Color(0xFF60440C)
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = background),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, borderColor.copy(alpha = 0.42f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = cleanMessage,
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+        )
     }
 }
 
