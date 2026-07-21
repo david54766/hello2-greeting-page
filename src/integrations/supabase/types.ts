@@ -364,6 +364,39 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          app_version: string | null
+          id: string
+          platform: string
+          privacy_version: string
+          terms_version: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          app_version?: string | null
+          id?: string
+          platform: string
+          privacy_version: string
+          terms_version: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          app_version?: string | null
+          id?: string
+          platform?: string
+          privacy_version?: string
+          terms_version?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           ai_product_updates: boolean
