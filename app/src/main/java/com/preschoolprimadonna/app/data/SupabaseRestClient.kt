@@ -103,6 +103,8 @@ class SupabaseRestClient {
                 buildJsonObject {
                     put("full_name", fullName.trim())
                     put("intended_tier", "essentials")
+                    put("accepted_terms_version", CURRENT_TERMS_VERSION)
+                    put("acknowledged_privacy_version", CURRENT_PRIVACY_VERSION)
                 }
             )
         }
@@ -175,6 +177,39 @@ class SupabaseRestClient {
             params = mapOf("user_id" to "eq.$userId"),
             limit = 1
         ).firstOrNull()
+    }
+
+    suspend fun getLegalAcceptance(session: AuthSession, userId: String): LegalAcceptance? {
+        return select<LegalAcceptance>(
+            session = session,
+            table = "legal_acceptances",
+            select = "id,user_id,terms_version,privacy_version,platform,app_version,accepted_at",
+            params = mapOf(
+                "user_id" to "eq.$userId",
+                "terms_version" to "eq.$CURRENT_TERMS_VERSION",
+                "privacy_version" to "eq.$CURRENT_PRIVACY_VERSION"
+            ),
+            limit = 1
+        ).firstOrNull()
+    }
+
+    suspend fun acceptLegalTerms(session: AuthSession, userId: String) {
+        val body = buildJsonObject {
+            put("user_id", userId)
+            put("terms_version", CURRENT_TERMS_VERSION)
+            put("privacy_version", CURRENT_PRIVACY_VERSION)
+            put("platform", "android")
+            put("app_version", BuildConfig.VERSION_NAME)
+            put("user_agent", "Prima Donna AI Android/${BuildConfig.VERSION_NAME}")
+        }
+        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/legal_acceptances".toHttpUrl().newBuilder()
+            .addQueryParameter("on_conflict", "user_id,terms_version,privacy_version")
+            .build()
+        val request = baseRequest(url.toString(), session)
+            .header("Prefer", "resolution=ignore-duplicates,return=minimal")
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .build()
+        execute(request)
     }
 
     suspend fun isAdmin(session: AuthSession, userId: String): Boolean {

@@ -77,6 +77,24 @@ Use the Android app as the source of truth for recent product decisions, but imp
 - App icon needs extra white/safe padding so it is not clipped by iOS icon masks.
 - Top logo should be larger than the older build and span farther across the top bar, but must not collide with “AI”, refresh, or sign-out actions.
 
+11. Legal consent, privacy, and cookies
+- Use these exact current versions so acceptance is shared across web, Android, and iOS:
+  - Terms: `2026-07-21.v1`
+  - Privacy: `2026-07-21.v1`
+- After restoring or creating a Supabase session, query `public.legal_acceptances` for the signed-in user and both current versions. Do not expose the main workspace until a matching row exists.
+- If acceptance is missing, show a polished rose/white full-screen legal gate with links to:
+  - `https://app.thepreschoolprimadonna.com/terms`
+  - `https://app.thepreschoolprimadonna.com/privacy`
+  - `https://app.thepreschoolprimadonna.com/cookies`
+- Require an unchecked-by-default control reading: “I agree to the Terms of Service and acknowledge the Privacy Policy.” Enable “Agree and continue” only after that affirmative action. Provide “Decline and sign out.”
+- On acceptance, insert into `legal_acceptances`: `user_id`, `terms_version`, `privacy_version`, `platform = 'ios'`, the iOS app version/build, a short device/app user-agent value, and server-generated `accepted_at`. Use the unique conflict key `(user_id,terms_version,privacy_version)` with ignore-duplicate behavior.
+- Require the same Terms/Privacy checkbox before in-app account creation. Auth metadata may include the versions, but metadata is not the authoritative acceptance record; the database row is.
+- Add a Legal and Privacy section in Settings showing the accepted versions and links to Terms, Privacy, and Cookies.
+- Do not display a browser cookie banner over native SwiftUI screens. The Cookie Policy should explain that native screens use secure local storage rather than ordinary browser cookies. Any embedded `WKWebView` content still follows the website cookie choice.
+- Do not request notification, microphone, photo-library, camera, or tracking permission before legal acceptance. Ask at the point where the related feature is used and explain why.
+- Do not add App Tracking Transparency unless the app actually tracks users across other companies' apps or websites. If tracking is later added, implement Apple ATT and do not initialize tracking before authorization.
+- The Supabase migration `20260721090000_create_legal_acceptances.sql` must be applied before distributing this iOS build.
+
 ## QA Acceptance
 
 - Build succeeds in Xcode with no new warnings that indicate broken assets or missing config.
@@ -87,5 +105,15 @@ Use the Android app as the source of truth for recent product decisions, but imp
 - Strategy session creation works and previous strategies load.
 - Raven voice playback works or shows a graceful timeout/progress state.
 - Push permission prompt appears once and Settings preferences are respected.
+- Existing and newly created accounts cannot enter the workspace until the current Terms and Privacy versions are accepted, and acceptance remains valid after reinstall/sign-in on another device.
+- Terms, Privacy, and Cookie links open successfully from the legal gate and Settings.
 - Screenshots are checked on small iPhone, standard iPhone, large iPhone, and iPad landscape for overlap, clipping, and excessive edge-to-edge stretching.
 
+## App Store Compliance Checks Still Required
+
+- Add an in-app account deletion path and a public web deletion-request URL before App Store submission.
+- Elite Circle user-generated content must support reporting content/users, blocking abusive users, filtering/moderation, and timely admin review.
+- Raven AI output must include an in-app “Report response” action for offensive or unsafe generated content.
+- Complete App Store Connect App Privacy answers, include the public Privacy Policy URL, and provide a working reviewer demo account.
+- Confirm all permission usage descriptions are present and match real behavior. Avoid requesting permissions on launch.
+- Have qualified counsel review the Terms, Privacy Policy, retention language, subscription language, and applicable U.S./international privacy requirements before release.

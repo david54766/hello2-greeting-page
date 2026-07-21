@@ -3,10 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  COOKIE_POLICY_VERSION,
-  logCookieConsent,
-} from "@/lib/cookie-consent.functions";
+import { COOKIE_POLICY_VERSION, logCookieConsent } from "@/lib/cookie-consent.functions";
 
 const KEY = "pd_cookie_consent";
 const SESSION_KEY = "pd_cookie_session";
@@ -61,7 +58,9 @@ export function CookieConsent() {
     };
     try {
       localStorage.setItem(KEY, JSON.stringify(payload));
-    } catch {}
+    } catch {
+      // Storage can be unavailable in hardened browsers; the in-memory choice still applies.
+    }
     setVisible(false);
 
     try {
@@ -73,9 +72,7 @@ export function CookieConsent() {
           session_id: getOrCreateSessionId(),
           user_id: data.user?.id,
           user_agent:
-            typeof navigator !== "undefined"
-              ? navigator.userAgent.slice(0, 500)
-              : undefined,
+            typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : undefined,
         },
       });
     } catch {
@@ -90,15 +87,24 @@ export function CookieConsent() {
       <div className="pointer-events-auto mx-auto max-w-3xl rounded-2xl border border-border/70 bg-card/95 backdrop-blur shadow-2xl shadow-primary/10 p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-foreground">
-            We use essential cookies to keep you signed in and a small amount of analytics to improve Raven.{" "}
-            <Link to="/cookies" className="text-primary underline-offset-4 hover:underline">Learn more</Link>.
+            We use essential browser storage for sign-in and security. You can separately allow
+            optional analytics.{" "}
+            <Link to="/cookies" className="text-primary underline-offset-4 hover:underline">
+              Cookie details
+            </Link>
+            .
           </p>
           <div className="flex flex-wrap gap-2 sm:shrink-0">
-            <Button variant="outline" size="sm" className="rounded-full" onClick={() => respond("essential")}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => respond("essential")}
+            >
               Essential only
             </Button>
             <Button size="sm" className="rounded-full" onClick={() => respond("accepted")}>
-              Accept all
+              Allow analytics
             </Button>
           </div>
         </div>

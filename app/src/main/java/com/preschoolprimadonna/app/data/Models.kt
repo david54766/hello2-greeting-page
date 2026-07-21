@@ -4,6 +4,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
+const val CURRENT_TERMS_VERSION = "2026-07-21.v1"
+const val CURRENT_PRIVACY_VERSION = "2026-07-21.v1"
+
 @Serializable
 data class AuthSession(
     @SerialName("access_token") val accessToken: String,
@@ -46,6 +49,17 @@ data class NotificationPreferences(
     @SerialName("ai_product_updates") val aiProductUpdates: Boolean = false,
     @SerialName("push_alerts") val pushAlerts: Boolean = true,
     @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+data class LegalAcceptance(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("terms_version") val termsVersion: String,
+    @SerialName("privacy_version") val privacyVersion: String,
+    val platform: String,
+    @SerialName("app_version") val appVersion: String? = null,
+    @SerialName("accepted_at") val acceptedAt: String? = null
 )
 
 @Serializable
@@ -133,6 +147,7 @@ data class DashboardData(
     val subscription: Subscription? = null,
     val isAdmin: Boolean = false,
     val notificationPreferences: NotificationPreferences = NotificationPreferences(),
+    val legalAcceptance: LegalAcceptance? = null,
     val centers: List<Center> = emptyList(),
     val templates: List<TemplateItem> = emptyList(),
     val videos: List<RavenVideo> = emptyList(),

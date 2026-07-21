@@ -249,6 +249,19 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun acceptLegalTerms() {
+        val session = _state.value.session ?: return
+        val userId = _state.value.user?.id ?: session.user?.id ?: return
+        viewModelScope.launch {
+            runSavingAction("Terms accepted.") {
+                withRefreshRetry(session) { activeSession ->
+                    api.acceptLegalTerms(activeSession, userId)
+                    loadData(activeSession)
+                }
+            }
+        }
+    }
+
     fun completeOnboarding(
         fullName: String,
         businessName: String,
@@ -565,6 +578,9 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                     .getOrNull()
                     ?: NotificationPreferences(userId = userId)
             }
+            val legalAcceptance = async {
+                runCatching { api.getLegalAcceptance(session, userId) }.getOrNull()
+            }
             val centers = async { api.getCenters(session, userId) }
             val templates = async { api.getTemplates(session) }
             val videos = async { api.getVideos(session) }
@@ -584,6 +600,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 subscription = resolvedSubscription,
                 isAdmin = resolvedIsAdmin,
                 notificationPreferences = notificationPreferences.await(),
+                legalAcceptance = legalAcceptance.await(),
                 centers = centers.await(),
                 templates = templates.await(),
                 videos = videos.await(),

@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-export const COOKIE_POLICY_VERSION = "2026-05-20.v1";
+export const COOKIE_POLICY_VERSION = "2026-07-21.v2";
 
 const LogSchema = z.object({
   choice: z.enum(["accepted", "essential"]),

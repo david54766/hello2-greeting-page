@@ -72,6 +72,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -126,9 +127,12 @@ import coil.compose.AsyncImage
 import com.google.firebase.messaging.FirebaseMessaging
 import com.preschoolprimadonna.app.data.Center
 import com.preschoolprimadonna.app.data.CoachingSession
+import com.preschoolprimadonna.app.data.CURRENT_PRIVACY_VERSION
+import com.preschoolprimadonna.app.data.CURRENT_TERMS_VERSION
 import com.preschoolprimadonna.app.data.EliteReply
 import com.preschoolprimadonna.app.data.EliteThread
 import com.preschoolprimadonna.app.data.NotificationPreferences
+import com.preschoolprimadonna.app.data.LegalAcceptance
 import com.preschoolprimadonna.app.data.RavenVideo
 import com.preschoolprimadonna.app.data.Subscription
 import com.preschoolprimadonna.app.data.TemplateItem
@@ -197,6 +201,9 @@ private enum class AuthMode {
 private val AppContentMaxWidth = 760.dp
 private val AppCardShape = RoundedCornerShape(8.dp)
 private const val ELITE_ATTACHMENT_LIMIT = 8
+private const val TERMS_URL = "https://app.thepreschoolprimadonna.com/terms"
+private const val PRIVACY_URL = "https://app.thepreschoolprimadonna.com/privacy"
+private const val COOKIE_URL = "https://app.thepreschoolprimadonna.com/cookies"
 
 private fun Modifier.appContentWidth(): Modifier =
     this
@@ -242,8 +249,17 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
         return
     }
 
-    LaunchedEffect(state.session.accessToken, state.user?.id) {
-        if (state.user != null) {
+    if (!state.loading && state.data.legalAcceptance == null) {
+        LegalConsentScreen(
+            state = state,
+            onAccept = viewModel::acceptLegalTerms,
+            onSignOut = viewModel::signOut
+        )
+        return
+    }
+
+    LaunchedEffect(state.session.accessToken, state.user?.id, state.data.legalAcceptance?.id) {
+        if (state.user != null && state.data.legalAcceptance != null) {
             if (
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -388,12 +404,14 @@ private fun LoginScreen(
     var confirmPassword by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var legalAccepted by rememberSaveable { mutableStateOf(false) }
     val canSignIn = !state.loading && email.isNotBlank() && password.isNotBlank()
     val canSignUp = !state.loading &&
         fullName.isNotBlank() &&
         email.isNotBlank() &&
         password.length >= 8 &&
-        password == confirmPassword
+        password == confirmPassword &&
+        legalAccepted
     val canReset = !state.loading && email.isNotBlank()
     val authNotice = state.error ?: state.message
     val context = LocalContext.current
@@ -574,6 +592,31 @@ private fun LoginScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
+                    if (mode == AuthMode.SignUp) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Checkbox(
+                                    checked = legalAccepted,
+                                    onCheckedChange = { legalAccepted = it }
+                                )
+                                Text(
+                                    text = "I agree to the Terms of Service and acknowledge the Privacy Policy.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(top = 12.dp)
+                                )
+                            }
+                            LegalPolicyLinks(compact = true)
+                        }
+                    }
                     Button(
                         onClick = {
                             when (mode) {
@@ -648,6 +691,127 @@ private fun AuthNotice(message: String?, isError: Boolean) {
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
         )
+    }
+}
+
+@Composable
+private fun LegalConsentScreen(
+    state: PrimaDonnaState,
+    onAccept: () -> Unit,
+    onSignOut: () -> Unit
+) {
+    var agreed by rememberSaveable { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFFFFF8FB), Color(0xFFFFEEF6), Color(0xFFFFFBF8))
+                )
+            )
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .appContentWidth()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            BrandMark(compact = false)
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(1.dp, Color(0xFFF0DCE6)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = PrimaPink,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Eyebrow("Legal update")
+                    Text(
+                        "Review and continue.",
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontFamily = FontFamily.Serif,
+                            fontSize = 32.sp
+                        )
+                    )
+                    Text(
+                        "Before using Prima Donna AI, review the current Terms and Privacy Policy. Native screens do not use browser cookies; the Cookie Policy applies to the website and any web pages opened from the app.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    LegalPolicyLinks()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                                RoundedCornerShape(14.dp)
+                            )
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Checkbox(checked = agreed, onCheckedChange = { agreed = it })
+                        Text(
+                            "I agree to the Terms of Service and acknowledge the Privacy Policy.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .padding(start = 6.dp, top = 12.dp)
+                                .clickable { agreed = !agreed }
+                        )
+                    }
+                    AuthNotice(message = state.error, isError = true)
+                    Button(
+                        onClick = onAccept,
+                        enabled = agreed && !state.saving,
+                        shape = RoundedCornerShape(999.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Text(if (state.saving) "Saving acceptance..." else "Agree and continue")
+                    }
+                    TextButton(
+                        onClick = onSignOut,
+                        enabled = !state.saving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Decline and sign out")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LegalPolicyLinks(compact: Boolean = false) {
+    val context = LocalContext.current
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        TextButton(onClick = { context.openUrl(TERMS_URL) }) {
+            Text("Terms", fontSize = if (compact) 12.sp else 14.sp)
+        }
+        TextButton(onClick = { context.openUrl(PRIVACY_URL) }) {
+            Text("Privacy", fontSize = if (compact) 12.sp else 14.sp)
+        }
+        TextButton(onClick = { context.openUrl(COOKIE_URL) }) {
+            Text("Cookies", fontSize = if (compact) 12.sp else 14.sp)
+        }
     }
 }
 
@@ -1517,6 +1681,9 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
             onSave = viewModel::saveNotificationPreferences
         )
 
+        SectionTitle("Legal and privacy")
+        LegalSettingsCard(state.data.legalAcceptance)
+
         SectionTitle("Your centers")
         if (state.data.centers.isEmpty()) {
             EmptyState("No centers yet. Add your first center.")
@@ -1674,6 +1841,34 @@ private fun MembershipStatusCard(subscription: Subscription?) {
                 MetaBadge(status, tone = if (status.equals("Active", ignoreCase = true)) BadgeTone.Pink else BadgeTone.Neutral)
                 MetaBadge(period, tone = BadgeTone.Neutral)
             }
+        }
+    }
+}
+
+@Composable
+private fun LegalSettingsCard(acceptance: LegalAcceptance?) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = AppCardShape,
+        border = appCardBorder(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                "Current agreement",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                if (acceptance == null) {
+                    "Acceptance is required before workspace access."
+                } else {
+                    "Terms $CURRENT_TERMS_VERSION and Privacy $CURRENT_PRIVACY_VERSION accepted."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LegalPolicyLinks()
         }
     }
 }
