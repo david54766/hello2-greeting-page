@@ -17,13 +17,11 @@ test("rejects keyboard noise without calling OpenAI", async () => {
   assert.equal(called, false);
 });
 
-test("rejects generic filler locally", () => {
-  const result = screenObviousPromptProblems("help me");
-  assert.equal(result?.status, "needs_clarification");
-  assert.match(result?.message ?? "", /more context/i);
-
-  const broadQuestion = screenObviousPromptProblems("How do I improve enrollment?");
-  assert.equal(broadQuestion, null);
+test("local screening allows vague, short, and off-topic wording", () => {
+  assert.equal(screenObviousPromptProblems("help me"), null);
+  assert.equal(screenObviousPromptProblems("What should I do?"), null);
+  assert.equal(screenObviousPromptProblems("How do I improve enrollment?"), null);
+  assert.equal(screenObviousPromptProblems("What color should I paint my kitchen?"), null);
 });
 
 test("allows a broad but legitimate childcare business question", async () => {
@@ -31,27 +29,23 @@ test("allows a broad but legitimate childcare business question", async () => {
     "How do I improve enrollment?",
     "revenue",
     "test",
-    classifierResponse("actionable", "This is a clear, in-scope enrollment strategy question.", null),
+    classifierResponse("actionable", "The text has a clear semantic interpretation."),
   );
 
   assert.equal(result.status, "actionable");
   assert.equal(result.message, null);
 });
 
-test("requires clarification only when the issue has no identifiable subject", async () => {
+test("allows a subjectless but understandable question", async () => {
   const result = await assessCoachingPrompt(
     "What should I do about the problem?",
     "ceo",
     "test",
-    classifierResponse(
-      "needs_clarification",
-      "The prompt refers to a problem but does not identify it.",
-      "What specific problem are you trying to solve?",
-    ),
+    classifierResponse("actionable", "The question is vague but understandable."),
   );
 
-  assert.equal(result.status, "needs_clarification");
-  assert.match(result.message ?? "", /what specific problem/i);
+  assert.equal(result.status, "actionable");
+  assert.equal(result.message, null);
 });
 
 test("allows a concise prompt with concrete facts and a decision", async () => {
@@ -62,7 +56,6 @@ test("allows a concise prompt with concrete facts and a decision", async () => {
     classifierResponse(
       "actionable",
       "The prompt provides a measurable decline, timeframe, and stable tour volume.",
-      null,
     ),
   );
 
@@ -70,16 +63,28 @@ test("allows a concise prompt with concrete facts and a decision", async () => {
   assert.equal(result.message, null);
 });
 
-test("rejects coherent requests outside childcare business strategy", async () => {
+test("allows coherent requests regardless of topic", async () => {
   const result = await assessCoachingPrompt(
     "What color should I paint my kitchen cabinets?",
     "ceo",
     "test",
-    classifierResponse("out_of_scope", "The request concerns residential interior design.", null),
+    classifierResponse("actionable", "The request is coherent."),
   );
 
-  assert.equal(result.status, "out_of_scope");
-  assert.match(result.message ?? "", /childcare business strategy/i);
+  assert.equal(result.status, "actionable");
+  assert.equal(result.message, null);
+});
+
+test("rejects semantic word salad", async () => {
+  const result = await assessCoachingPrompt(
+    "banana staffing river 123 sparkle",
+    "ceo",
+    "test",
+    classifierResponse("nonsense", "The words do not form a decipherable statement or request."),
+  );
+
+  assert.equal(result.status, "nonsense");
+  assert.match(result.message ?? "", /could not understand/i);
 });
 
 test("fails closed when the quality service is unavailable", async () => {
@@ -97,7 +102,6 @@ test("fails closed when the quality service is unavailable", async () => {
 function classifierResponse(
   status: CoachingPromptStatus,
   reason: string,
-  clarificationQuestion: string | null,
 ) {
   return async () =>
     new Response(
@@ -111,7 +115,6 @@ function classifierResponse(
                     arguments: JSON.stringify({
                       status,
                       reason,
-                      clarification_question: clarificationQuestion,
                     }),
                   },
                 },
