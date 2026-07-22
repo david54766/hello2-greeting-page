@@ -23,23 +23,35 @@ test("rejects generic filler locally", () => {
   assert.match(result?.message ?? "", /more context/i);
 
   const broadQuestion = screenObviousPromptProblems("How do I improve enrollment?");
-  assert.equal(broadQuestion?.status, "needs_clarification");
+  assert.equal(broadQuestion, null);
 });
 
-test("requires clarification for a recognizable but vague topic", async () => {
+test("allows a broad but legitimate childcare business question", async () => {
   const result = await assessCoachingPrompt(
-    "Our enrollment seems low. What should I change?",
+    "How do I improve enrollment?",
     "revenue",
+    "test",
+    classifierResponse("actionable", "This is a clear, in-scope enrollment strategy question.", null),
+  );
+
+  assert.equal(result.status, "actionable");
+  assert.equal(result.message, null);
+});
+
+test("requires clarification only when the issue has no identifiable subject", async () => {
+  const result = await assessCoachingPrompt(
+    "What should I do about the problem?",
+    "ceo",
     "test",
     classifierResponse(
       "needs_clarification",
-      "No current enrollment, capacity, funnel stage, or recent trend was supplied.",
-      "What is your current enrollment versus capacity, and where are prospects dropping off: inquiry, tour, or close?",
+      "The prompt refers to a problem but does not identify it.",
+      "What specific problem are you trying to solve?",
     ),
   );
 
   assert.equal(result.status, "needs_clarification");
-  assert.match(result.message ?? "", /current enrollment versus capacity/i);
+  assert.match(result.message ?? "", /what specific problem/i);
 });
 
 test("allows a concise prompt with concrete facts and a decision", async () => {
