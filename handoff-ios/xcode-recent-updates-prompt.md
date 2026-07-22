@@ -33,6 +33,7 @@ Use the Android app as the source of truth for recent product decisions, but imp
 - If there are multiple centers, allow horizontal paging/side scroll between center snapshots.
 - Show Pro or Elite badge near the Center snapshot title only for Pro/Elite users. Essentials does not need a badge.
 - Include Today’s strategic recommendation with Raven daily brief and playable strategic recommendation video when available.
+- Tapping Raven Daily Brief must open a native in-app detail page with the full brief and inline video playback. Do not open Safari or an external browser.
 - Ensure Home data comes from the same live Supabase/server sources as web/Android.
 
 5. Coaching Engine / Strategy
@@ -98,7 +99,7 @@ Use the Android app as the source of truth for recent product decisions, but imp
 12. Coaching prompt quality gate
 - Treat `mobile-api` as authoritative for prompt quality. A coaching response with `ok = false` and `code = 'prompt_needs_clarification'` is not a generated strategy and must never open or save a strategy result.
 - Show the returned `error` as a concise inline notice near the prompt. Preserve the user's text so they can add the missing situation, goal, constraint, or metric and resubmit.
-- Reject only obvious empty, subjectless, or keyboard-smash prompts locally before making the network request. Allow coherent childcare-business questions even when they are broad or do not include metrics. Do not duplicate the full semantic classifier in Swift.
+- Reject only truly nonsensical input, such as keyboard smash or word salad with no reasonable semantic interpretation. Do not block vague, short, subjectless, broad, unsupported, or off-topic wording. When uncertain, allow it. Do not duplicate the semantic detector in Swift.
 - Do not add rejected prompts to previous strategies, trigger Raven voice, or show a success confirmation.
 
 ## QA Acceptance
@@ -112,7 +113,7 @@ Use the Android app as the source of truth for recent product decisions, but imp
 - Raven voice playback works or shows a graceful timeout/progress state.
 - Push permission prompt appears once and Settings preferences are respected.
 - Existing and newly created accounts cannot enter the workspace until the current Terms and Privacy versions are accepted, and acceptance remains valid after reinstall/sign-in on another device.
-- Subjectless, incoherent, nonsense, and out-of-scope coaching prompts return a clarification notice, create no strategy session, and trigger no Raven voice playback. Broad but coherent childcare-business questions must still generate a strategy.
+- Only genuinely nonsensical prompts return a rewording notice, create no strategy session, and trigger no Raven voice playback. Vague, short, subjectless, broad, unsupported, and off-topic prompts must still generate a response.
 - Terms, Privacy, and Cookie links open successfully from the legal gate and Settings.
 - Screenshots are checked on small iPhone, standard iPhone, large iPhone, and iPad landscape for overlap, clipping, and excessive edge-to-edge stretching.
 

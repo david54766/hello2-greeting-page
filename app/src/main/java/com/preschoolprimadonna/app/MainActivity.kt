@@ -21,6 +21,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -47,6 +48,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.Send
@@ -94,6 +97,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -123,6 +127,10 @@ import androidx.core.net.toUri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.compose.material3.Player as MediaPlayer
 import coil.compose.AsyncImage
 import com.google.firebase.messaging.FirebaseMessaging
 import com.preschoolprimadonna.app.data.Center
@@ -1155,6 +1163,7 @@ private fun OnboardingScreen(
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
+    var dailyBriefOpen by rememberSaveable { mutableStateOf(false) }
     val data = state.data
     val centers = data.centers
     val firstPlayableVideo = data.videos.firstOrNull { it.storagePath != null }
@@ -1164,6 +1173,16 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
     val snapshotCenters = centers.takeIf { it.isNotEmpty() } ?: listOf(
         Center(name = data.profile?.businessName ?: "Your center")
     )
+
+    if (dailyBriefOpen) {
+        RavenDailyBriefScreen(
+            recommendation = recommendation ?: "Open the latest published Raven insight from your library.",
+            video = firstPlayableVideo,
+            viewModel = viewModel,
+            onBack = { dailyBriefOpen = false }
+        )
+        return
+    }
 
     FixedScreen {
         Row(
@@ -1200,7 +1219,7 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
         DailyRecommendationCard(
             recommendation = recommendation ?: "Open the latest published Raven insight from your library.",
             video = firstPlayableVideo,
-            viewModel = viewModel
+            onOpen = { dailyBriefOpen = true }
         )
     }
 }
@@ -2401,15 +2420,15 @@ private fun FeatureCard(title: String, body: String) {
 private fun DailyRecommendationCard(
     recommendation: String,
     video: RavenVideo?,
-    viewModel: PrimaDonnaViewModel
+    onOpen: () -> Unit
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = AppCardShape,
         border = appCardBorder(),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -2424,38 +2443,133 @@ private fun DailyRecommendationCard(
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )
-            video?.storagePath?.let { path ->
-                val buttonShape = RoundedCornerShape(999.dp)
-                Row(
-                    modifier = Modifier
-                        .height(54.dp)
-                        .clip(buttonShape)
-                        .border(
-                            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.72f)),
-                            buttonShape
-                        )
-                        .clickable {
-                            scope.launch {
-                                runCatching { viewModel.signedUrl("raven-videos", path) }
-                                    .onSuccess { context.openUrl(it) }
-                                    .onFailure { Toast.makeText(context, it.message ?: "Video failed.", Toast.LENGTH_LONG).show() }
-                            }
-                        }
-                        .padding(horizontal = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = if (video?.storagePath != null) "Open brief and video" else "Open daily brief",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = PrimaPink
+                )
+                Icon(
+                    Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = null,
+                    tint = PrimaPink
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RavenDailyBriefScreen(
+    recommendation: String,
+    video: RavenVideo?,
+    viewModel: PrimaDonnaViewModel,
+    onBack: () -> Unit
+) {
+    var videoUrl by remember(video?.storagePath) { mutableStateOf<String?>(null) }
+    var videoLoading by remember(video?.storagePath) { mutableStateOf(video?.storagePath != null) }
+    var videoError by remember(video?.storagePath) { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(video?.storagePath) {
+        val path = video?.storagePath
+        if (path == null) {
+            videoLoading = false
+            return@LaunchedEffect
+        }
+        runCatching { viewModel.signedUrl("raven-videos", path) }
+            .onSuccess { videoUrl = it }
+            .onFailure { videoError = it.message ?: "This video is temporarily unavailable." }
+        videoLoading = false
+    }
+
+    ScreenList {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back to Home")
+            }
+            Spacer(Modifier.width(4.dp))
+            Eyebrow("Daily brief")
+        }
+        ScreenHeading("Raven daily brief")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = AppCardShape,
+            border = appCardBorder(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = recommendation,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 26.sp,
+                modifier = Modifier.padding(18.dp)
+            )
+        }
+
+        if (video != null) {
+            SectionTitle(video.title ?: "Raven insight")
+            val metadata = listOfNotNull(
+                video.category,
+                video.durationSeconds?.let { formatDuration(it) }
+            ).joinToString(" - ")
+            if (metadata.isNotBlank()) {
+                Text(
+                    text = metadata,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                shape = AppCardShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.PlayArrow, contentDescription = null)
-                    Text(
-                        text = video.title ?: "Play Raven insight",
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    when {
+                        videoLoading -> CircularProgressIndicator(color = Color.White)
+                        videoUrl != null -> InAppVideoPlayer(videoUrl!!)
+                        else -> Text(
+                            text = videoError ?: "This video is not available.",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(18.dp)
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+@UnstableApi
+@Composable
+private fun InAppVideoPlayer(url: String) {
+    val context = LocalContext.current
+    val player = remember(url) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            prepare()
+        }
+    }
+    DisposableEffect(player) {
+        onDispose { player.release() }
+    }
+    MediaPlayer(
+        player = player,
+        modifier = Modifier.fillMaxSize()
+    )
 }
 
 @Composable
