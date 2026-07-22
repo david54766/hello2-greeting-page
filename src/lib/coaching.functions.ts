@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assessCoachingPrompt } from "../../supabase/functions/_shared/coaching-input-quality";
 
 export const getCoachingHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -88,6 +89,25 @@ export const runCoaching = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+
+    let quality;
+    try {
+      quality = await assessCoachingPrompt(data.prompt, data.mode, apiKey);
+    } catch (error) {
+      console.error("OpenAI coaching quality check error", error);
+      return {
+        error: "Raven could not validate that question. Please add specific context and try again." as const,
+        response: null,
+        code: "prompt_quality_unavailable" as const,
+      };
+    }
+    if (quality.status !== "actionable") {
+      return {
+        error: quality.message ?? "Raven needs more context before giving you a strategy.",
+        response: null,
+        code: "prompt_needs_clarification" as const,
+      };
+    }
 
     const [{ data: profile }, { data: centers }, { data: revenueProfile }] = await Promise.all([
       supabase.from("profiles").select("full_name, business_name, state").eq("id", userId).maybeSingle(),
