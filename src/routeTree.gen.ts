@@ -9,76 +9,37 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as AdminLoginRouteImport } from './routes/admin-login'
-import { Route as ApplyEliteRouteImport } from './routes/apply-elite'
-import { Route as CookiesRouteImport } from './routes/cookies'
-import { Route as DeleteAccountRouteImport } from './routes/delete-account'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
-import { Route as AuthenticatedEliteGateRouteImport } from './routes/_authenticated/_elite-gate'
-import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
-import { Route as AuthenticatedCoachRouteImport } from './routes/_authenticated/coach'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as ApplyEliteRouteImport } from './routes/apply-elite'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsStreamRouteImport } from './routes/api/tts-stream'
-import { Route as AuthenticatedAdminAdminRouteImport } from './routes/_authenticated/_admin/admin'
-import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin-analytics'
-import { Route as AuthenticatedAdminAdminCookieLogRouteImport } from './routes/_authenticated/_admin/admin-cookie-log'
-import { Route as AuthenticatedEliteGateEliteCircleRouteImport } from './routes/_authenticated/_elite-gate.elite-circle'
-import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
+import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCoachRouteImport } from './routes/_authenticated/coach'
+import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
+import { Route as AuthenticatedEliteGateRouteImport } from './routes/_authenticated/_elite-gate'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
+import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
+import { Route as AuthenticatedEliteGateEliteCircleRouteImport } from './routes/_authenticated/_elite-gate.elite-circle'
+import { Route as AuthenticatedAdminAdminCookieLogRouteImport } from './routes/_authenticated/_admin/admin-cookie-log'
+import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin-analytics'
+import { Route as AuthenticatedAdminAdminRouteImport } from './routes/_authenticated/_admin/admin'
 import { Route as ApiPublicHooksGenerateDailyRecommendationsRouteImport } from './routes/api/public/hooks/generate-daily-recommendations'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin-login',
-  path: '/admin-login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApplyEliteRoute = ApplyEliteRouteImport.update({
-  id: '/apply-elite',
-  path: '/apply-elite',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CookiesRoute = CookiesRouteImport.update({
-  id: '/cookies',
-  path: '/cookies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeleteAccountRoute = DeleteAccountRouteImport.update({
-  id: '/delete-account',
-  path: '/delete-account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -86,37 +47,58 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/_admin',
-  getParentRoute: () => AuthenticatedRoute,
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedEliteGateRoute = AuthenticatedEliteGateRouteImport.update({
-  id: '/_elite-gate',
-  getParentRoute: () => AuthenticatedRoute,
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => AuthenticatedRoute,
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedCoachRoute = AuthenticatedCoachRouteImport.update({
-  id: '/coach',
-  path: '/coach',
-  getParentRoute: () => AuthenticatedRoute,
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRoute,
+const ApplyEliteRoute = ApplyEliteRouteImport.update({
+  id: '/apply-elite',
+  path: '/apply-elite',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedEliteRoute = AuthenticatedEliteRouteImport.update({
-  id: '/elite',
-  path: '/elite',
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTtsStreamRoute = ApiTtsStreamRouteImport.update({
+  id: '/api/tts-stream',
+  path: '/api/tts-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -124,26 +106,49 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
+const AuthenticatedEliteRoute = AuthenticatedEliteRouteImport.update({
+  id: '/elite',
+  path: '/elite',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const ApiTtsStreamRoute = ApiTtsStreamRouteImport.update({
-  id: '/api/tts-stream',
-  path: '/api/tts-stream',
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCoachRoute = AuthenticatedCoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEliteGateRoute = AuthenticatedEliteGateRouteImport.update({
+  id: '/_elite-gate',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe-webhook',
+  path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminAdminRoute = AuthenticatedAdminAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedAdminRoute,
+const ApiPublicEliteApplyRoute = ApiPublicEliteApplyRouteImport.update({
+  id: '/api/public/elite-apply',
+  path: '/api/public/elite-apply',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminAdminAnalyticsRoute =
-  AuthenticatedAdminAdminAnalyticsRouteImport.update({
-    id: '/admin-analytics',
-    path: '/admin-analytics',
-    getParentRoute: () => AuthenticatedAdminRoute,
+const AuthenticatedEliteGateEliteCircleRoute =
+  AuthenticatedEliteGateEliteCircleRouteImport.update({
+    id: '/elite-circle',
+    path: '/elite-circle',
+    getParentRoute: () => AuthenticatedEliteGateRoute,
   } as any)
 const AuthenticatedAdminAdminCookieLogRoute =
   AuthenticatedAdminAdminCookieLogRouteImport.update({
@@ -151,21 +156,16 @@ const AuthenticatedAdminAdminCookieLogRoute =
     path: '/admin-cookie-log',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedEliteGateEliteCircleRoute =
-  AuthenticatedEliteGateEliteCircleRouteImport.update({
-    id: '/elite-circle',
-    path: '/elite-circle',
-    getParentRoute: () => AuthenticatedEliteGateRoute,
+const AuthenticatedAdminAdminAnalyticsRoute =
+  AuthenticatedAdminAdminAnalyticsRouteImport.update({
+    id: '/admin-analytics',
+    path: '/admin-analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const ApiPublicEliteApplyRoute = ApiPublicEliteApplyRouteImport.update({
-  id: '/api/public/elite-apply',
-  path: '/api/public/elite-apply',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
-  id: '/api/public/stripe-webhook',
-  path: '/api/public/stripe-webhook',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAdminAdminRoute = AuthenticatedAdminAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const ApiPublicHooksGenerateDailyRecommendationsRoute =
   ApiPublicHooksGenerateDailyRecommendationsRouteImport.update({
@@ -360,67 +360,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-login': {
-      id: '/admin-login'
-      path: '/admin-login'
-      fullPath: '/admin-login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/apply-elite': {
-      id: '/apply-elite'
-      path: '/apply-elite'
-      fullPath: '/apply-elite'
-      preLoaderRoute: typeof ApplyEliteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cookies': {
-      id: '/cookies'
-      path: '/cookies'
-      fullPath: '/cookies'
-      preLoaderRoute: typeof CookiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/delete-account': {
-      id: '/delete-account'
-      path: '/delete-account'
-      fullPath: '/delete-account'
-      preLoaderRoute: typeof DeleteAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -430,53 +374,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/_admin': {
-      id: '/_authenticated/_admin'
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/apply-elite': {
+      id: '/apply-elite'
+      path: '/apply-elite'
+      fullPath: '/apply-elite'
+      preLoaderRoute: typeof ApplyEliteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/_elite-gate': {
-      id: '/_authenticated/_elite-gate'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedEliteGateRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/billing': {
-      id: '/_authenticated/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof AuthenticatedBillingRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/api/tts-stream': {
+      id: '/api/tts-stream'
+      path: '/api/tts-stream'
+      fullPath: '/api/tts-stream'
+      preLoaderRoute: typeof ApiTtsStreamRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/coach': {
-      id: '/_authenticated/coach'
-      path: '/coach'
-      fullPath: '/coach'
-      preLoaderRoute: typeof AuthenticatedCoachRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/elite': {
-      id: '/_authenticated/elite'
-      path: '/elite'
-      fullPath: '/elite'
-      preLoaderRoute: typeof AuthenticatedEliteRouteImport
+    '/_authenticated/templates': {
+      id: '/_authenticated/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings': {
@@ -486,25 +458,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/templates': {
-      id: '/_authenticated/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
+    '/_authenticated/elite': {
+      id: '/_authenticated/elite'
+      path: '/elite'
+      fullPath: '/elite'
+      preLoaderRoute: typeof AuthenticatedEliteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/tts-stream': {
-      id: '/api/tts-stream'
-      path: '/api/tts-stream'
-      fullPath: '/api/tts-stream'
-      preLoaderRoute: typeof ApiTtsStreamRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/coach': {
+      id: '/_authenticated/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof AuthenticatedCoachRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/billing': {
+      id: '/_authenticated/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AuthenticatedBillingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/_elite-gate': {
+      id: '/_authenticated/_elite-gate'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedEliteGateRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/_admin': {
+      id: '/_authenticated/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/stripe-webhook': {
+      id: '/api/public/stripe-webhook'
+      path: '/api/public/stripe-webhook'
+      fullPath: '/api/public/stripe-webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/_admin/admin': {
-      id: '/_authenticated/_admin/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminAdminRouteImport
+    '/api/public/elite-apply': {
+      id: '/api/public/elite-apply'
+      path: '/api/public/elite-apply'
+      fullPath: '/api/public/elite-apply'
+      preLoaderRoute: typeof ApiPublicEliteApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_elite-gate/elite-circle': {
+      id: '/_authenticated/_elite-gate/elite-circle'
+      path: '/elite-circle'
+      fullPath: '/elite-circle'
+      preLoaderRoute: typeof AuthenticatedEliteGateEliteCircleRouteImport
+      parentRoute: typeof AuthenticatedEliteGateRoute
+    }
+    '/_authenticated/_admin/admin-cookie-log': {
+      id: '/_authenticated/_admin/admin-cookie-log'
+      path: '/admin-cookie-log'
+      fullPath: '/admin-cookie-log'
+      preLoaderRoute: typeof AuthenticatedAdminAdminCookieLogRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/_admin/admin-analytics': {
@@ -514,33 +535,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/_admin/admin-cookie-log': {
-      id: '/_authenticated/_admin/admin-cookie-log'
-      path: '/admin-cookie-log'
-      fullPath: '/admin-cookie-log'
-      preLoaderRoute: typeof AuthenticatedAdminAdminCookieLogRouteImport
+    '/_authenticated/_admin/admin': {
+      id: '/_authenticated/_admin/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminAdminRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/_elite-gate/elite-circle': {
-      id: '/_authenticated/_elite-gate/elite-circle'
-      path: '/elite-circle'
-      fullPath: '/elite-circle'
-      preLoaderRoute: typeof AuthenticatedEliteGateEliteCircleRouteImport
-      parentRoute: typeof AuthenticatedEliteGateRoute
-    }
-    '/api/public/elite-apply': {
-      id: '/api/public/elite-apply'
-      path: '/api/public/elite-apply'
-      fullPath: '/api/public/elite-apply'
-      preLoaderRoute: typeof ApiPublicEliteApplyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/stripe-webhook': {
-      id: '/api/public/stripe-webhook'
-      path: '/api/public/stripe-webhook'
-      fullPath: '/api/public/stripe-webhook'
-      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/generate-daily-recommendations': {
       id: '/api/public/hooks/generate-daily-recommendations'
