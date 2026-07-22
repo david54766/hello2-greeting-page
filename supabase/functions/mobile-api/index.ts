@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.106.0';
+import { assessCoachingPrompt } from '../_shared/coaching-input-quality.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,6 +123,25 @@ async function runCoaching({ supabase, userId }: MobileContext, data: Record<str
   const prompt = readString(data.prompt, 'prompt', 3, 4000);
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) return { ok: false, error: 'AI strategy key is not configured.' };
+
+  let quality;
+  try {
+    quality = await assessCoachingPrompt(prompt, mode, apiKey);
+  } catch (error) {
+    console.error('OpenAI coaching quality check error', error);
+    return {
+      ok: false,
+      code: 'prompt_quality_unavailable',
+      error: 'Raven could not validate that question. Please add specific context and try again.',
+    };
+  }
+  if (quality.status !== 'actionable') {
+    return {
+      ok: false,
+      code: 'prompt_needs_clarification',
+      error: quality.message ?? 'Raven needs more context before giving you a strategy.',
+    };
+  }
 
   const [{ data: profile }, { data: centers }, { data: revenueProfile }] = await Promise.all([
     supabase.from('profiles').select('full_name, business_name, state').eq('id', userId).maybeSingle(),

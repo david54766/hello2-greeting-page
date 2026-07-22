@@ -95,6 +95,12 @@ Use the Android app as the source of truth for recent product decisions, but imp
 - Do not add App Tracking Transparency unless the app actually tracks users across other companies' apps or websites. If tracking is later added, implement Apple ATT and do not initialize tracking before authorization.
 - The Supabase migration `20260721090000_create_legal_acceptances.sql` must be applied before distributing this iOS build.
 
+12. Coaching prompt quality gate
+- Treat `mobile-api` as authoritative for prompt quality. A coaching response with `ok = false` and `code = 'prompt_needs_clarification'` is not a generated strategy and must never open or save a strategy result.
+- Show the returned `error` as a concise inline notice near the prompt. Preserve the user's text so they can add the missing situation, goal, constraint, or metric and resubmit.
+- Reject obvious empty, generic, or keyboard-smash prompts locally before making the network request, but do not duplicate the full semantic classifier in Swift.
+- Do not add rejected prompts to previous strategies, trigger Raven voice, or show a success confirmation.
+
 ## QA Acceptance
 
 - Build succeeds in Xcode with no new warnings that indicate broken assets or missing config.
@@ -106,6 +112,7 @@ Use the Android app as the source of truth for recent product decisions, but imp
 - Raven voice playback works or shows a graceful timeout/progress state.
 - Push permission prompt appears once and Settings preferences are respected.
 - Existing and newly created accounts cannot enter the workspace until the current Terms and Privacy versions are accepted, and acceptance remains valid after reinstall/sign-in on another device.
+- Vague, incoherent, nonsense, and out-of-scope coaching prompts return a clarification notice, create no strategy session, and trigger no Raven voice playback.
 - Terms, Privacy, and Cookie links open successfully from the legal gate and Settings.
 - Screenshots are checked on small iPhone, standard iPhone, large iPhone, and iPad landscape for overlap, clipping, and excessive edge-to-edge stretching.
 
