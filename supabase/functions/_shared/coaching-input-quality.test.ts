@@ -22,6 +22,10 @@ test("local screening allows vague, short, and off-topic wording", () => {
   assert.equal(screenObviousPromptProblems("What should I do?"), null);
   assert.equal(screenObviousPromptProblems("How do I improve enrollment?"), null);
   assert.equal(screenObviousPromptProblems("What color should I paint my kitchen?"), null);
+  assert.equal(screenObviousPromptProblems("Tell me about marketing"), null);
+  assert.equal(screenObviousPromptProblems("I feel overwhelmed"), null);
+  assert.equal(screenObviousPromptProblems("Why are my teachers always late?"), null);
+  assert.equal(screenObviousPromptProblems("stuff"), null);
 });
 
 test("allows a broad but legitimate childcare business question", async () => {
