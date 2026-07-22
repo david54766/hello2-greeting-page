@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      account_deletion_requests: {
-        Row: {
-          completed_at: string | null
-          id: string
-          platform: string
-          requested_at: string
-          status: string
-          user_id: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          id?: string
-          platform: string
-          requested_at?: string
-          status?: string
-          user_id?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          id?: string
-          platform?: string
-          requested_at?: string
-          status?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       centers: {
         Row: {
           ages_served: string | null
