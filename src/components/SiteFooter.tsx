@@ -13,6 +13,7 @@ export function SiteFooter() {
           <Link to="/privacy" className="hover:text-primary transition">Privacy Policy</Link>
           <Link to="/terms" className="hover:text-primary transition">Terms of Service</Link>
           <Link to="/cookies" className="hover:text-primary transition">Cookie Policy</Link>
+          <Link to="/delete-account" className="hover:text-primary transition">Delete Account</Link>
         </nav>
       </div>
     </footer>

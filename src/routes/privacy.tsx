@@ -20,7 +20,7 @@ function PrivacyPage() {
         <article className="mx-auto max-w-3xl prose prose-neutral">
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Legal</p>
           <h1 className="font-display text-5xl mt-3 mb-2">Privacy Policy</h1>
-          <p className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+          <p className="text-sm text-muted-foreground">Last updated: July 22, 2026</p>
 
           <section className="mt-10 space-y-4 text-[15px] leading-relaxed">
             <h2 className="font-display text-2xl">1. Who we are</h2>
@@ -49,7 +49,7 @@ function PrivacyPage() {
             <p>We share only what is needed with the vendors that run the platform: Supabase (database, auth, storage), Stripe (billing), Resend (email delivery), ElevenLabs (voice synthesis and transcription), and our LLM providers (coaching responses and visual examples). We do not sell your data.</p>
 
             <h2 className="font-display text-2xl">5. Retention</h2>
-            <p>We retain account, business, and coaching data for as long as your account is active. You may request deletion at any time at <a href="mailto:privacy@thepreschoolprimadonna.com" className="text-primary">privacy@thepreschoolprimadonna.com</a>.</p>
+            <p>We retain account, business, and coaching data for as long as your account is active. You may initiate account deletion from Settings or from our <a href="/delete-account" className="text-primary">account deletion page</a>. We complete verified deletion requests within 30 days, except where retention is legally required.</p>
 
             <h2 className="font-display text-2xl">6. Your rights</h2>
             <p>Depending on where you live (e.g., GDPR, CCPA), you may have the right to access, correct, export, or delete your personal data, and to object to certain processing. Contact us to exercise these rights.</p>

@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as ApplyEliteRouteImport } from './routes/apply-elite'
 import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -58,6 +59,11 @@ const ApplyEliteRoute = ApplyEliteRouteImport.update({
 const CookiesRoute = CookiesRouteImport.update({
   id: '/cookies',
   path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/admin-login': typeof AdminLoginRoute
   '/apply-elite': typeof ApplyEliteRoute
   '/cookies': typeof CookiesRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/admin-login': typeof AdminLoginRoute
   '/apply-elite': typeof ApplyEliteRoute
   '/cookies': typeof CookiesRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/admin-login': typeof AdminLoginRoute
   '/apply-elite': typeof ApplyEliteRoute
   '/cookies': typeof CookiesRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/admin-login'
     | '/apply-elite'
     | '/cookies'
+    | '/delete-account'
     | '/login'
     | '/privacy'
     | '/reset-password'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/admin-login'
     | '/apply-elite'
     | '/cookies'
+    | '/delete-account'
     | '/login'
     | '/privacy'
     | '/reset-password'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin-login'
     | '/apply-elite'
     | '/cookies'
+    | '/delete-account'
     | '/login'
     | '/privacy'
     | '/reset-password'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   ApplyEliteRoute: typeof ApplyEliteRoute
   CookiesRoute: typeof CookiesRoute
+  DeleteAccountRoute: typeof DeleteAccountRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -380,6 +393,13 @@ declare module '@tanstack/react-router' {
       path: '/cookies'
       fullPath: '/cookies'
       preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -594,6 +614,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   ApplyEliteRoute: ApplyEliteRoute,
   CookiesRoute: CookiesRoute,
+  DeleteAccountRoute: DeleteAccountRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -608,3 +629,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -20,7 +20,7 @@ function TermsPage() {
         <article className="mx-auto max-w-3xl">
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Legal</p>
           <h1 className="font-display text-5xl mt-3 mb-2">Terms of Service</h1>
-          <p className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+          <p className="text-sm text-muted-foreground">Last updated: July 22, 2026</p>
 
           <section className="mt-10 space-y-4 text-[15px] leading-relaxed">
             <h2 className="font-display text-2xl">1. Acceptance</h2>
