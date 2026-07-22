@@ -5,10 +5,9 @@ private const val COACHING_PROMPT_GUIDANCE =
 
 private val genericCoachingPrompts = listOf(
     Regex("^(help|help me|i need help|give me advice|advise me|what should i do|what do i do|tell me something)[.!?]*$", RegexOption.IGNORE_CASE),
-    Regex("^(help|advice|tips?)\\s+(with|on|about|for)\\s+\\w+[.!?]*$", RegexOption.IGNORE_CASE),
     Regex("^(fix|solve)\\s+(this|it|things?)[.!?]*$", RegexOption.IGNORE_CASE),
     Regex("^(i don't know|idk|not sure|whatever)[.!?]*$", RegexOption.IGNORE_CASE),
-    Regex("^(?:how (?:do|can|should) i (?:improve|increase|fix|grow|manage|handle)|what should i do about|give me (?:a )?(?:plan|strategy|advice|tips?) (?:for|on|about))\\s+(?:my\\s+)?(?:enrollment|staffing|marketing|revenue|profitability|compliance|operations|leadership|center|business|staff|employees?|parents?|teachers?|director)[.!?]*$", RegexOption.IGNORE_CASE)
+    Regex("^(it|this|that|things?)\\s+(is|are|isn't|aren't|was|were|won't|doesn't)\\s+(bad|broken|working|right|wrong|good)[.!?]*$", RegexOption.IGNORE_CASE)
 )
 
 internal fun obviousCoachingPromptIssue(prompt: String): String? {

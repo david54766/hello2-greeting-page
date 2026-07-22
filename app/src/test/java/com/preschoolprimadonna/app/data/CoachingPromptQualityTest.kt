@@ -13,12 +13,13 @@ class CoachingPromptQualityTest {
     @Test
     fun rejectsGenericFiller() {
         assertNotNull(obviousCoachingPromptIssue("help me"))
-        assertNotNull(obviousCoachingPromptIssue("advice about staffing"))
-        assertNotNull(obviousCoachingPromptIssue("How do I improve enrollment?"))
+        assertNotNull(obviousCoachingPromptIssue("What should I do?"))
     }
 
     @Test
-    fun leavesSpecificPromptsForServerClassification() {
+    fun leavesLegitimatePromptsForServerClassification() {
+        assertNull(obviousCoachingPromptIssue("How do I improve enrollment?"))
+        assertNull(obviousCoachingPromptIssue("Advice about staffing"))
         assertNull(
             obviousCoachingPromptIssue(
                 "Enrollment fell from 92 to 78 in 60 days while tour volume stayed flat. What should I audit first?"
