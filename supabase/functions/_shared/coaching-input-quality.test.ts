@@ -22,6 +22,10 @@ test("local screening allows vague, short, and off-topic wording", () => {
   assert.equal(screenObviousPromptProblems("What should I do?"), null);
   assert.equal(screenObviousPromptProblems("How do I improve enrollment?"), null);
   assert.equal(screenObviousPromptProblems("What color should I paint my kitchen?"), null);
+  assert.equal(screenObviousPromptProblems("Tell me about marketing"), null);
+  assert.equal(screenObviousPromptProblems("I feel overwhelmed"), null);
+  assert.equal(screenObviousPromptProblems("Why are my teachers always late?"), null);
+  assert.equal(screenObviousPromptProblems("stuff"), null);
 });
 
 test("allows a broad but legitimate childcare business question", async () => {
@@ -73,6 +77,25 @@ test("allows coherent requests regardless of topic", async () => {
 
   assert.equal(result.status, "actionable");
   assert.equal(result.message, null);
+});
+
+test("allows broad, unsupported, or emotionally vague prompts", async () => {
+  for (const prompt of [
+    "Tell me about marketing",
+    "I feel overwhelmed",
+    "Why are my teachers always late?",
+    "stuff",
+    "What is the best way to run a daycare?",
+  ]) {
+    const result = await assessCoachingPrompt(
+      prompt,
+      "ceo",
+      "test",
+      classifierResponse("actionable", "The prompt is understandable."),
+    );
+    assert.equal(result.status, "actionable");
+    assert.equal(result.message, null);
+  }
 });
 
 test("rejects semantic word salad", async () => {
