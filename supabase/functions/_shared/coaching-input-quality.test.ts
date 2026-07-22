@@ -79,6 +79,25 @@ test("allows coherent requests regardless of topic", async () => {
   assert.equal(result.message, null);
 });
 
+test("allows broad, unsupported, or emotionally vague prompts", async () => {
+  for (const prompt of [
+    "Tell me about marketing",
+    "I feel overwhelmed",
+    "Why are my teachers always late?",
+    "stuff",
+    "What is the best way to run a daycare?",
+  ]) {
+    const result = await assessCoachingPrompt(
+      prompt,
+      "ceo",
+      "test",
+      classifierResponse("actionable", "The prompt is understandable."),
+    );
+    assert.equal(result.status, "actionable");
+    assert.equal(result.message, null);
+  }
+});
+
 test("rejects semantic word salad", async () => {
   const result = await assessCoachingPrompt(
     "banana staffing river 123 sparkle",
