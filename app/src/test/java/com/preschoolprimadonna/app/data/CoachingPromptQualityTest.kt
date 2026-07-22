@@ -14,6 +14,7 @@ class CoachingPromptQualityTest {
     fun rejectsGenericFiller() {
         assertNotNull(obviousCoachingPromptIssue("help me"))
         assertNotNull(obviousCoachingPromptIssue("advice about staffing"))
+        assertNotNull(obviousCoachingPromptIssue("How do I improve enrollment?"))
     }
 
     @Test

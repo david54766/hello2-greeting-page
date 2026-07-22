@@ -15,6 +15,7 @@ const GENERIC_PROMPTS = [
   /^(help|advice|tips?)\s+(with|on|about|for)\s+\w+[.!?]*$/i,
   /^(fix|solve)\s+(this|it|things?)[.!?]*$/i,
   /^(i don't know|idk|not sure|whatever)[.!?]*$/i,
+  /^(?:how (?:do|can|should) i (?:improve|increase|fix|grow|manage|handle)|what should i do about|give me (?:a )?(?:plan|strategy|advice|tips?) (?:for|on|about))\s+(?:my\s+)?(?:enrollment|staffing|marketing|revenue|profitability|compliance|operations|leadership|center|business|staff|employees?|parents?|teachers?|director)[.!?]*$/i,
 ];
 
 const KEYBOARD_NOISE = /^(?:asdf|asdfgh|qwer|qwerty|zxcv|hjkl|jkl|abcd|1234)+$/i;

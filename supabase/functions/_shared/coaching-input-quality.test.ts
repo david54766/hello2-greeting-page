@@ -21,11 +21,14 @@ test("rejects generic filler locally", () => {
   const result = screenObviousPromptProblems("help me");
   assert.equal(result?.status, "needs_clarification");
   assert.match(result?.message ?? "", /more context/i);
+
+  const broadQuestion = screenObviousPromptProblems("How do I improve enrollment?");
+  assert.equal(broadQuestion?.status, "needs_clarification");
 });
 
 test("requires clarification for a recognizable but vague topic", async () => {
   const result = await assessCoachingPrompt(
-    "How do I improve enrollment?",
+    "Our enrollment seems low. What should I change?",
     "revenue",
     "test",
     classifierResponse(
