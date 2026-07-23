@@ -2463,6 +2463,7 @@ private fun DailyRecommendationCard(
     }
 }
 
+@android.annotation.SuppressLint("UnsafeOptInUsageError")
 @Composable
 private fun RavenDailyBriefScreen(
     recommendation: String,
