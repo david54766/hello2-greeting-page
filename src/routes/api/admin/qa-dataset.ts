@@ -49,7 +49,7 @@ const PERSONAS: Persona[] = [
   {
     slug: "qa.essentials",
     displayName: "Avery Essentials",
-    businessName: "[QA] Little Steps Learning Center",
+    businessName: "Classroom Panda LLC",
     tier: "essentials",
     purpose: "Essentials feature and access-control testing",
     timezone: "America/New_York",
@@ -68,7 +68,7 @@ const PERSONAS: Persona[] = [
   {
     slug: "qa.pro",
     displayName: "Parker Pro",
-    businessName: "[QA] Bright Futures Academy",
+    businessName: "Classroom Panda LLC",
     tier: "pro",
     purpose: "Pro coaching, vault, and revenue workflow testing",
     timezone: "America/Chicago",
@@ -87,7 +87,7 @@ const PERSONAS: Persona[] = [
   {
     slug: "qa.elite",
     displayName: "Emerson Elite",
-    businessName: "[QA] Magnolia Early Learning",
+    businessName: "Classroom Panda LLC",
     tier: "elite",
     purpose: "Elite Circle conversation and full-feature testing",
     timezone: "America/New_York",
@@ -106,7 +106,7 @@ const PERSONAS: Persona[] = [
   {
     slug: "qa.multicenter",
     displayName: "Morgan Multi-Center",
-    businessName: "[QA] Growing Minds Group",
+    businessName: "Classroom Panda LLC",
     tier: "pro",
     purpose: "Multi-center carousel, center switching, and portfolio testing",
     timezone: "America/Chicago",
@@ -134,7 +134,7 @@ const PERSONAS: Persona[] = [
   {
     slug: "appreview",
     displayName: "App Review Tester",
-    businessName: "[QA] Prima Donna App Review Center",
+    businessName: "Classroom Panda LLC",
     tier: "elite",
     purpose: "Store reviewer account with complete product access",
     timezone: "America/Los_Angeles",
