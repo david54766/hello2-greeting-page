@@ -123,6 +123,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -130,7 +131,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.compose.material3.Player as MediaPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.google.firebase.messaging.FirebaseMessaging
 import com.preschoolprimadonna.app.data.Center
@@ -1342,7 +1344,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                         strategyBaselineId = state.data.coachingSessions.firstOrNull()?.id
                         viewModel.submitCoachingPrompt(mode, prompt)
                     },
-                    enabled = prompt.trim().length >= 3 && !state.saving,
+                    enabled = prompt.isNotBlank() && !state.saving,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
@@ -2531,8 +2533,10 @@ private fun RavenDailyBriefScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.Black),
                 shape = AppCardShape,
                 modifier = Modifier
+                    .widthIn(max = 420.dp)
                     .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
+                    .aspectRatio(9f / 16f)
+                    .align(Alignment.CenterHorizontally)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -2561,14 +2565,27 @@ private fun InAppVideoPlayer(url: String) {
     val player = remember(url) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(url))
+            playWhenReady = true
             prepare()
         }
     }
     DisposableEffect(player) {
         onDispose { player.release() }
     }
-    MediaPlayer(
-        player = player,
+    AndroidView(
+        factory = { viewContext ->
+            PlayerView(viewContext).apply {
+                this.player = player
+                useController = true
+                controllerAutoShow = true
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                keepScreenOn = true
+            }
+        },
+        update = { playerView ->
+            playerView.player = player
+        },
         modifier = Modifier.fillMaxSize()
     )
 }

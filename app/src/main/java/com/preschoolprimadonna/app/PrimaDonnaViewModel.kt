@@ -15,7 +15,6 @@ import com.preschoolprimadonna.app.data.DashboardData
 import com.preschoolprimadonna.app.data.EliteReply
 import com.preschoolprimadonna.app.data.EliteThread
 import com.preschoolprimadonna.app.data.NotificationPreferences
-import com.preschoolprimadonna.app.data.obviousCoachingPromptIssue
 import com.preschoolprimadonna.app.data.SessionStore
 import com.preschoolprimadonna.app.data.SupabaseRestClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -326,9 +325,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
 
     fun submitCoachingPrompt(mode: String, prompt: String) {
         val cleanPrompt = prompt.trim()
-        val promptIssue = obviousCoachingPromptIssue(cleanPrompt)
-        if (promptIssue != null) {
-            _state.update { it.copy(error = promptIssue, message = null) }
+        if (cleanPrompt.isBlank()) {
             return
         }
         val session = _state.value.session
