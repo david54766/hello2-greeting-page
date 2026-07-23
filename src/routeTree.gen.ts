@@ -21,7 +21,6 @@ import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsStreamRouteImport } from './routes/api/tts-stream'
-import { Route as ApiAdminQaDatasetRouteImport } from './routes/api/admin/qa-dataset'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
@@ -32,6 +31,7 @@ import { Route as AuthenticatedEliteGateRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/_admin'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicEliteApplyRouteImport } from './routes/api/public/elite-apply'
+import { Route as ApiAdminQaDatasetRouteImport } from './routes/api/admin/qa-dataset'
 import { Route as AuthenticatedEliteGateEliteCircleRouteImport } from './routes/_authenticated/_elite-gate.elite-circle'
 import { Route as AuthenticatedAdminAdminCookieLogRouteImport } from './routes/_authenticated/_admin/admin-cookie-log'
 import { Route as AuthenticatedAdminAdminAnalyticsRouteImport } from './routes/_authenticated/_admin/admin-analytics'
@@ -97,11 +97,6 @@ const ApiTtsStreamRoute = ApiTtsStreamRouteImport.update({
   path: '/api/tts-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminQaDatasetRoute = ApiAdminQaDatasetRouteImport.update({
-  id: '/api/admin/qa-dataset',
-  path: '/api/admin/qa-dataset',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
@@ -148,6 +143,11 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
 const ApiPublicEliteApplyRoute = ApiPublicEliteApplyRouteImport.update({
   id: '/api/public/elite-apply',
   path: '/api/public/elite-apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminQaDatasetRoute = ApiAdminQaDatasetRouteImport.update({
+  id: '/api/admin/qa-dataset',
+  path: '/api/admin/qa-dataset',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedEliteGateEliteCircleRoute =
@@ -198,11 +198,11 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/api/tts-stream': typeof ApiTtsStreamRoute
-  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
+  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
@@ -225,11 +225,11 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/api/tts-stream': typeof ApiTtsStreamRoute
-  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
+  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
@@ -256,11 +256,11 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/api/tts-stream': typeof ApiTtsStreamRoute
-  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
   '/_authenticated/_admin/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/_authenticated/_admin/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
   '/_authenticated/_elite-gate/elite-circle': typeof AuthenticatedEliteGateEliteCircleRoute
+  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/api/public/elite-apply': typeof ApiPublicEliteApplyRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/hooks/generate-daily-recommendations': typeof ApiPublicHooksGenerateDailyRecommendationsRoute
@@ -285,11 +285,11 @@ export interface FileRouteTypes {
     | '/settings'
     | '/templates'
     | '/api/tts-stream'
-    | '/api/admin/qa-dataset'
     | '/admin'
     | '/admin-analytics'
     | '/admin-cookie-log'
     | '/elite-circle'
+    | '/api/admin/qa-dataset'
     | '/api/public/elite-apply'
     | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
@@ -312,11 +312,11 @@ export interface FileRouteTypes {
     | '/settings'
     | '/templates'
     | '/api/tts-stream'
-    | '/api/admin/qa-dataset'
     | '/admin'
     | '/admin-analytics'
     | '/admin-cookie-log'
     | '/elite-circle'
+    | '/api/admin/qa-dataset'
     | '/api/public/elite-apply'
     | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
@@ -342,11 +342,11 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/templates'
     | '/api/tts-stream'
-    | '/api/admin/qa-dataset'
     | '/_authenticated/_admin/admin'
     | '/_authenticated/_admin/admin-analytics'
     | '/_authenticated/_admin/admin-cookie-log'
     | '/_authenticated/_elite-gate/elite-circle'
+    | '/api/admin/qa-dataset'
     | '/api/public/elite-apply'
     | '/api/public/stripe-webhook'
     | '/api/public/hooks/generate-daily-recommendations'
@@ -457,13 +457,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTtsStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/qa-dataset': {
-      id: '/api/admin/qa-dataset'
-      path: '/api/admin/qa-dataset'
-      fullPath: '/api/admin/qa-dataset'
-      preLoaderRoute: typeof ApiAdminQaDatasetRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/templates': {
       id: '/_authenticated/templates'
       path: '/templates'
@@ -532,6 +525,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/elite-apply'
       fullPath: '/api/public/elite-apply'
       preLoaderRoute: typeof ApiPublicEliteApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/qa-dataset': {
+      id: '/api/admin/qa-dataset'
+      path: '/api/admin/qa-dataset'
+      fullPath: '/api/admin/qa-dataset'
+      preLoaderRoute: typeof ApiAdminQaDatasetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/_elite-gate/elite-circle': {
