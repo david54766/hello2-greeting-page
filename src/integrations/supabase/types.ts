@@ -624,6 +624,140 @@ export type Database = {
         }
         Relationships: []
       }
+      qa_seed_accounts: {
+        Row: {
+          auth_user_id: string | null
+          batch_id: string
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          purpose: string | null
+          removed_at: string | null
+          status: string
+          tier: string | null
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          batch_id: string
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          purpose?: string | null
+          removed_at?: string | null
+          status?: string
+          tier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          batch_id?: string
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          purpose?: string | null
+          removed_at?: string | null
+          status?: string
+          tier?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_seed_accounts_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "qa_seed_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_seed_batches: {
+        Row: {
+          batch_key: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          removed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_key: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          removed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_key?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          removed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qa_seed_records: {
+        Row: {
+          account_id: string | null
+          batch_id: string
+          created_at: string
+          id: string
+          record_id: string | null
+          removed_at: string | null
+          status: string
+          summary: Json | null
+          table_name: string
+        }
+        Insert: {
+          account_id?: string | null
+          batch_id: string
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          removed_at?: string | null
+          status?: string
+          summary?: Json | null
+          table_name: string
+        }
+        Update: {
+          account_id?: string | null
+          batch_id?: string
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          removed_at?: string | null
+          status?: string
+          summary?: Json | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_seed_records_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "qa_seed_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qa_seed_records_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "qa_seed_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rag_documents: {
         Row: {
           created_at: string
