@@ -684,6 +684,111 @@ export type Database = {
         }
         Relationships: []
       }
+      qa_seed_accounts: {
+        Row: {
+          auth_user_id: string | null
+          batch_id: string
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          purpose: string
+          removed_at: string | null
+          status: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Insert: {
+          auth_user_id?: string | null
+          batch_id: string
+          created_at?: string
+          display_name: string
+          email: string
+          id?: string
+          purpose: string
+          removed_at?: string | null
+          status?: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Update: {
+          auth_user_id?: string | null
+          batch_id?: string
+          created_at?: string
+          display_name?: string
+          email?: string
+          id?: string
+          purpose?: string
+          removed_at?: string | null
+          status?: string
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Relationships: []
+      }
+      qa_seed_batches: {
+        Row: {
+          batch_key: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          removed_at: string | null
+          status: string
+        }
+        Insert: {
+          batch_key: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          removed_at?: string | null
+          status?: string
+        }
+        Update: {
+          batch_key?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          removed_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      qa_seed_records: {
+        Row: {
+          account_id: string | null
+          batch_id: string
+          created_at: string
+          id: string
+          record_id: string | null
+          removed_at: string | null
+          status: string
+          summary: Json
+          table_name: string
+        }
+        Insert: {
+          account_id?: string | null
+          batch_id: string
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          removed_at?: string | null
+          status?: string
+          summary?: Json
+          table_name: string
+        }
+        Update: {
+          account_id?: string | null
+          batch_id?: string
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          removed_at?: string | null
+          status?: string
+          summary?: Json
+          table_name?: string
+        }
+        Relationships: []
+      }
       raven_bookings: {
         Row: {
           created_at: string

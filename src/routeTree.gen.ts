@@ -21,6 +21,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsStreamRouteImport } from './routes/api/tts-stream'
+import { Route as ApiAdminQaDatasetRouteImport } from './routes/api/admin/qa-dataset'
 import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedEliteRouteImport } from './routes/_authenticated/elite'
@@ -94,6 +95,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiTtsStreamRoute = ApiTtsStreamRouteImport.update({
   id: '/api/tts-stream',
   path: '/api/tts-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminQaDatasetRoute = ApiAdminQaDatasetRouteImport.update({
+  id: '/api/admin/qa-dataset',
+  path: '/api/admin/qa-dataset',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/api/tts-stream': typeof ApiTtsStreamRoute
+  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/templates': typeof AuthenticatedTemplatesRoute
   '/api/tts-stream': typeof ApiTtsStreamRoute
+  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/admin': typeof AuthenticatedAdminAdminRoute
   '/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/api/tts-stream': typeof ApiTtsStreamRoute
+  '/api/admin/qa-dataset': typeof ApiAdminQaDatasetRoute
   '/_authenticated/_admin/admin': typeof AuthenticatedAdminAdminRoute
   '/_authenticated/_admin/admin-analytics': typeof AuthenticatedAdminAdminAnalyticsRoute
   '/_authenticated/_admin/admin-cookie-log': typeof AuthenticatedAdminAdminCookieLogRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/templates'
     | '/api/tts-stream'
+    | '/api/admin/qa-dataset'
     | '/admin'
     | '/admin-analytics'
     | '/admin-cookie-log'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/templates'
     | '/api/tts-stream'
+    | '/api/admin/qa-dataset'
     | '/admin'
     | '/admin-analytics'
     | '/admin-cookie-log'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/templates'
     | '/api/tts-stream'
+    | '/api/admin/qa-dataset'
     | '/_authenticated/_admin/admin'
     | '/_authenticated/_admin/admin-analytics'
     | '/_authenticated/_admin/admin-cookie-log'
@@ -353,6 +365,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   ApiTtsStreamRoute: typeof ApiTtsStreamRoute
+  ApiAdminQaDatasetRoute: typeof ApiAdminQaDatasetRoute
   ApiPublicEliteApplyRoute: typeof ApiPublicEliteApplyRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicHooksGenerateDailyRecommendationsRoute: typeof ApiPublicHooksGenerateDailyRecommendationsRoute
@@ -442,6 +455,13 @@ declare module '@tanstack/react-router' {
       path: '/api/tts-stream'
       fullPath: '/api/tts-stream'
       preLoaderRoute: typeof ApiTtsStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/qa-dataset': {
+      id: '/api/admin/qa-dataset'
+      path: '/api/admin/qa-dataset'
+      fullPath: '/api/admin/qa-dataset'
+      preLoaderRoute: typeof ApiAdminQaDatasetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/templates': {
@@ -621,6 +641,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   ApiTtsStreamRoute: ApiTtsStreamRoute,
+  ApiAdminQaDatasetRoute: ApiAdminQaDatasetRoute,
   ApiPublicEliteApplyRoute: ApiPublicEliteApplyRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicHooksGenerateDailyRecommendationsRoute:
