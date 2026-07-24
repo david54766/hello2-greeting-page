@@ -1,0 +1,52 @@
+﻿[
+  {
+    "id": "100dcd00-8270-4db8-8518-24b99fe58fd9",
+    "title": "Tour-to-Enrollment Script",
+    "description": "Word-for-word script that converts tours into signed enrollments.",
+    "category": "enrollment",
+    "tier_required": "pro",
+    "storage_path": "starter/tour-script.pdf",
+    "is_elite": false,
+    "created_at": "2026-05-14T05:33:11.314553+00:00"
+  },
+  {
+    "id": "90315aea-dac4-47eb-b83d-eb5e61ac4469",
+    "title": "Parent Conflict Response Templates",
+    "description": "Email + in-person scripts for the 8 most common parent complaints.",
+    "category": "operations",
+    "tier_required": "pro",
+    "storage_path": "starter/parent-conflict.pdf",
+    "is_elite": false,
+    "created_at": "2026-05-14T05:33:11.314553+00:00"
+  },
+  {
+    "id": "770bb052-5c06-469f-b155-69440c9318ac",
+    "title": "Annual Tuition Increase Letter",
+    "description": "Positions the increase around value, not cost. Ready to send.",
+    "category": "enrollment",
+    "tier_required": "pro",
+    "storage_path": "starter/tuition-increase.pdf",
+    "is_elite": false,
+    "created_at": "2026-05-14T05:33:11.314553+00:00"
+  },
+  {
+    "id": "05749275-35ed-4006-abfe-5e24d630a7c0",
+    "title": "Director SOP Library",
+    "description": "The 22 SOPs every director should run weekly.",
+    "category": "operations",
+    "tier_required": "elite",
+    "storage_path": "starter/director-sops.pdf",
+    "is_elite": true,
+    "created_at": "2026-05-14T05:33:11.314553+00:00"
+  },
+  {
+    "id": "f852fc83-696d-40e9-850e-eca1d8845981",
+    "title": "Acquisition Due Diligence Pack",
+    "description": "Buyer checklist for evaluating a center acquisition.",
+    "category": "operations",
+    "tier_required": "elite",
+    "storage_path": "starter/acquisition-dd.pdf",
+    "is_elite": true,
+    "created_at": "2026-05-14T05:33:11.314553+00:00"
+  }
+]
