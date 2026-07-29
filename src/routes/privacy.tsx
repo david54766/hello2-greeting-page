@@ -95,8 +95,8 @@ function PrivacyPage() {
               as long afterward as reasonably needed for legal, security, dispute, and backup
               purposes. Legal consent records may be retained as evidence of agreement. You may
               request deletion at{" "}
-              <a href="mailto:privacy@thepreschoolprimadonna.com" className="text-primary">
-                privacy@thepreschoolprimadonna.com
+              <a href="mailto:info@classroompanda.com" className="text-primary">
+                info@classroompanda.com
               </a>
               . Mobile app settings will also provide the account-deletion path required by the
               applicable app store before public release.
@@ -135,8 +135,8 @@ function PrivacyPage() {
 
             <h2 className="font-display text-2xl">10. Contact</h2>
             <p>
-              <a href="mailto:privacy@thepreschoolprimadonna.com" className="text-primary">
-                privacy@thepreschoolprimadonna.com
+              <a href="mailto:info@classroompanda.com" className="text-primary">
+                info@classroompanda.com
               </a>
             </p>
           </section>

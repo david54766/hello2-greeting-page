@@ -82,8 +82,8 @@ function CookiesPage() {
 
             <h2 className="font-display text-2xl">Contact</h2>
             <p>
-              <a href="mailto:privacy@thepreschoolprimadonna.com" className="text-primary">
-                privacy@thepreschoolprimadonna.com
+              <a href="mailto:info@classroompanda.com" className="text-primary">
+                info@classroompanda.com
               </a>
             </p>
           </section>
