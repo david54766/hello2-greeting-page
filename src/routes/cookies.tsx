@@ -46,7 +46,7 @@ function CookiesPage() {
             <p>Some essential cookies are set by Supabase (auth/session) and Stripe (when you reach a billing surface). These are governed by their own policies.</p>
 
             <h2 className="font-display text-2xl">Contact</h2>
-            <p><a href="mailto:privacy@thepreschoolprimadonna.com" className="text-primary">privacy@thepreschoolprimadonna.com</a></p>
+            <p><a href="mailto:info@classroompanda.com" className="text-primary">info@classroompanda.com</a></p>
           </section>
         </article>
       </main>

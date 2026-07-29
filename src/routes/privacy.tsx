@@ -20,7 +20,7 @@ function PrivacyPage() {
         <article className="mx-auto max-w-3xl prose prose-neutral">
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Legal</p>
           <h1 className="font-display text-5xl mt-3 mb-2">Privacy Policy</h1>
-          <p className="text-sm text-muted-foreground">Last updated: July 22, 2026</p>
+          <p className="text-sm text-muted-foreground">Last updated: July 28, 2026</p>
 
           <section className="mt-10 space-y-4 text-[15px] leading-relaxed">
             <h2 className="font-display text-2xl">1. Who we are</h2>
@@ -64,7 +64,7 @@ function PrivacyPage() {
             <p>We may update this policy. Material changes will be announced in-app or by email.</p>
 
             <h2 className="font-display text-2xl">10. Contact</h2>
-            <p><a href="mailto:privacy@thepreschoolprimadonna.com" className="text-primary">privacy@thepreschoolprimadonna.com</a></p>
+            <p><a href="mailto:info@classroompanda.com" className="text-primary">info@classroompanda.com</a></p>
           </section>
         </article>
       </main>

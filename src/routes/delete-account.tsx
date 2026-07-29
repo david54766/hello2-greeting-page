@@ -34,7 +34,7 @@ function DeleteAccountPage() {
               <Link to="/login">Sign in to request deletion</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full">
-              <a href="mailto:privacy@thepreschoolprimadonna.com">Contact privacy support</a>
+              <a href="mailto:info@classroompanda.com">Contact privacy support</a>
             </Button>
           </div>
         </article>
