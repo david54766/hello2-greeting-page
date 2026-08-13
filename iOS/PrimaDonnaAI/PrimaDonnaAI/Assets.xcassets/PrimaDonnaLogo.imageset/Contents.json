@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "prima_donna_logo_new.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

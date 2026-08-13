@@ -1,0 +1,9 @@
+// Shared mobile-safe build settings.
+// Secrets.xcconfig is ignored locally and may override these values.
+
+SUPABASE_URL = https:/$()/ihiqixkufsjeplnkwkao.supabase.co
+SUPABASE_ANON_KEY =
+WEB_APP_URL = https:/$()/app.thepreschoolprimadonna.com
+AUTH_REDIRECT_URL = preschoolprimadonna:/$()/auth-callback
+
+#include? "Secrets.xcconfig"

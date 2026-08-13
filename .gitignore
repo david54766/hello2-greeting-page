@@ -39,3 +39,8 @@ local.properties
 *.iml
 *.keystore
 qa/
+
+# iOS local signing/config
+iOS/**/Config/Secrets.xcconfig
+iOS/**/xcuserdata/
+iOS/**/DerivedData/

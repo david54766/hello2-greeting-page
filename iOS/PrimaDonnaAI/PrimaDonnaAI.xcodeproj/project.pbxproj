@@ -1,0 +1,490 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA0000000000000000000001 /* PrimaDonnaAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000001 /* PrimaDonnaAIApp.swift */; };
+		AA0000000000000000000002 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* AppConfig.swift */; };
+		AA0000000000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* Models.swift */; };
+		AA0000000000000000000004 /* KeychainSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* KeychainSessionStore.swift */; };
+		AA0000000000000000000005 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000005 /* AuthStore.swift */; };
+		AA0000000000000000000006 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000006 /* SupabaseClient.swift */; };
+		AA0000000000000000000007 /* MobileApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000007 /* MobileApiClient.swift */; };
+		AA0000000000000000000008 /* AudioPlaybackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* AudioPlaybackService.swift */; };
+		AA0000000000000000000009 /* SpeechInputService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000009 /* SpeechInputService.swift */; };
+		AA000000000000000000000A /* DownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000A /* DownloadService.swift */; };
+		AA000000000000000000000B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000B /* AppState.swift */; };
+		AA000000000000000000000C /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000C /* LoginViewModel.swift */; };
+		AA000000000000000000000D /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000D /* HomeViewModel.swift */; };
+		AA000000000000000000000E /* CoachViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000E /* CoachViewModel.swift */; };
+		AA000000000000000000000F /* VaultViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000F /* VaultViewModel.swift */; };
+		AA0000000000000000000010 /* EliteViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000010 /* EliteViewModel.swift */; };
+		AA0000000000000000000011 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000011 /* SettingsViewModel.swift */; };
+		AA0000000000000000000012 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000012 /* DesignSystem.swift */; };
+		AA0000000000000000000013 /* PrimaComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000013 /* PrimaComponents.swift */; };
+		AA0000000000000000000014 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000014 /* LoginView.swift */; };
+		AA0000000000000000000015 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000015 /* MainTabView.swift */; };
+		AA0000000000000000000016 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000016 /* HomeView.swift */; };
+		AA0000000000000000000017 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000017 /* CoachView.swift */; };
+		AA0000000000000000000018 /* VaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000018 /* VaultView.swift */; };
+		AA0000000000000000000019 /* EliteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000019 /* EliteView.swift */; };
+		AA000000000000000000001A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* SettingsView.swift */; };
+		AA000000000000000000001B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001B /* Assets.xcassets */; };
+		AA000000000000000000001C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000020 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		BB0000000000000000000000 /* PrimaDonnaAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrimaDonnaAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000000000000000000001 /* PrimaDonnaAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaDonnaAIApp.swift; sourceTree = "<group>"; };
+		BB0000000000000000000002 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		BB0000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		BB0000000000000000000004 /* KeychainSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainSessionStore.swift; sourceTree = "<group>"; };
+		BB0000000000000000000005 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
+		BB0000000000000000000006 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		BB0000000000000000000007 /* MobileApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileApiClient.swift; sourceTree = "<group>"; };
+		BB0000000000000000000008 /* AudioPlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackService.swift; sourceTree = "<group>"; };
+		BB0000000000000000000009 /* SpeechInputService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechInputService.swift; sourceTree = "<group>"; };
+		BB000000000000000000000A /* DownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadService.swift; sourceTree = "<group>"; };
+		BB000000000000000000000B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		BB000000000000000000000C /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
+		BB000000000000000000000D /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
+		BB000000000000000000000E /* CoachViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachViewModel.swift; sourceTree = "<group>"; };
+		BB000000000000000000000F /* VaultViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultViewModel.swift; sourceTree = "<group>"; };
+		BB0000000000000000000010 /* EliteViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EliteViewModel.swift; sourceTree = "<group>"; };
+		BB0000000000000000000011 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		BB0000000000000000000012 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		BB0000000000000000000013 /* PrimaComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaComponents.swift; sourceTree = "<group>"; };
+		BB0000000000000000000014 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000015 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000016 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000017 /* CoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000018 /* VaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000019 /* EliteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EliteView.swift; sourceTree = "<group>"; };
+		BB000000000000000000001A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BB000000000000000000001B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BB000000000000000000001C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB000000000000000000001D /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
+		BB000000000000000000001E /* BuildSettings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = BuildSettings.xcconfig; sourceTree = "<group>"; };
+		BB000000000000000000001F /* PrimaDonnaAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PrimaDonnaAI.entitlements; sourceTree = "<group>"; };
+		BB0000000000000000000020 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CC0000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DD0000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000000002 /* PrimaDonnaAI */,
+				DD0000000000000000000008 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000002 /* PrimaDonnaAI */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000001 /* PrimaDonnaAIApp.swift */,
+				DD0000000000000000000003 /* Config */,
+				DD0000000000000000000004 /* Models */,
+				DD0000000000000000000005 /* Services */,
+				DD0000000000000000000006 /* ViewModels */,
+				DD0000000000000000000007 /* Views */,
+				BB000000000000000000001B /* Assets.xcassets */,
+				BB000000000000000000001C /* Info.plist */,
+				BB000000000000000000001F /* PrimaDonnaAI.entitlements */,
+				BB0000000000000000000020 /* PrivacyInfo.xcprivacy */,
+			);
+			path = PrimaDonnaAI;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000003 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000002 /* AppConfig.swift */,
+				BB000000000000000000001E /* BuildSettings.xcconfig */,
+				BB000000000000000000001D /* Secrets.xcconfig.example */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000003 /* Models.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000004 /* KeychainSessionStore.swift */,
+				BB0000000000000000000005 /* AuthStore.swift */,
+				BB0000000000000000000006 /* SupabaseClient.swift */,
+				BB0000000000000000000007 /* MobileApiClient.swift */,
+				BB0000000000000000000008 /* AudioPlaybackService.swift */,
+				BB0000000000000000000009 /* SpeechInputService.swift */,
+				BB000000000000000000000A /* DownloadService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000006 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				BB000000000000000000000B /* AppState.swift */,
+				BB000000000000000000000C /* LoginViewModel.swift */,
+				BB000000000000000000000D /* HomeViewModel.swift */,
+				BB000000000000000000000E /* CoachViewModel.swift */,
+				BB000000000000000000000F /* VaultViewModel.swift */,
+				BB0000000000000000000010 /* EliteViewModel.swift */,
+				BB0000000000000000000011 /* SettingsViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000007 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000000009 /* Components */,
+				BB0000000000000000000014 /* LoginView.swift */,
+				BB0000000000000000000015 /* MainTabView.swift */,
+				BB0000000000000000000016 /* HomeView.swift */,
+				BB0000000000000000000017 /* CoachView.swift */,
+				BB0000000000000000000018 /* VaultView.swift */,
+				BB0000000000000000000019 /* EliteView.swift */,
+				BB000000000000000000001A /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000008 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000000 /* PrimaDonnaAI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000009 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000012 /* DesignSystem.swift */,
+				BB0000000000000000000013 /* PrimaComponents.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EE0000000000000000000001 /* PrimaDonnaAI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF0000000000000000000002 /* Build configuration list for PBXNativeTarget "PrimaDonnaAI" */;
+			buildPhases = (
+				GG0000000000000000000001 /* Sources */,
+				CC0000000000000000000001 /* Frameworks */,
+				GG0000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PrimaDonnaAI;
+			productName = PrimaDonnaAI;
+			productReference = BB0000000000000000000000 /* PrimaDonnaAI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EE0000000000000000000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					EE0000000000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = FF0000000000000000000001 /* Build configuration list for PBXProject "PrimaDonnaAI" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DD0000000000000000000001;
+			productRefGroup = DD0000000000000000000008 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EE0000000000000000000001 /* PrimaDonnaAI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		GG0000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000000000000000000001B /* Assets.xcassets in Resources */,
+				AA000000000000000000001C /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		GG0000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000001 /* PrimaDonnaAIApp.swift in Sources */,
+				AA0000000000000000000002 /* AppConfig.swift in Sources */,
+				AA0000000000000000000003 /* Models.swift in Sources */,
+				AA0000000000000000000004 /* KeychainSessionStore.swift in Sources */,
+				AA0000000000000000000005 /* AuthStore.swift in Sources */,
+				AA0000000000000000000006 /* SupabaseClient.swift in Sources */,
+				AA0000000000000000000007 /* MobileApiClient.swift in Sources */,
+				AA0000000000000000000008 /* AudioPlaybackService.swift in Sources */,
+				AA0000000000000000000009 /* SpeechInputService.swift in Sources */,
+				AA000000000000000000000A /* DownloadService.swift in Sources */,
+				AA000000000000000000000B /* AppState.swift in Sources */,
+				AA000000000000000000000C /* LoginViewModel.swift in Sources */,
+				AA000000000000000000000D /* HomeViewModel.swift in Sources */,
+				AA000000000000000000000E /* CoachViewModel.swift in Sources */,
+				AA000000000000000000000F /* VaultViewModel.swift in Sources */,
+				AA0000000000000000000010 /* EliteViewModel.swift in Sources */,
+				AA0000000000000000000011 /* SettingsViewModel.swift in Sources */,
+				AA0000000000000000000012 /* DesignSystem.swift in Sources */,
+				AA0000000000000000000013 /* PrimaComponents.swift in Sources */,
+				AA0000000000000000000014 /* LoginView.swift in Sources */,
+				AA0000000000000000000015 /* MainTabView.swift in Sources */,
+				AA0000000000000000000016 /* HomeView.swift in Sources */,
+				AA0000000000000000000017 /* CoachView.swift in Sources */,
+				AA0000000000000000000018 /* VaultView.swift in Sources */,
+				AA0000000000000000000019 /* EliteView.swift in Sources */,
+				AA000000000000000000001A /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		HH0000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
+		};
+		HH0000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		HH0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BB000000000000000000001E /* BuildSettings.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				APS_ENVIRONMENT = development;
+				CODE_SIGN_ENTITLEMENTS = PrimaDonnaAI/PrimaDonnaAI.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 20260813;
+				DEVELOPMENT_TEAM = 526V8FJJ54;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PrimaDonnaAI/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.preschoolprimadonna.PrimaDonnaAI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		HH0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BB000000000000000000001E /* BuildSettings.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				APS_ENVIRONMENT = production;
+				CODE_SIGN_ENTITLEMENTS = PrimaDonnaAI/PrimaDonnaAI.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 20260813;
+				DEVELOPMENT_TEAM = 526V8FJJ54;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PrimaDonnaAI/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.preschoolprimadonna.PrimaDonnaAI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FF0000000000000000000001 /* Build configuration list for PBXProject "PrimaDonnaAI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				HH0000000000000000000001 /* Debug */,
+				HH0000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FF0000000000000000000002 /* Build configuration list for PBXNativeTarget "PrimaDonnaAI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				HH0000000000000000000003 /* Debug */,
+				HH0000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EE0000000000000000000002 /* Project object */;
+}
