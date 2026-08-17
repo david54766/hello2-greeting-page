@@ -254,19 +254,38 @@ final class AppState: ObservableObject {
     }
 
     func reportEliteContent(target: EliteReportTarget, reason: String, details: String) async throws {
-        guard let userId = user?.id else { throw AppError.message("Please sign in again before reporting content.") }
         saving = true
         defer { saving = false }
         try await withActiveSession { authSession in
-            try await supabaseClient.reportEliteContent(
-                session: authSession,
-                userId: userId,
-                target: target,
-                reason: reason,
-                details: details
-            )
+            try await mobileApiClient.reportEliteContent(session: authSession, target: target, reason: reason, details: details)
         }
         notice = .message("Report sent for compliance review.")
+    }
+
+    func blockEliteUser(_ blockedUserId: String) async throws {
+        saving = true
+        defer { saving = false }
+        try await withActiveSession { authSession in
+            try await mobileApiClient.blockEliteUser(session: authSession, userId: blockedUserId)
+        }
+        try? await refreshAfterMutation()
+        notice = .message("Member blocked.")
+    }
+
+    func unblockEliteUser(_ blockedUserId: String) async throws {
+        saving = true
+        defer { saving = false }
+        try await withActiveSession { authSession in
+            try await mobileApiClient.unblockEliteUser(session: authSession, userId: blockedUserId)
+        }
+        try? await refreshAfterMutation()
+        notice = .message("Member unblocked.")
+    }
+
+    func listEliteBlocks() async throws -> [EliteBlock] {
+        try await withActiveSession { authSession in
+            try await mobileApiClient.listEliteBlocks(session: authSession)
+        }
     }
 
     func addCenter(_ draft: CenterDraft) async throws {

@@ -72,6 +72,14 @@ Deno.serve(async (req) => {
         return jsonResponse(await replyEliteThread(context, data));
       case 'delete_elite_thread':
         return jsonResponse(await deleteEliteThread(context, data));
+      case 'block_elite_user':
+        return jsonResponse(await blockEliteUser(context, data));
+      case 'unblock_elite_user':
+        return jsonResponse(await unblockEliteUser(context, data));
+      case 'list_elite_blocks':
+        return jsonResponse(await listEliteBlocks(context));
+      case 'report_elite_content':
+        return jsonResponse(await reportEliteContent(context, data));
       case 'list_raven_slots':
         return jsonResponse({ slots: [], timezone: null, disabled: true });
       case 'list_raven_bookings':
@@ -245,45 +253,201 @@ async function synthesizeRavenVoice(data: Record<string, unknown>) {
   };
 }
 
-async function listEliteThreads({ supabase }: MobileContext) {
+const MODERATION_SAFE_MESSAGE =
+  'This post could not be published because it may violate our community guidelines. Please remove any hateful, harassing, sexual, violent, or abusive language and try again.';
+
+const BANNED_PATTERNS = [
+  /\b(n[i1]gg(?:er|a)s?|f[a@]gg?[o0]ts?|k[i1]kes?|ch[i1]nks?|tr[a@]nn(?:y|ies))\b/i,
+  /\b(porn(?:hub|o)?|c[u@]nts?|blowjobs?|dildos?|rape|molest(?:s|ed|ing)?|pedo(?:phile)?)\b/i,
+  /\b(kill\s+your\s?self|kys|you\s+should\s+die|i(?:'m| am)\s+going\s+to\s+(?:kill|hurt)\s+you)\b/i,
+  /\b(shoot\s+(?:up|them|him|her)|bomb\s+the|behead|lynch)\b/i,
+  /\b(wh[o0]res?|sluts?|bitch(?:es)?)\b/i,
+];
+
+function screenTextLocally(text: string): boolean {
+  const value = (text ?? '').normalize('NFKC');
+  return !BANNED_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+async function screenTextRemote(text: string): Promise<boolean> {
+  const apiKey = Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY');
+  if (!apiKey || !text.trim()) return true;
+  try {
+    const res = await fetch('https://api.openai.com/v1/moderations', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'omni-moderation-latest', input: text.slice(0, 4000) }),
+    });
+    if (!res.ok) return true;
+    const json = await res.json();
+    const result = json?.results?.[0];
+    if (!result?.flagged) return true;
+    const categories = result.categories ?? {};
+    const blocking = [
+      'sexual', 'sexual/minors', 'hate', 'hate/threatening', 'harassment',
+      'harassment/threatening', 'violence', 'violence/graphic', 'self-harm',
+      'self-harm/intent', 'self-harm/instructions',
+    ];
+    return !blocking.some((key) => categories[key] === true);
+  } catch (error) {
+    console.error('moderation error', error);
+    return true;
+  }
+}
+
+async function moderateElitePost(parts: Array<string | null | undefined>): Promise<boolean> {
+  const text = parts.filter(Boolean).join('\n\n');
+  if (!screenTextLocally(text)) return false;
+  return await screenTextRemote(text);
+}
+
+async function loadBlockedIds({ supabase }: MobileContext): Promise<Set<string>> {
+  const { data, error } = await supabase.rpc('elite_blocked_user_ids');
+  if (error) {
+    console.error('elite_blocked_user_ids error', error.message);
+    return new Set();
+  }
+  return new Set(((data as string[] | null) ?? []).filter(Boolean));
+}
+
+async function blockEliteUser({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
+  const blockedId = readUuid(data.blocked_user_id ?? data.user_id, 'blocked_user_id');
+  if (blockedId === userId) return { ok: false, message: 'You cannot block yourself.' };
+  const { error } = await supabase
+    .from('elite_blocks')
+    .upsert({ blocker_id: userId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, blocked_user_id: blockedId };
+}
+
+async function unblockEliteUser({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
+  const blockedId = readUuid(data.blocked_user_id ?? data.user_id, 'blocked_user_id');
+  const { error } = await supabase
+    .from('elite_blocks')
+    .delete()
+    .eq('blocker_id', userId)
+    .eq('blocked_id', blockedId);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, blocked_user_id: blockedId };
+}
+
+async function listEliteBlocks({ supabase, userId }: MobileContext) {
+  const { data, error } = await supabase
+    .from('elite_blocks')
+    .select('id, blocked_id, created_at')
+    .eq('blocker_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  const names = await loadProfileNames(supabase, (data ?? []).map((row: any) => row.blocked_id));
+  return {
+    blocks: (data ?? []).map((row: any) => ({
+      id: row.id,
+      blocked_user_id: row.blocked_id,
+      blocked_user_name: names[row.blocked_id] ?? 'Member',
+      created_at: row.created_at,
+    })),
+  };
+}
+
+async function reportEliteContent({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
+  const contentType = String(data.content_type ?? '').trim().toLowerCase();
+  if (contentType !== 'thread' && contentType !== 'reply') {
+    return { ok: false, message: 'content_type must be thread or reply.' };
+  }
+  const contentId = readUuid(data.content_id, 'content_id');
+  const reason = readString(data.reason, 'reason', 1, 200);
+  const details = typeof data.details === 'string' ? data.details.trim().slice(0, 4000) : null;
+  const platform = typeof data.platform === 'string' ? data.platform.trim().slice(0, 20) : 'mobile';
+
+  let reportedUserId: string | null = null;
+  if (contentType === 'thread') {
+    const { data: row } = await supabase.from('elite_threads').select('user_id').eq('id', contentId).maybeSingle();
+    reportedUserId = (row as any)?.user_id ?? null;
+  } else {
+    const { data: row } = await supabase.from('elite_thread_replies').select('user_id').eq('id', contentId).maybeSingle();
+    reportedUserId = (row as any)?.user_id ?? null;
+  }
+
+  const { data: inserted, error } = await supabase
+    .from('elite_content_reports')
+    .insert({
+      reporter_id: userId,
+      content_type: contentType,
+      content_id: contentId,
+      reported_user_id: reportedUserId,
+      reason,
+      details,
+      platform,
+    })
+    .select('id')
+    .maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, id: (inserted as any)?.id ?? null };
+}
+
+async function listEliteThreads(context: MobileContext) {
+  const { supabase } = context;
   const { data, error } = await supabase
     .from('elite_threads')
     .select('id, user_id, title, body, image_urls, pinned, created_at, updated_at')
     .order('pinned', { ascending: false })
     .order('updated_at', { ascending: false });
   if (error) throw new Error(error.message);
-  const ids = Array.from(new Set((data ?? []).map((thread: any) => thread.user_id).filter(Boolean)));
+  const blocked = await loadBlockedIds(context);
+  const visible = (data ?? []).filter((thread: any) => !blocked.has(thread.user_id));
+  const ids = Array.from(new Set(visible.map((thread: any) => thread.user_id).filter(Boolean)));
   const names = await loadProfileNames(supabase, ids);
   const replyCounts = await countReplies(supabase);
-  return { threads: (data ?? []).map((thread: any) => ({ ...thread, image_urls: thread.image_urls ?? [], author_name: names[thread.user_id] ?? 'Member', reply_count: replyCounts[thread.id] ?? 0 })) };
+  return { threads: visible.map((thread: any) => ({ ...thread, image_urls: thread.image_urls ?? [], author_name: names[thread.user_id] ?? 'Member', reply_count: replyCounts[thread.id] ?? 0 })) };
 }
 
 async function createEliteThread({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
   const title = readString(data.title, 'title', 3, 200);
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
+  if (!(await moderateElitePost([title, body]))) {
+    return { ok: false, message: MODERATION_SAFE_MESSAGE };
+  }
   const { data: row, error } = await supabase.from('elite_threads').insert({ user_id: userId, title, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
   return { ok: true, id: row.id };
 }
 
-async function getEliteThread({ supabase }: MobileContext, data: Record<string, unknown>) {
+async function getEliteThread(context: MobileContext, data: Record<string, unknown>) {
+  const { supabase } = context;
   const id = readUuid(data.id, 'id');
   const { data: thread, error } = await supabase.from('elite_threads').select('id, user_id, title, body, image_urls, pinned, created_at, updated_at').eq('id', id).maybeSingle();
   if (error || !thread) throw new Error(error?.message ?? 'Not found');
+  const blocked = await loadBlockedIds(context);
+  if (blocked.has((thread as any).user_id)) throw new Error('Not found');
   const { data: replies } = await supabase.from('elite_thread_replies').select('id, user_id, body, image_urls, created_at').eq('thread_id', id).order('created_at', { ascending: true });
-  const ids = Array.from(new Set([thread.user_id, ...(replies ?? []).map((reply: any) => reply.user_id)].filter(Boolean)));
+  const visibleReplies = (replies ?? []).filter((reply: any) => !blocked.has(reply.user_id));
+  const ids = Array.from(new Set([thread.user_id, ...visibleReplies.map((reply: any) => reply.user_id)].filter(Boolean)));
   const names = await loadProfileNames(supabase, ids);
   return {
     thread: { ...thread, image_urls: (thread as any).image_urls ?? [], author_name: names[(thread as any).user_id] ?? 'Member' },
-    replies: (replies ?? []).map((reply: any) => ({ ...reply, image_urls: reply.image_urls ?? [], author_name: names[reply.user_id] ?? 'Member' })),
+    replies: visibleReplies.map((reply: any) => ({ ...reply, image_urls: reply.image_urls ?? [], author_name: names[reply.user_id] ?? 'Member' })),
   };
 }
 
-async function replyEliteThread({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
+async function replyEliteThread(context: MobileContext, data: Record<string, unknown>) {
+  const { supabase, userId } = context;
   const threadId = readUuid(data.thread_id, 'thread_id');
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
+  const { data: thread, error: threadError } = await supabase
+    .from('elite_threads')
+    .select('user_id')
+    .eq('id', threadId)
+    .maybeSingle();
+  if (threadError || !thread) return { ok: false, message: 'Conversation is not available.' };
+  const blocked = await loadBlockedIds(context);
+  if (blocked.has((thread as any).user_id)) {
+    return { ok: false, message: 'Conversation is not available.' };
+  }
+  if (!(await moderateElitePost([body]))) {
+    return { ok: false, message: MODERATION_SAFE_MESSAGE };
+  }
   const { error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls });
   if (error) return { ok: false, message: error.message };
   await supabase.from('elite_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);

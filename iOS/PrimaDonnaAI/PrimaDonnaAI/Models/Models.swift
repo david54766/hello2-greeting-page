@@ -291,6 +291,13 @@ struct EliteThreadDetail: Codable, Equatable, Identifiable {
     var id: String { thread.id }
 }
 
+struct EliteBlock: Codable, Equatable, Identifiable {
+    var id: String
+    var blockedUserId: String
+    var blockedUserName: String?
+    var createdAt: String?
+}
+
 struct DailyRecommendation: Codable, Equatable {
     var title: String? = nil
     var body: String? = nil
@@ -333,6 +340,13 @@ struct EliteReportTarget: Equatable, Identifiable {
     var label: String {
         kind == .thread ? "conversation" : "reply"
     }
+}
+
+struct EliteBlockTarget: Equatable, Identifiable {
+    var userId: String
+    var displayName: String
+
+    var id: String { userId }
 }
 
 struct NotificationPreferences: Codable, Equatable, Identifiable {

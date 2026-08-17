@@ -14,6 +14,9 @@ final class EliteViewModel: ObservableObject {
     @Published var reportTarget: EliteReportTarget?
     @Published var reportReason = "Compliance concern"
     @Published var reportDetails = ""
+    @Published var blockTarget: EliteBlockTarget?
+    @Published var blockedUsers: [EliteBlock] = []
+    @Published var loadingBlockedUsers = false
     @Published var errorText: String?
 
     let reportReasons = ["Compliance concern", "Privacy concern", "Inappropriate content", "Spam", "Other"]
@@ -100,6 +103,45 @@ final class EliteViewModel: ObservableObject {
             try await appState.reportEliteContent(target: reportTarget, reason: reportReason, details: reportDetails)
             self.reportTarget = nil
             reportDetails = ""
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    func beginBlock(_ target: EliteBlockTarget) {
+        blockTarget = target
+    }
+
+    func confirmBlock(appState: AppState) async {
+        guard let blockTarget else { return }
+        do {
+            try await appState.blockEliteUser(blockTarget.userId)
+            self.blockTarget = nil
+            if selectedThreadDetail?.thread.userId == blockTarget.userId {
+                selectedThreadDetail = nil
+            } else if let threadId = selectedThreadDetail?.thread.id {
+                selectedThreadDetail = try? await appState.openEliteThread(threadId)
+            }
+            await loadBlockedUsers(appState: appState)
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    func loadBlockedUsers(appState: AppState) async {
+        loadingBlockedUsers = true
+        defer { loadingBlockedUsers = false }
+        do {
+            blockedUsers = try await appState.listEliteBlocks()
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    func unblock(_ block: EliteBlock, appState: AppState) async {
+        do {
+            try await appState.unblockEliteUser(block.blockedUserId)
+            await loadBlockedUsers(appState: appState)
         } catch {
             errorText = error.localizedDescription
         }

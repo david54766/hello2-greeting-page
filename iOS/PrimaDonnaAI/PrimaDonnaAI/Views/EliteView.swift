@@ -28,6 +28,23 @@ struct EliteView: View {
             EliteThreadDetailSheet(viewModel: viewModel, detail: detail)
                 .environmentObject(appState)
         }
+        .alert(
+            "Block member?",
+            isPresented: Binding(
+                get: { viewModel.blockTarget != nil },
+                set: { if !$0 { viewModel.blockTarget = nil } }
+            ),
+            presenting: viewModel.blockTarget
+        ) { _ in
+            Button("Block", role: .destructive) {
+                Task { await viewModel.confirmBlock(appState: appState) }
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.blockTarget = nil
+            }
+        } message: { target in
+            Text("You will no longer see Elite conversations or replies from \(target.displayName).")
+        }
         .refreshable {
             await appState.refresh()
         }
@@ -41,10 +58,26 @@ private struct ConversationsPanel: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var viewModel: EliteViewModel
     @State private var newThreadItems: [PhotosPickerItem] = []
+    @State private var showingBlockedUsers = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            EditorialTitle(text: "Latest conversations", size: 31)
+            HStack(alignment: .center) {
+                EditorialTitle(text: "Latest conversations", size: 31)
+                Spacer()
+                Button {
+                    showingBlockedUsers = true
+                } label: {
+                    Image(systemName: "shield.lefthalf.filled")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(PrimaColor.accent)
+                        .frame(width: 42, height: 42)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Blocked Elite users")
+            }
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("Start a conversation")
@@ -78,13 +111,25 @@ private struct ConversationsPanel: View {
                 EmptyState(text: "No Elite conversations yet.")
             } else {
                 ForEach(appState.data.eliteThreads) { thread in
-                    EliteThreadCard(thread: thread, canDelete: thread.userId == appState.user?.id) {
+                    EliteThreadCard(
+                        thread: thread,
+                        canDelete: thread.userId == appState.user?.id,
+                        canBlock: thread.userId != nil && thread.userId != appState.user?.id
+                    ) {
                         Task { await viewModel.openThread(thread, appState: appState) }
                     } delete: {
                         Task { await viewModel.deleteThread(thread, appState: appState) }
+                    } block: {
+                        if let userId = thread.userId {
+                            viewModel.beginBlock(EliteBlockTarget(userId: userId, displayName: thread.authorName ?? "Member"))
+                        }
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showingBlockedUsers) {
+            BlockedUsersSheet(viewModel: viewModel)
+                .environmentObject(appState)
         }
     }
 }
@@ -92,8 +137,10 @@ private struct ConversationsPanel: View {
 private struct EliteThreadCard: View {
     let thread: EliteThread
     let canDelete: Bool
+    let canBlock: Bool
     let open: () -> Void
     let delete: () -> Void
+    let block: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -122,16 +169,27 @@ private struct EliteThreadCard: View {
                 CapsuleButton(title: "Open", systemImage: "text.bubble") {
                     open()
                 }
-                .frame(width: 138)
-                if canDelete {
-                    Button(action: delete) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 20, weight: .semibold))
+                .frame(width: 122)
+                if canDelete || canBlock {
+                    Menu {
+                        if canBlock {
+                            Button(role: .destructive, action: block) {
+                                Label("Block User", systemImage: "hand.raised")
+                            }
+                        }
+                        if canDelete {
+                            Button(role: .destructive, action: delete) {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 22, weight: .semibold))
                             .foregroundStyle(PrimaColor.ink)
                             .frame(width: 42, height: 42)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Delete conversation")
+                    .accessibilityLabel("Conversation safety options")
                 }
             }
         }
@@ -156,16 +214,21 @@ private struct EliteThreadDetailSheet: View {
                         .foregroundStyle(PrimaColor.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     RemoteImageStrip(urls: currentDetail.thread.imageUrls ?? [])
-                    reportButton(
-                        EliteReportTarget(
-                            kind: .thread,
-                            threadId: currentDetail.thread.id,
-                            replyId: nil,
-                            reportedTitle: currentDetail.thread.title,
-                            reportedBody: currentDetail.thread.body,
-                            reportedAuthor: currentDetail.thread.authorName
+                    HStack(spacing: 18) {
+                        reportButton(
+                            EliteReportTarget(
+                                kind: .thread,
+                                threadId: currentDetail.thread.id,
+                                replyId: nil,
+                                reportedTitle: currentDetail.thread.title,
+                                reportedBody: currentDetail.thread.body,
+                                reportedAuthor: currentDetail.thread.authorName
+                            )
                         )
-                    )
+                        if let userId = currentDetail.thread.userId, userId != appState.user?.id {
+                            blockButton(EliteBlockTarget(userId: userId, displayName: currentDetail.thread.authorName ?? "Member"))
+                        }
+                    }
                 }
                 .primaCard()
 
@@ -191,6 +254,9 @@ private struct EliteThreadDetailSheet: View {
                                         reportedAuthor: reply.authorName
                                     )
                                 )
+                                if let userId = reply.userId, userId != appState.user?.id {
+                                    blockButton(EliteBlockTarget(userId: userId, displayName: reply.authorName ?? "Member"))
+                                }
                                 if reply.userId == appState.user?.id {
                                     Button {
                                         Task { await viewModel.deleteReply(reply, appState: appState) }
@@ -243,6 +309,23 @@ private struct EliteThreadDetailSheet: View {
             EliteReportSheet(viewModel: viewModel, target: target)
                 .environmentObject(appState)
         }
+        .alert(
+            "Block member?",
+            isPresented: Binding(
+                get: { viewModel.blockTarget != nil },
+                set: { if !$0 { viewModel.blockTarget = nil } }
+            ),
+            presenting: viewModel.blockTarget
+        ) { _ in
+            Button("Block", role: .destructive) {
+                Task { await viewModel.confirmBlock(appState: appState) }
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.blockTarget = nil
+            }
+        } message: { target in
+            Text("You will no longer see Elite conversations or replies from \(target.displayName).")
+        }
     }
 
     private func reportButton(_ target: EliteReportTarget) -> some View {
@@ -255,6 +338,86 @@ private struct EliteThreadDetailSheet: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Report \(target.label)")
+    }
+
+    private func blockButton(_ target: EliteBlockTarget) -> some View {
+        Button {
+            viewModel.beginBlock(target)
+        } label: {
+            Label("Block User", systemImage: "hand.raised")
+                .font(PrimaFont.small)
+                .foregroundStyle(PrimaColor.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Block \(target.displayName)")
+    }
+}
+
+private struct BlockedUsersSheet: View {
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var viewModel: EliteViewModel
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    EditorialTitle(text: "Blocked users", size: 31)
+                    Text("Blocked members are hidden from your Elite conversations and cannot interact with you there.")
+                        .font(PrimaFont.body)
+                        .foregroundStyle(PrimaColor.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if viewModel.loadingBlockedUsers {
+                        ProgressView()
+                            .tint(PrimaColor.accent)
+                            .frame(maxWidth: .infinity, minHeight: 120)
+                    } else if viewModel.blockedUsers.isEmpty {
+                        EmptyState(text: "No blocked Elite users.")
+                    } else {
+                        ForEach(viewModel.blockedUsers) { block in
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(block.blockedUserName?.nilIfBlank ?? "Member")
+                                        .font(PrimaFont.cardTitle())
+                                        .foregroundStyle(PrimaColor.ink)
+                                    Text("Blocked \(PrimaFormat.dateTime(block.createdAt))")
+                                        .font(PrimaFont.small)
+                                        .foregroundStyle(PrimaColor.secondary)
+                                }
+                                Spacer()
+                                Button {
+                                    Task { await viewModel.unblock(block, appState: appState) }
+                                } label: {
+                                    Text("Unblock")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(PrimaColor.accent)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Unblock \(block.blockedUserName ?? "member")")
+                            }
+                            .primaCard(radius: 10, padding: 14)
+                        }
+                    }
+                }
+                .padding(24)
+            }
+            .background(PrimaColor.surface)
+            .navigationTitle("Blocked")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .task {
+                await viewModel.loadBlockedUsers(appState: appState)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }
 

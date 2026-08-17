@@ -115,6 +115,47 @@ final class MobileApiClient {
         try payload.throwIfFailed(defaultMessage: "Conversation could not be deleted.")
     }
 
+    func reportEliteContent(session authSession: AuthSession, target: EliteReportTarget, reason: String, details: String) async throws {
+        let contentId = target.replyId?.nilIfBlank ?? target.threadId
+        let payload = try await call(
+            action: "report_elite_content",
+            data: [
+                "content_type": target.kind.rawValue,
+                "content_id": contentId,
+                "reason": reason.trimmingCharacters(in: .whitespacesAndNewlines),
+                "details": details.trimmingCharacters(in: .whitespacesAndNewlines),
+                "platform": "ios"
+            ],
+            session: authSession,
+            decodeAs: BasicMobilePayload.self
+        )
+        try payload.throwIfFailed(defaultMessage: "Report could not be sent.")
+    }
+
+    func blockEliteUser(session authSession: AuthSession, userId: String) async throws {
+        let payload = try await call(
+            action: "block_elite_user",
+            data: ["blocked_user_id": userId],
+            session: authSession,
+            decodeAs: BasicMobilePayload.self
+        )
+        try payload.throwIfFailed(defaultMessage: "Member could not be blocked.")
+    }
+
+    func unblockEliteUser(session authSession: AuthSession, userId: String) async throws {
+        let payload = try await call(
+            action: "unblock_elite_user",
+            data: ["blocked_user_id": userId],
+            session: authSession,
+            decodeAs: BasicMobilePayload.self
+        )
+        try payload.throwIfFailed(defaultMessage: "Member could not be unblocked.")
+    }
+
+    func listEliteBlocks(session authSession: AuthSession) async throws -> [EliteBlock] {
+        try await call(action: "list_elite_blocks", session: authSession, decodeAs: EliteBlocksPayload.self).blocks ?? []
+    }
+
     private func call<T: Decodable>(
         action: String,
         data: [String: Any]? = nil,
@@ -206,4 +247,8 @@ private struct SecureAssetPayload: Codable {
 
 private struct EliteThreadsPayload: Codable {
     var threads: [EliteThread]?
+}
+
+private struct EliteBlocksPayload: Codable {
+    var blocks: [EliteBlock]?
 }
