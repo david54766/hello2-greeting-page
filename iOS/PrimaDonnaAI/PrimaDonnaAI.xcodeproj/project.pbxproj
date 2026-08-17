@@ -35,6 +35,9 @@
 		AA000000000000000000001A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001A /* SettingsView.swift */; };
 		AA000000000000000000001B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000001B /* Assets.xcassets */; };
 		AA000000000000000000001C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000020 /* PrivacyInfo.xcprivacy */; };
+		AA000000000000000000001D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000021 /* GoogleService-Info.plist */; };
+		AA000000000000000000001E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = JJ0000000000000000000001 /* FirebaseCore */; };
+		AA000000000000000000001F /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = JJ0000000000000000000002 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +74,7 @@
 		BB000000000000000000001E /* BuildSettings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = BuildSettings.xcconfig; sourceTree = "<group>"; };
 		BB000000000000000000001F /* PrimaDonnaAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PrimaDonnaAI.entitlements; sourceTree = "<group>"; };
 		BB0000000000000000000020 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		BB0000000000000000000021 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +82,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA000000000000000000001E /* FirebaseCore in Frameworks */,
+				AA000000000000000000001F /* FirebaseMessaging in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +109,7 @@
 				DD0000000000000000000007 /* Views */,
 				BB000000000000000000001B /* Assets.xcassets */,
 				BB000000000000000000001C /* Info.plist */,
+				BB0000000000000000000021 /* GoogleService-Info.plist */,
 				BB000000000000000000001F /* PrimaDonnaAI.entitlements */,
 				BB0000000000000000000020 /* PrivacyInfo.xcprivacy */,
 			);
@@ -203,6 +210,10 @@
 			dependencies = (
 			);
 			name = PrimaDonnaAI;
+			packageProductDependencies = (
+				JJ0000000000000000000001 /* FirebaseCore */,
+				JJ0000000000000000000002 /* FirebaseMessaging */,
+			);
 			productName = PrimaDonnaAI;
 			productReference = BB0000000000000000000000 /* PrimaDonnaAI.app */;
 			productType = "com.apple.product-type.application";
@@ -231,6 +242,9 @@
 				Base,
 			);
 			mainGroup = DD0000000000000000000001;
+			packageReferences = (
+				KK0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			productRefGroup = DD0000000000000000000008 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -247,6 +261,7 @@
 			files = (
 				AA000000000000000000001B /* Assets.xcassets in Resources */,
 				AA000000000000000000001C /* PrivacyInfo.xcprivacy in Resources */,
+				AA000000000000000000001D /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -413,7 +428,7 @@
 				APS_ENVIRONMENT = development;
 				CODE_SIGN_ENTITLEMENTS = PrimaDonnaAI/PrimaDonnaAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260813;
+				CURRENT_PROJECT_VERSION = 20260817;
 				DEVELOPMENT_TEAM = 526V8FJJ54;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -443,7 +458,7 @@
 				APS_ENVIRONMENT = production;
 				CODE_SIGN_ENTITLEMENTS = PrimaDonnaAI/PrimaDonnaAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20260813;
+				CURRENT_PROJECT_VERSION = 20260817;
 				DEVELOPMENT_TEAM = 526V8FJJ54;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -485,6 +500,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		KK0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.17.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		JJ0000000000000000000001 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = KK0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		JJ0000000000000000000002 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = KK0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = EE0000000000000000000002 /* Project object */;
 }

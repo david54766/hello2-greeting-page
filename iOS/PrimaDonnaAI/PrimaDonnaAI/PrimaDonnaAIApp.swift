@@ -1,3 +1,5 @@
+import FirebaseCore
+import FirebaseMessaging
 import SwiftUI
 import UIKit
 
@@ -153,8 +155,23 @@ private struct LegalConsentView: View {
 }
 
 final class PrimaDonnaAppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        FirebaseApp.configure()
+        Messaging.messaging().delegate = self
+        return true
+    }
+
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-        NotificationCenter.default.post(name: .primaDonnaAPNSToken, object: token)
+        Messaging.messaging().apnsToken = deviceToken
+    }
+}
+
+extension PrimaDonnaAppDelegate: MessagingDelegate {
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken else { return }
+        NotificationCenter.default.post(name: .primaDonnaFCMToken, object: fcmToken)
     }
 }

@@ -359,7 +359,7 @@ function PushNotificationsAdmin() {
           </div>
           <h2 className="mt-2 font-display text-2xl">Send an app alert</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sends only to registered Android devices whose saved notification settings allow the selected category.
+            Sends to registered Android and iOS devices whose saved notification settings allow the selected category.
           </p>
         </div>
       </div>

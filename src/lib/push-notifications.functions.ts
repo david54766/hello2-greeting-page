@@ -194,6 +194,16 @@ async function sendFcmMessage(args: {
             color: "#E6008D",
           },
         },
+        apns: {
+          headers: {
+            "apns-priority": "10",
+          },
+          payload: {
+            aps: {
+              sound: "default",
+            },
+          },
+        },
       },
     }),
   });
@@ -216,7 +226,7 @@ export const sendPushNotification = createServerFn({ method: "POST" })
       .from("push_tokens")
       .select("token,user_id")
       .eq("enabled", true)
-      .eq("platform", "android");
+      .in("platform", ["android", "ios"]);
 
     if (tokenError) {
       return { ok: false, message: tokenError.message, sent: 0, failed: 0, skipped: 0 };
@@ -224,7 +234,7 @@ export const sendPushNotification = createServerFn({ method: "POST" })
 
     const tokenRows = (tokens ?? []) as PushTokenRow[];
     if (tokenRows.length === 0) {
-      return { ok: false, message: "No registered Android push tokens found.", sent: 0, failed: 0, skipped: 0 };
+      return { ok: false, message: "No registered app push tokens found.", sent: 0, failed: 0, skipped: 0 };
     }
 
     const userIds = Array.from(new Set(tokenRows.map((row) => row.user_id)));

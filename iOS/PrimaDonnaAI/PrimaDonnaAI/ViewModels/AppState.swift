@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseMessaging
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -110,7 +111,7 @@ final class AppState: ObservableObject {
     func signOut() {
         let signOutSession = session
         let signOutUserId = user?.id
-        let signOutToken = pushNotifications.deviceToken
+        let signOutToken = pushNotifications.fcmToken
         audioPlayback.stop()
         speechInput.stopRecording()
         if let signOutSession, let signOutUserId, let signOutToken {
@@ -358,7 +359,7 @@ final class AppState: ObservableObject {
         guard data.notificationPreferences?.pushAlerts ?? false else { return }
         do {
             try await pushNotifications.requestAuthorizationAndRegister()
-            if let token = pushNotifications.deviceToken {
+            if let token = pushNotifications.fcmToken {
                 try await persistPushToken(token)
             }
         } catch {
@@ -474,7 +475,7 @@ final class AppState: ObservableObject {
     }
 
     private func disableCurrentPushToken() async {
-        guard let token = pushNotifications.deviceToken, let userId = user?.id else { return }
+        guard let token = pushNotifications.fcmToken, let userId = user?.id else { return }
         do {
             try await withActiveSession { authSession in
                 try await supabaseClient.disablePushToken(session: authSession, userId: userId, token: token)
@@ -523,7 +524,7 @@ final class AppState: ObservableObject {
 
 @MainActor
 final class PushNotificationService: NSObject, ObservableObject {
-    @Published private(set) var deviceToken: String?
+    @Published private(set) var fcmToken: String?
 
     var onTokenChange: ((String) -> Void)?
     private var tokenObserver: NSObjectProtocol?
@@ -531,13 +532,13 @@ final class PushNotificationService: NSObject, ObservableObject {
     override init() {
         super.init()
         tokenObserver = NotificationCenter.default.addObserver(
-            forName: .primaDonnaAPNSToken,
+            forName: .primaDonnaFCMToken,
             object: nil,
             queue: .main
         ) { [weak self] notification in
             guard let token = notification.object as? String else { return }
             Task { @MainActor [weak self] in
-                self?.deviceToken = token
+                self?.fcmToken = token
                 self?.onTokenChange?(token)
             }
         }
@@ -555,16 +556,20 @@ final class PushNotificationService: NSObject, ObservableObject {
             throw AppError.message("Push notifications are disabled. You can turn them on later in iOS Settings.")
         }
         UIApplication.shared.registerForRemoteNotifications()
+        let token = try await Messaging.messaging().token()
+        fcmToken = token
+        onTokenChange?(token)
     }
 
     func clearRegistration() {
-        deviceToken = nil
+        fcmToken = nil
+        Messaging.messaging().deleteToken { _ in }
         UIApplication.shared.unregisterForRemoteNotifications()
     }
 }
 
 extension Notification.Name {
-    static let primaDonnaAPNSToken = Notification.Name("PrimaDonnaAI.didRegisterForRemoteNotifications")
+    static let primaDonnaFCMToken = Notification.Name("PrimaDonnaAI.didRefreshFCMToken")
 }
 
 struct Notice: Equatable, Identifiable {
