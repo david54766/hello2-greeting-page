@@ -17,7 +17,7 @@ export function AppHeader() {
       <Link to="/dashboard" className="hover:text-primary transition" activeProps={{ className: "text-primary" }} onClick={close}>
         Command Center
       </Link>
-      <Link to="/coach" className="hover:text-primary transition" activeProps={{ className: "text-primary" }} onClick={close}>
+      <Link to="/coach" search={{ mode: undefined }} className="hover:text-primary transition" activeProps={{ className: "text-primary" }} onClick={close}>
         Coaching
       </Link>
       <Link to="/templates" className="hover:text-primary transition" activeProps={{ className: "text-primary" }} onClick={close}>
