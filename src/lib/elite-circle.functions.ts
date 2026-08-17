@@ -12,6 +12,7 @@ export const listThreads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
+    const { loadBlockedIds } = await import("./elite-moderation.server");
     const { data, error } = await supabase
       .from("elite_threads")
       .select("id, user_id, title, body, image_urls, pinned, created_at, updated_at")
@@ -19,7 +20,10 @@ export const listThreads = createServerFn({ method: "GET" })
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const ids = Array.from(new Set((data ?? []).map((t) => t.user_id)));
+    const blocked = await loadBlockedIds(supabase);
+    const rows = (data ?? []).filter((t) => !blocked.has(t.user_id));
+
+    const ids = Array.from(new Set(rows.map((t) => t.user_id)));
     let names: Record<string, string> = {};
     if (ids.length) {
       const { data: profs } = await supabase
@@ -36,7 +40,7 @@ export const listThreads = createServerFn({ method: "GET" })
     (counts ?? []).forEach((r: any) => { tally[r.thread_id] = (tally[r.thread_id] ?? 0) + 1; });
 
     return {
-      threads: (data ?? []).map((t) => ({
+      threads: rows.map((t) => ({
         ...t,
         image_urls: (t as any).image_urls ?? [],
         author_name: names[t.user_id] ?? "Member",
