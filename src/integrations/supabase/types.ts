@@ -1160,6 +1160,7 @@ export type Database = {
     }
     Functions: {
       claim_first_admin: { Args: never; Returns: boolean }
+      elite_blocked_user_ids: { Args: never; Returns: string[] }
       has_any_admin: { Args: never; Returns: boolean }
       has_role: {
         Args: {
