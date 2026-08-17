@@ -60,6 +60,10 @@ export const createThread = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { moderateElitePost, MODERATION_SAFE_MESSAGE } = await import("./elite-moderation.server");
+    if (!(await moderateElitePost([data.title, data.body]))) {
+      return { ok: false, message: MODERATION_SAFE_MESSAGE };
+    }
     const { data: row, error } = await supabase
       .from("elite_threads")
       .insert({ user_id: userId, title: data.title, body: data.body, image_urls: data.image_urls ?? [] })
@@ -74,6 +78,7 @@ export const getThread = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
+    const { loadBlockedIds } = await import("./elite-moderation.server");
     const { data: thread, error } = await supabase
       .from("elite_threads")
       .select("id, user_id, title, body, image_urls, pinned, created_at, updated_at")
@@ -81,20 +86,25 @@ export const getThread = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error || !thread) throw new Error(error?.message ?? "Not found");
 
+    const blocked = await loadBlockedIds(supabase);
+    if (blocked.has(thread.user_id)) throw new Error("Not found");
+
     const { data: replies } = await supabase
       .from("elite_thread_replies")
       .select("id, user_id, body, image_urls, created_at")
       .eq("thread_id", data.id)
       .order("created_at", { ascending: true });
 
-    const ids = Array.from(new Set([thread.user_id, ...(replies ?? []).map((r: any) => r.user_id)]));
+    const visibleReplies = (replies ?? []).filter((r: any) => !blocked.has(r.user_id));
+
+    const ids = Array.from(new Set([thread.user_id, ...visibleReplies.map((r: any) => r.user_id)]));
     const { data: profs } = await supabase
       .from("profiles").select("id, full_name").in("id", ids);
     const names = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.full_name ?? "Member"]));
 
     return {
       thread: { ...thread, image_urls: (thread as any).image_urls ?? [], author_name: names[thread.user_id] ?? "Member" },
-      replies: (replies ?? []).map((r: any) => ({ ...r, image_urls: r.image_urls ?? [], author_name: names[r.user_id] ?? "Member" })),
+      replies: visibleReplies.map((r: any) => ({ ...r, image_urls: r.image_urls ?? [], author_name: names[r.user_id] ?? "Member" })),
     };
   });
 
@@ -109,6 +119,10 @@ export const replyToThread = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { moderateElitePost, MODERATION_SAFE_MESSAGE } = await import("./elite-moderation.server");
+    if (!(await moderateElitePost([data.body]))) {
+      return { ok: false, message: MODERATION_SAFE_MESSAGE };
+    }
     const { error } = await supabase.from("elite_thread_replies").insert({
       thread_id: data.thread_id,
       user_id: userId,
