@@ -72,6 +72,15 @@ Deno.serve(async (req) => {
         return jsonResponse(await replyEliteThread(context, data));
       case 'delete_elite_thread':
         return jsonResponse(await deleteEliteThread(context, data));
+      // Additive actions (iOS/web). Old Android clients never call these.
+      case 'block_elite_user':
+        return jsonResponse(await blockEliteUser(context, data));
+      case 'unblock_elite_user':
+        return jsonResponse(await unblockEliteUser(context, data));
+      case 'list_elite_blocks':
+        return jsonResponse(await listEliteBlocks(context));
+      case 'report_elite_content':
+        return jsonResponse(await reportEliteContent(context, data));
       case 'list_raven_slots':
         return jsonResponse({ slots: [], timezone: null, disabled: true });
       case 'list_raven_bookings':
