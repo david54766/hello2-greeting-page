@@ -128,7 +128,7 @@ async function requireEliteAccess({ supabase, userId }: MobileContext) {
 async function runCoaching({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
   const mode = readMode(data.mode);
   const prompt = readString(data.prompt, 'prompt', 1, 4000);
-  const apiKey = Deno.env.get('OPENAI_API_KEY');
+  const apiKey = openAIAPIKey();
   if (!apiKey) return { ok: false, error: 'AI strategy key is not configured.' };
 
   const [{ data: profile }, { data: centers }, { data: revenueProfile }] = await Promise.all([
@@ -270,7 +270,7 @@ function screenTextLocally(text: string): boolean {
 }
 
 async function screenTextRemote(text: string): Promise<boolean> {
-  const apiKey = Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY');
+  const apiKey = openAIAPIKey();
   if (!apiKey || !text.trim()) return true;
   try {
     const res = await fetch('https://api.openai.com/v1/moderations', {
@@ -293,6 +293,10 @@ async function screenTextRemote(text: string): Promise<boolean> {
     console.error('moderation error', error);
     return true;
   }
+}
+
+function openAIAPIKey(): string | undefined {
+  return Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY') ?? Deno.env.get('AI_STRATEGY_KEY');
 }
 
 async function moderateElitePost(parts: Array<string | null | undefined>): Promise<boolean> {
