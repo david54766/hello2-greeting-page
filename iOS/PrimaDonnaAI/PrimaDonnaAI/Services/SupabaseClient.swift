@@ -212,7 +212,14 @@ final class SupabaseClient {
         guard let baseURL = config.supabaseURL else {
             throw AppError.message("The Supabase URL is not configured.")
         }
-        let relativePath = cleanSignedPath.hasPrefix("/") ? cleanSignedPath : "/\(cleanSignedPath)"
+        let relativePath: String
+        if cleanSignedPath.hasPrefix("/storage/v1/") {
+            relativePath = cleanSignedPath
+        } else if cleanSignedPath.hasPrefix("/object/") {
+            relativePath = "/storage/v1\(cleanSignedPath)"
+        } else {
+            relativePath = cleanSignedPath.hasPrefix("/") ? cleanSignedPath : "/\(cleanSignedPath)"
+        }
         guard let url = URL(string: relativePath, relativeTo: baseURL)?.absoluteURL else {
             throw AppError.message("The signed URL could not be created.")
         }
