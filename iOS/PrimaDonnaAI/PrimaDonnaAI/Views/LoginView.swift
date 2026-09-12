@@ -86,7 +86,7 @@ struct LoginView: View {
                 .shadow(color: PrimaColor.ink.opacity(0.16), radius: 24, x: 0, y: 18)
                 .padding(.horizontal, 34)
 
-                Text("Prima Donna AI")
+                Text("Preschool Pro AI")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(PrimaColor.secondary)
                     .padding(.top, 28)

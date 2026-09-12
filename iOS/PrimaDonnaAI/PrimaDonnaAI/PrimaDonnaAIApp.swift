@@ -66,7 +66,7 @@ private struct LegalConsentView: View {
                         Eyebrow(text: "Legal consent")
                         EditorialTitle(text: "Review the current\nterms.", size: 38)
 
-                        Text("To enter Prima Donna AI, accept the current Terms of Service and Privacy Policy.")
+                        Text("To enter Preschool Pro AI, accept the current Terms of Service and Privacy Policy.")
                             .font(PrimaFont.body)
                             .foregroundStyle(PrimaColor.secondary)
                             .fixedSize(horizontal: false, vertical: true)

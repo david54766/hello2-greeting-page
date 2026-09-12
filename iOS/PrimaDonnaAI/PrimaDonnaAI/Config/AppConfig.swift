@@ -54,8 +54,8 @@ struct AppConfig {
 
     var accountDeletionURL: URL? {
         mailURL(
-            subject: "Prima Donna AI account deletion request",
-            body: "Please start deletion for my Prima Donna AI account. I understand Classroom Panda LLC may need to verify account ownership before completing this request."
+            subject: "Preschool Pro AI account deletion request",
+            body: "Please start deletion for my Preschool Pro AI account. I understand Classroom Panda LLC may need to verify account ownership before completing this request."
         )
     }
 

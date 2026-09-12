@@ -43,7 +43,7 @@ struct UserProfile: Codable, Equatable, Identifiable {
     var updatedAt: String?
 
     var displayName: String {
-        fullName?.nilIfBlank ?? "Prima Donna"
+        fullName?.nilIfBlank ?? "Preschool Pro member"
     }
 }
 
@@ -177,7 +177,7 @@ struct TemplateItem: Codable, Equatable, Identifiable {
     }
 
     var summary: String {
-        description?.nilIfBlank ?? "A Prima Donna AI operating resource."
+        description?.nilIfBlank ?? "A Preschool Pro AI operating resource."
     }
 
     var categoryLabel: String {

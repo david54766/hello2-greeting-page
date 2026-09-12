@@ -63,18 +63,13 @@ struct PrimaLogoView: View {
     var compact = false
 
     var body: some View {
-        HStack(spacing: compact ? 8 : 12) {
-            Image("PrimaDonnaLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: compact ? 168 : 232, height: compact ? 52 : 74)
-                .clipShape(Rectangle())
-            Text("AI")
-                .font(.system(size: compact ? 17 : 21, weight: .bold))
-                .foregroundStyle(PrimaColor.accent)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Prima Donna AI")
+        Image("PreschoolProLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: compact ? 184 : 286, height: compact ? 54 : 88)
+            .clipShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Preschool Pro AI")
     }
 }
 

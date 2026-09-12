@@ -129,7 +129,7 @@ final class SupabaseClient {
             "privacy_version": AppConfig.privacyVersion,
             "platform": "ios",
             "app_version": config.appVersionLabel,
-            "user_agent": "PrimaDonnaAI iOS \(config.appVersionLabel)"
+            "user_agent": "PreschoolProAI iOS \(config.appVersionLabel)"
         ]
         let request = try request(
             path: "/rest/v1/legal_acceptances",
