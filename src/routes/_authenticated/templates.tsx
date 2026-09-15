@@ -8,7 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/templates")({
-  head: () => ({ meta: [{ title: "Template Vault — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Template Vault — Preschool Pro AI™" }] }),
   component: Templates,
 });
 

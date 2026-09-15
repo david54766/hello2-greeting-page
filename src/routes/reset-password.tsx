@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Reset Password — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Reset Password — Preschool Pro AI™" }] }),
   component: ResetPassword,
 });
 

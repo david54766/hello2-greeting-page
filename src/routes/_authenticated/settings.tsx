@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Bell, Crown, Mail, Plus, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings - Prima Donna AI" }] }),
+  head: () => ({ meta: [{ title: "Settings - Preschool Pro AI" }] }),
   component: Settings,
 });
 

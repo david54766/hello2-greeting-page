@@ -9,7 +9,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/apply-elite")({
   head: () => ({
     meta: [
-      { title: "Apply for Elite Circle — Prima Donna AI™" },
+      { title: "Apply for Elite Circle — Preschool Pro AI™" },
       {
         name: "description",
         content:
@@ -86,7 +86,7 @@ function ApplyElite() {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-rose-soft/10 to-background py-16 px-6">
       <div className="mx-auto max-w-2xl">
         <Link to="/" className="font-display text-2xl">
-          Prima Donna AI™
+          Preschool Pro AI™
         </Link>
         <div className="mt-10">
           <p className="text-xs uppercase tracking-[0.25em] text-primary">Invitation only</p>

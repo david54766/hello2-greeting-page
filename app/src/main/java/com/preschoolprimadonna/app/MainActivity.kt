@@ -673,7 +673,7 @@ private fun LoginScreen(
             }
             Spacer(Modifier.height(18.dp))
             Text(
-                text = "Prima Donna AI",
+                text = "Preschool Pro AI",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -756,7 +756,7 @@ private fun LegalConsentScreen(
                         )
                     )
                     Text(
-                        "Before using Prima Donna AI, review the current Terms and Privacy Policy. Native screens do not use browser cookies; the Cookie Policy applies to the website and any web pages opened from the app.",
+                        "Preschool Pro AI is owned, operated, and managed by Classroom Panda LLC. Before using the app, review the current Terms and Privacy Policy. Native screens do not use browser cookies; the Cookie Policy applies to the website and any web pages opened from the app.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1151,7 +1151,7 @@ private fun OnboardingScreen(
             }
             Spacer(Modifier.height(18.dp))
             Text(
-                text = "Prima Donna AI",
+                text = "Preschool Pro AI",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1889,6 +1889,11 @@ private fun LegalSettingsCard(acceptance: LegalAcceptance?) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                "Preschool Pro AI is owned, operated, and managed by Classroom Panda LLC.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             LegalPolicyLinks()
         }
     }
@@ -2136,23 +2141,14 @@ private fun CenterEditCard(
 
 @Composable
 private fun BrandMark(compact: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(
-            painter = painterResource(id = R.drawable.prima_donna_logo),
-            contentDescription = "Prima Donna AI",
-            modifier = Modifier
-                .width(if (compact) 132.dp else 220.dp)
-                .height(if (compact) 46.dp else 78.dp),
-            contentScale = ContentScale.Fit
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = "AI",
-            color = PrimaPink,
-            style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
+    Image(
+        painter = painterResource(id = R.drawable.preschool_pro_ai_logo),
+        contentDescription = "Preschool Pro AI",
+        modifier = Modifier
+            .width(if (compact) 164.dp else 244.dp)
+            .height(if (compact) 52.dp else 82.dp),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable

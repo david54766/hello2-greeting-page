@@ -6,8 +6,8 @@ import { LEGAL_LAST_UPDATED } from "@/lib/legal-consent";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Service — Prima Donna AI™" },
-      { name: "description", content: "The terms that govern your use of Prima Donna AI™." },
+      { title: "Terms of Service — Preschool Pro AI™" },
+      { name: "description", content: "The terms that govern your use of Preschool Pro AI™." },
     ],
   }),
   component: TermsPage,
@@ -26,8 +26,10 @@ function TermsPage() {
           <section className="mt-10 space-y-4 text-[15px] leading-relaxed">
             <h2 className="font-display text-2xl">1. Acceptance</h2>
             <p>
-              By creating an account or using Prima Donna AI™ ("the Service"), you agree to these
-              Terms. If you do not agree, do not use the Service.
+              Preschool Pro AI™ is owned, operated, and managed by Classroom Panda LLC
+              ("Classroom Panda," "we," "us," or "our"). By creating an account or using Preschool
+              Pro AI™ ("the Service"), you agree to these Terms. If you do not agree, do not use
+              the Service.
             </p>
 
             <h2 className="font-display text-2xl">2. Eligibility</h2>
@@ -84,9 +86,10 @@ function TermsPage() {
 
             <h2 className="font-display text-2xl">7. Intellectual property</h2>
             <p>
-              The platform, brand, templates, video content, and the Prima Donna Doctrine are owned
-              by us and protected by law. Pro and Elite templates are licensed for use inside your
-              own business — not for resale or redistribution.
+              The platform, Preschool Pro AI brand, proprietary coaching frameworks, templates,
+              and video content are owned by Classroom Panda LLC and protected by law. Pro and
+              Elite templates are licensed for use inside your own business — not for resale or
+              redistribution.
             </p>
 
             <h2 className="font-display text-2xl">8. Termination</h2>
@@ -119,8 +122,8 @@ function TermsPage() {
 
             <h2 className="font-display text-2xl">12. Contact</h2>
             <p>
-              <a href="mailto:hello@thepreschoolprimadonna.com" className="text-primary">
-                hello@thepreschoolprimadonna.com
+              <a href="mailto:info@classroompanda.com" className="text-primary">
+                info@classroompanda.com
               </a>
             </p>
           </section>

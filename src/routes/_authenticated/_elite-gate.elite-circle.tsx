@@ -19,7 +19,7 @@ import { EliteSubNav } from "@/components/EliteSubNav";
 import { ImageAttachments, AttachmentGallery } from "@/components/elite/ImageAttachments";
 
 export const Route = createFileRoute("/_authenticated/_elite-gate/elite-circle")({
-  head: () => ({ meta: [{ title: "Elite Circle Conversations — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Elite Circle Conversations — Preschool Pro AI™" }] }),
   component: EliteCircleBoard,
 });
 

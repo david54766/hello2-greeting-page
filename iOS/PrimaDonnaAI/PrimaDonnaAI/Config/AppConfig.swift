@@ -2,8 +2,8 @@ import Foundation
 
 struct AppConfig {
     static let shared = AppConfig()
-    static let termsVersion = "2026-07-21.v1"
-    static let privacyVersion = "2026-07-21.v1"
+    static let termsVersion = "2026-09-15.v1"
+    static let privacyVersion = "2026-09-15.v1"
     static let supportEmail = "info@classroompanda.com"
 
     let supabaseURL: URL?

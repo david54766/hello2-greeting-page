@@ -200,7 +200,7 @@ class SupabaseRestClient {
             put("privacy_version", CURRENT_PRIVACY_VERSION)
             put("platform", "android")
             put("app_version", BuildConfig.VERSION_NAME)
-            put("user_agent", "Prima Donna AI Android/${BuildConfig.VERSION_NAME}")
+            put("user_agent", "Preschool Pro AI Android/${BuildConfig.VERSION_NAME}")
         }
         val url = "${BuildConfig.SUPABASE_URL}/rest/v1/legal_acceptances".toHttpUrl().newBuilder()
             .addQueryParameter("on_conflict", "user_id,terms_version,privacy_version")

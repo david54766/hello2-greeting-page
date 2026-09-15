@@ -4,8 +4,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
-const val CURRENT_TERMS_VERSION = "2026-07-21.v1"
-const val CURRENT_PRIVACY_VERSION = "2026-07-21.v1"
+const val CURRENT_TERMS_VERSION = "2026-09-15.v1"
+const val CURRENT_PRIVACY_VERSION = "2026-09-15.v1"
 
 @Serializable
 data class AuthSession(

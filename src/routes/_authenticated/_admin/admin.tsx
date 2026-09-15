@@ -28,7 +28,7 @@ import { RavenVideosAdmin } from "@/components/admin/RavenVideosAdmin";
 import { TemplateVaultManager } from "@/components/admin/TemplateVaultManager";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin")({
-  head: () => ({ meta: [{ title: "Admin — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Admin — Preschool Pro AI™" }] }),
   component: Admin,
 });
 
@@ -401,7 +401,7 @@ function PushNotificationsAdmin() {
               onChange={(e) => setBody(e.target.value)}
               maxLength={240}
               rows={3}
-              placeholder="Open Prima Donna AI to review today's recommendation."
+              placeholder="Open Preschool Pro AI to review today's recommendation."
             />
           </Field>
         </div>

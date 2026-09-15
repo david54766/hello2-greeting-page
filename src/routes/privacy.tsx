@@ -6,10 +6,10 @@ import { LEGAL_LAST_UPDATED } from "@/lib/legal-consent";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Prima Donna AI™" },
+      { title: "Privacy Policy — Preschool Pro AI™" },
       {
         name: "description",
-        content: "How Prima Donna AI™ collects, uses, and protects your information.",
+        content: "How Preschool Pro AI™ collects, uses, and protects your information.",
       },
     ],
   }),
@@ -29,10 +29,11 @@ function PrivacyPage() {
           <section className="mt-10 space-y-4 text-[15px] leading-relaxed">
             <h2 className="font-display text-2xl">1. Who we are</h2>
             <p>
-              Prima Donna AI™ ("we," "us," "our") provides an AI-powered executive coaching platform
-              for childcare center owners at{" "}
+              Preschool Pro AI™ is owned, operated, and managed by Classroom Panda LLC
+              ("Classroom Panda," "we," "us," or "our"). We provide an AI-powered executive
+              coaching platform for childcare center owners at{" "}
               <a href="https://app.thepreschoolprimadonna.com" className="text-primary">
-                app.thepreschoolprimadonna.com
+                the Preschool Pro AI website
               </a>
               .
             </p>

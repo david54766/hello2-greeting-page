@@ -1,6 +1,6 @@
 {
-  "name": "Prima Donna AI",
-  "short_name": "Prima Donna",
+  "name": "Preschool Pro AI",
+  "short_name": "Preschool Pro",
   "description": "Executive AI coaching for childcare leaders.",
   "start_url": "/dashboard",
   "display": "standalone",
@@ -8,9 +8,9 @@
   "theme_color": "#ec008c",
   "icons": [
     {
-      "src": "/prima-crown-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/preschool-pro-ai-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

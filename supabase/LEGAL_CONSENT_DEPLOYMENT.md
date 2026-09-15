@@ -22,7 +22,7 @@ Supabase project.
 After deployment, verify with an existing account that:
 
 1. Signing in displays the consent gate once.
-2. Accepting creates a row with terms and privacy version `2026-07-21.v1`.
+2. Accepting creates a row with terms and privacy version `2026-09-15.v1`.
 3. Signing out and back in does not display the gate again.
 4. Another user cannot read or create acceptance rows for that account.
 

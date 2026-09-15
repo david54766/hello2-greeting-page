@@ -8,10 +8,10 @@ import { LEGAL_LAST_UPDATED } from "@/lib/legal-consent";
 export const Route = createFileRoute("/cookies")({
   head: () => ({
     meta: [
-      { title: "Cookie Policy — Prima Donna AI™" },
+      { title: "Cookie Policy — Preschool Pro AI™" },
       {
         name: "description",
-        content: "How Prima Donna AI™ uses cookies and similar technologies.",
+        content: "How Preschool Pro AI™ uses cookies and similar technologies.",
       },
     ],
   }),
@@ -37,6 +37,10 @@ function CookiesPage() {
           <p className="text-sm text-muted-foreground">Last updated: {LEGAL_LAST_UPDATED}</p>
 
           <section className="mt-10 space-y-4 text-[15px] leading-relaxed">
+            <p>
+              Preschool Pro AI™ is owned, operated, and managed by Classroom Panda LLC. This policy
+              explains how the Preschool Pro AI website uses cookies and similar technologies.
+            </p>
             <h2 className="font-display text-2xl">What cookies we use</h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>

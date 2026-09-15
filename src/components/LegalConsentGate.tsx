@@ -116,7 +116,8 @@ export function LegalConsentGate({ children }: { children: ReactNode }) {
         ) : (
           <>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Before using Prima Donna AI, review the current legal terms and privacy practices.
+              Before using Preschool Pro AI, review the current legal terms and privacy practices.
+              Preschool Pro AI is owned, operated, and managed by Classroom Panda LLC.
               Optional website cookies are managed separately and are not required for account
               access.
             </p>

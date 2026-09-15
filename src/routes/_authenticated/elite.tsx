@@ -21,7 +21,7 @@ import founderPortrait from "@/assets/prima-donna-founder.jpeg";
 
 
 export const Route = createFileRoute("/_authenticated/elite")({
-  head: () => ({ meta: [{ title: "Elite Circle — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Elite Circle — Preschool Pro AI™" }] }),
   component: Elite,
 });
 
@@ -67,7 +67,7 @@ function ApplicationFlow() {
         <div className="mx-auto mt-10 w-56 md:w-64 aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/10">
           <img
             src={founderPortrait}
-            alt="Founder of Prima Donna AI™"
+            alt="Preschool Pro AI childcare-business coach"
             className="size-full object-cover"
             loading="eager"
           />

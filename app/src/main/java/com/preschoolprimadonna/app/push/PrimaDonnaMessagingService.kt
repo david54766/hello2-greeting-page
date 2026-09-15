@@ -101,7 +101,7 @@ class PrimaDonnaMessagingService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             getString(R.string.default_notification_channel_id),
-            "Prima Donna updates",
+            "Preschool Pro AI updates",
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = "Raven updates, strategy alerts, and Elite conversation notifications."

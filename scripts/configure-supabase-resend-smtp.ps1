@@ -1,7 +1,7 @@
 param(
     [string]$ProjectRef = "owjhaoiqiujpdndcwccl",
     [string]$FromEmail = $env:SMTP_FROM_EMAIL,
-    [string]$SenderName = $(if ($env:SMTP_SENDER_NAME) { $env:SMTP_SENDER_NAME } else { "The Preschool Prima Donna AI" }),
+    [string]$SenderName = $(if ($env:SMTP_SENDER_NAME) { $env:SMTP_SENDER_NAME } else { "Preschool Pro AI" }),
     [string]$SupabaseAccessToken = $env:SUPABASE_ACCESS_TOKEN,
     [string]$ResendApiKey = $env:RESEND_API_KEY
 )
