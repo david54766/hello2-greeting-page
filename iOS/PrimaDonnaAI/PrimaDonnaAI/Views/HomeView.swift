@@ -35,7 +35,7 @@ struct HomeView: View {
                     showDailyBrief = true
                 } label: {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(recommendation.title?.nilIfBlank ?? "Raven daily brief")
+                        Text("Daily brief")
                             .font(PrimaFont.cardTitle(18))
                             .foregroundStyle(PrimaColor.ink)
                         Text(recommendation.body?.nilIfBlank ?? "Open the latest published Raven insight from your library.")
@@ -56,7 +56,7 @@ struct HomeView: View {
                     .primaCard()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Open Raven daily brief")
+                .accessibilityLabel("Open daily brief")
             }
         }
         .refreshable {
@@ -111,7 +111,7 @@ private struct RavenDailyBriefDetailView: View {
                     Eyebrow(text: "Daily brief")
                 }
 
-                EditorialTitle(text: "Raven daily brief", size: 36)
+                EditorialTitle(text: "Daily brief", size: 36)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text(recommendation.body?.nilIfBlank ?? "Open the latest published Raven insight from your library.")

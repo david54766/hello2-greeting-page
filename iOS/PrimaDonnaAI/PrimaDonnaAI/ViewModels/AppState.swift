@@ -444,7 +444,7 @@ final class AppState: ObservableObject {
             return recommendation
         }
         guard let video = videos.first(where: { $0.storagePath != nil }) else { return nil }
-        return DailyRecommendation(title: video.title ?? "Raven daily brief", body: video.description ?? "Open the latest published Raven insight from your library.")
+        return DailyRecommendation(title: video.title ?? "Daily brief", body: video.description ?? "Open the latest published Raven insight from your library.")
     }
 
     private func refreshAfterMutation() async throws {

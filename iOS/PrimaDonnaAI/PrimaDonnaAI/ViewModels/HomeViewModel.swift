@@ -33,7 +33,7 @@ final class HomeViewModel: ObservableObject {
 
     func recommendation(from data: DashboardData) -> DailyRecommendation {
         data.dailyRecommendation ?? DailyRecommendation(
-            title: "Raven daily brief",
+            title: "Daily brief",
             body: "Open the latest published Raven insight from your library."
         )
     }

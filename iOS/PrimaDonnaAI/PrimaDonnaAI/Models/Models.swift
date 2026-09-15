@@ -312,7 +312,7 @@ struct DailyRecommendationRow: Codable, Equatable {
 
     var dailyRecommendation: DailyRecommendation {
         DailyRecommendation(
-            title: "Raven daily brief",
+            title: "Daily brief",
             body: recommendation,
             createdAt: createdAt,
             forDate: forDate
