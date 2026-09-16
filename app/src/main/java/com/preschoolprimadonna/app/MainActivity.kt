@@ -2432,7 +2432,7 @@ private fun DailyRecommendationCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Raven daily brief", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Daily brief", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(
                 text = recommendation,
                 style = MaterialTheme.typography.bodyMedium,
@@ -2496,7 +2496,7 @@ private fun RavenDailyBriefScreen(
             Spacer(Modifier.width(4.dp))
             Eyebrow("Daily brief")
         }
-        ScreenHeading("Raven daily brief")
+        ScreenHeading("Daily brief")
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             shape = AppCardShape,
