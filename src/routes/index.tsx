@@ -20,7 +20,7 @@ const tiers = [
     name: "Essentials",
     price: 97,
     tagline: "Your strategist on call.",
-    features: ["Unlimited AI coaching across 5 strategic modes", "Business memory that personalizes every response", "Daily strategic recommendation"],
+    features: ["Unlimited AI coaching across 5 strategic modes", "Business memory that personalizes every response", "Personalized Daily Brief"],
     cta: "Start with Essentials",
   },
   {
@@ -35,7 +35,7 @@ const tiers = [
     name: "Elite Circle",
     price: 497,
     tagline: "By invitation. The inner room.",
-    features: ["Everything in Pro", "Live coaching sessions", "Vault content reserved for the Circle", "Priority response styling"],
+    features: ["Everything in Pro", "Private Elite Circle conversations", "Vault content reserved for the Circle", "Priority response styling"],
     cta: "Apply for Elite",
   },
 ];

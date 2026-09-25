@@ -76,7 +76,7 @@ function PrivacyPage() {
             <h2 className="font-display text-2xl">3. How we use it</h2>
             <ul className="list-disc pl-5 space-y-1">
               <li>Operate, personalize, and improve the coaching experience.</li>
-              <li>Generate daily strategic recommendations tailored to your portfolio.</li>
+              <li>Generate personalized Daily Brief recommendations for your portfolio.</li>
               <li>Authenticate you, prevent abuse, and enforce tier access.</li>
               <li>Send transactional email (password resets, Elite Circle decisions, receipts).</li>
               <li>Comply with legal obligations.</li>
