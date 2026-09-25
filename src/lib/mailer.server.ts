@@ -72,7 +72,7 @@ export const Templates = {
       html: shell(
         `<h1 style="font-family:Georgia,serif;font-size:26px;margin:0 0 12px 0;">Welcome, ${escapeHtml(args.name)}.</h1>
          <p>Your application has been approved. You've been granted a seat at the Elite Circle table.</p>
-         <p>Click below to finalize your account and unlock live coaching, the Elite Vault, and 1:1 strategy access.</p>
+         <p>Click below to finalize your account and unlock AI coaching, the Elite Vault, and private Elite conversations.</p>
          ${button(args.link, "Activate my membership")}
          <p style="color:#8a6b73;font-size:13px;">This invitation link expires in 24 hours. If you didn't apply, you can ignore this email.</p>`,
       ),

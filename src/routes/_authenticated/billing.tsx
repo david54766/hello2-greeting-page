@@ -46,8 +46,8 @@ const TIERS: TierDef[] = [
     id: "elite",
     name: "Elite Circle",
     price: "$497/mo",
-    tagline: "Invitation only. Live 1:1 with Raven + private community.",
-    features: ["Everything in Pro", "1:1 scheduling with Raven", "Elite Vault content", "Conversations Board access"],
+    tagline: "Invitation only. Private community and priority strategy.",
+    features: ["Everything in Pro", "Elite Vault content", "Private Elite Circle conversations", "Priority response styling"],
     eliteOnly: true,
   },
 ];

@@ -68,8 +68,9 @@ function PrivacyPage() {
                 and moderation records.
               </li>
               <li>
-                <strong>Billing data:</strong> handled by Stripe. We never see or store your full
-                card number.
+                <strong>Billing data:</strong> web membership payments are handled by Stripe. The
+                native iOS app does not collect payment-card details, and we never see or store your
+                full card number.
               </li>
             </ul>
 
@@ -85,9 +86,12 @@ function PrivacyPage() {
             <h2 className="font-display text-2xl">4. Sharing</h2>
             <p>
               We share only what is needed with the vendors that run the platform: Supabase
-              (database, auth, storage), Stripe (billing), Resend (email delivery), ElevenLabs
-              (voice synthesis and transcription), and our LLM providers (coaching responses and
-              visual examples). We do not sell your data.
+              (database, authentication, storage, and server functions), Stripe (website billing),
+              Resend (email delivery), ElevenLabs (voice synthesis and transcription), Firebase
+              (iOS push-notification delivery), and our LLM providers (coaching responses,
+              moderation, and visual examples). We require service providers to handle data only
+              for the contracted services and with protections appropriate to the data. We do not
+              sell your data.
             </p>
 
             <h2 className="font-display text-2xl">5. Retention</h2>
@@ -99,8 +103,9 @@ function PrivacyPage() {
               <a href="mailto:info@classroompanda.com" className="text-primary">
                 info@classroompanda.com
               </a>
-              . Mobile app settings will also provide the account-deletion path required by the
-              applicable app store before public release.
+              , through the account-deletion page, or directly from Settings in the iOS app. An
+              authenticated deletion request covers the account and associated personal, business,
+              coaching, and community content, except records we must retain by law.
             </p>
 
             <h2 className="font-display text-2xl">6. Your rights</h2>

@@ -74,7 +74,7 @@ function Dashboard() {
 
       <div className="mt-6">
         <Button onClick={() => setInsightsOpen(true)} className="gap-2">
-          <Play className="size-4" /> Get daily insights from Raven
+          <Play className="size-4" /> Open Daily Brief
         </Button>
       </div>
 

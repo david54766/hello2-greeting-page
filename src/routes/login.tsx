@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import loginPortrait from "@/assets/prima-donna-login.jpeg";
 import logoImg from "@/assets/preschool-pro-ai-logo.png";
 import { toast } from "sonner";
 import { sendPasswordReset } from "@/lib/auth-email.functions";
@@ -59,11 +58,11 @@ function Login() {
             className="h-16 md:h-20 w-auto"
           />
         </Link>
-        <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
+        <div className="mx-auto w-full max-w-xs aspect-square rounded-2xl border border-primary/10 bg-card/70 p-8 shadow-xl shadow-primary/10">
           <img
-            src={loginPortrait}
-            alt="Preschool Pro AI childcare-business coach"
-            className="size-full object-cover"
+            src="/preschool-pro-ai-icon.png"
+            alt="Preschool Pro AI"
+            className="size-full object-contain"
             loading="eager"
           />
         </div>

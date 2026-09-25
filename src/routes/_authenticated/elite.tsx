@@ -17,7 +17,6 @@ import { Link } from "@tanstack/react-router";
 import { Crown, CheckCircle2, Clock, XCircle, MessageSquare, FileText, ArrowRight } from "lucide-react";
 import { EliteSubNav } from "@/components/EliteSubNav";
 import { toast } from "sonner";
-import founderPortrait from "@/assets/prima-donna-founder.jpeg";
 
 
 export const Route = createFileRoute("/_authenticated/elite")({
@@ -64,16 +63,16 @@ function ApplicationFlow() {
       <div className="text-center">
         <Crown className="size-10 text-elite mx-auto" />
         <h1 className="mt-6 font-display text-4xl md:text-5xl">The Elite Circle is by application.</h1>
-        <div className="mx-auto mt-10 w-56 md:w-64 aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/10">
+        <div className="mx-auto mt-10 w-56 md:w-64 aspect-square rounded-2xl border border-primary/10 bg-card/70 p-6 shadow-xl shadow-primary/10">
           <img
-            src={founderPortrait}
-            alt="Preschool Pro AI childcare-business coach"
-            className="size-full object-cover"
+            src="/preschool-pro-ai-icon.png"
+            alt="Preschool Pro AI"
+            className="size-full object-contain"
             loading="eager"
           />
         </div>
         <p className="mt-8 text-muted-foreground max-w-xl mx-auto">
-          Live coaching, vault content reserved for the Circle, and priority strategic guidance. Tell us
+          Private conversations, vault content reserved for the Circle, and priority strategic guidance. Tell us
           where you are and where you're going — we review every application personally.
         </p>
       </div>

@@ -41,12 +41,14 @@ function TermsPage() {
             <h2 className="font-display text-2xl">3. Subscriptions and billing</h2>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                Essentials ($97/mo), Pro ($197/mo), and Elite Circle ($497/mo) are billed monthly in
-                advance through Stripe.
+                Memberships purchased on the Preschool Pro AI website are billed monthly in advance
+                through Stripe. The native iOS app does not collect payment-card details or process
+                membership purchases.
               </li>
               <li>
-                Subscriptions renew automatically until canceled. Cancel any time in Settings;
-                access continues through the end of the paid period.
+                Subscriptions renew automatically until canceled. Manage a web membership through
+                the website billing settings or contact info@classroompanda.com; access continues
+                through the end of the paid period.
               </li>
               <li>Fees are non-refundable except where required by law.</li>
             </ul>

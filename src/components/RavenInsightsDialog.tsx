@@ -75,7 +75,7 @@ export function RavenInsightsDialog({ open, onOpenChange }: { open: boolean; onO
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl p-0 overflow-hidden">
         <DialogHeader className="px-4 pt-4 pb-2">
-          <DialogTitle className="font-display text-lg">Daily Insights from Raven</DialogTitle>
+          <DialogTitle className="font-display text-lg">Daily Brief</DialogTitle>
           <DialogDescription className="text-xs">Premade strategy tips curated for childcare operators.</DialogDescription>
         </DialogHeader>
         <div className="grid md:grid-cols-[220px_1fr] gap-0 border-t border-border/60">
