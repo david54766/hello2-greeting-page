@@ -28,7 +28,7 @@ import { TemplateVaultManager } from "@/components/admin/TemplateVaultManager";
 
 
 export const Route = createFileRoute("/_authenticated/_admin/admin")({
-  head: () => ({ meta: [{ title: "Admin — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Admin — Preschool Pro AI™" }] }),
   component: Admin,
 });
 

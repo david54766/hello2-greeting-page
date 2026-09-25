@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/coach")({
-  head: () => ({ meta: [{ title: "AI Coaching — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "AI Coaching — Preschool Pro AI™" }] }),
   validateSearch: (search: Record<string, unknown>) => {
     const m = search.mode;
     const allowed = ["ceo", "revenue", "marketing", "compliance", "systems"] as const;
@@ -500,7 +500,7 @@ function Coach() {
                   </div>
                   {imageUrl && (
                     <div className="flex items-center gap-1">
-                      <a href={imageUrl} download="prima-donna-visual.png" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2">
+                      <a href={imageUrl} download="preschool-pro-ai-visual.png" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2">
                         <Download className="size-3" /> Save
                       </a>
                       <Button variant="ghost" size="sm" onClick={() => setImageUrl(null)} title="Dismiss">

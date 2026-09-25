@@ -54,7 +54,7 @@ export const Route = createFileRoute("/api/public/hooks/generate-daily-recommend
               body: JSON.stringify({
                 model: "google/gemini-3-flash-preview",
                 messages: [
-                  { role: "system", content: "You are Prima Donna AI™. Generate ONE crisp strategic recommendation (1-2 sentences max) that a childcare center owner could act on today. No fluff, no greetings. Speak with authority." },
+                  { role: "system", content: "You are Preschool Pro AI™. Generate ONE crisp strategic recommendation (1-2 sentences max) that a childcare center owner could act on today. No fluff, no greetings. Speak with authority." },
                   { role: "user", content: `Owner context: ${memory}\n\nGive me today's strategic move.` },
                 ],
               }),

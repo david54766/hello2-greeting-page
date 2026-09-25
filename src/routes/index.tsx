@@ -8,7 +8,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Prima Donna AI™ — Executive Coaching for Childcare Leaders" },
+      { title: "Preschool Pro AI™ — Executive Coaching for Childcare Leaders" },
       { name: "description", content: "Premium AI executive coaching built for childcare center owners. CEO-grade strategic intelligence on demand." },
     ],
   }),
@@ -20,7 +20,7 @@ const tiers = [
     name: "Essentials",
     price: 97,
     tagline: "Your strategist on call.",
-    features: ["Unlimited AI coaching across 5 strategic modes", "Business memory that personalizes every response", "Daily strategic recommendation"],
+    features: ["Unlimited AI coaching across 5 strategic modes", "Business memory that personalizes every response", "Personalized Daily Brief"],
     cta: "Start with Essentials",
   },
   {
@@ -35,7 +35,7 @@ const tiers = [
     name: "Elite Circle",
     price: 497,
     tagline: "By invitation. The inner room.",
-    features: ["Everything in Pro", "Live coaching sessions", "Vault content reserved for the Circle", "Priority response styling"],
+    features: ["Everything in Pro", "Private Elite Circle conversations", "Vault content reserved for the Circle", "Priority response styling"],
     cta: "Apply for Elite",
   },
 ];
@@ -52,7 +52,7 @@ function Landing() {
           <div className="mx-auto mb-12 w-64 md:w-80 aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/10">
             <img
               src={ravenPortrait}
-              alt="Founder of Prima Donna AI™"
+              alt="Preschool Pro AI childcare-business coach"
               className="size-full object-cover"
               loading="eager"
             />
@@ -66,7 +66,7 @@ function Landing() {
             available the moment you need her.
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-            Prima Donna AI™ is not a chatbot. It is a structured intelligence system built
+            Preschool Pro AI™ is not a chatbot. It is a structured intelligence system built
             for owners who run childcare like a business — and want to grow it like one.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">

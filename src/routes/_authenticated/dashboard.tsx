@@ -12,7 +12,7 @@ import { RavenInsightsDialog } from "@/components/RavenInsightsDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Command Center — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Command Center — Preschool Pro AI™" }] }),
   component: Dashboard,
 });
 

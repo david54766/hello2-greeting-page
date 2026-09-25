@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import signupPortrait from "@/assets/prima-donna-signup.jpeg";
-import logoImg from "@/assets/prima-donna-logo.png";
+import logoImg from "@/assets/preschool-pro-ai-logo.png";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
@@ -29,7 +29,7 @@ const TIERS: { id: SelectableTier; name: string; price: string; tagline: string 
 ];
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Apply — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Apply — Preschool Pro AI™" }] }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/dashboard" });
@@ -86,7 +86,7 @@ function Signup() {
       }
     }
     setLoading(false);
-    toast.success("Welcome to Prima Donna AI.");
+    toast.success("Welcome to Preschool Pro AI.");
     nav({ to: "/dashboard" });
   };
 
@@ -96,19 +96,16 @@ function Signup() {
         <Link to="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <img
             src={logoImg}
-            alt="The Preschool Prima Donna"
-            width={64}
-            height={64}
-            className="h-12 sm:h-14 md:h-16 w-auto aspect-square"
+            alt="Preschool Pro AI"
+            width={260}
+            height={84}
+            className="h-12 sm:h-14 md:h-16 w-auto"
           />
-          <span className="font-display text-lg sm:text-xl text-primary self-end pb-1.5 sm:pb-2">
-            AI™
-          </span>
         </Link>
         <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
           <img
             src={signupPortrait}
-            alt="Founder of Prima Donna AI™"
+            alt="Preschool Pro AI childcare-business coach"
             className="size-full object-cover"
             loading="eager"
           />

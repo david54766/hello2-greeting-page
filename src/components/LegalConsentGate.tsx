@@ -88,7 +88,7 @@ export function LegalConsentGate({ children }: { children: React.ReactNode }) {
         ) : (
           <>
             <p className="mt-4 text-sm leading-6 text-muted-foreground">
-              Review the current{" "}
+              Before using Preschool Pro AI, review the current{" "}
               <Link to="/terms" target="_blank" className="text-primary underline">
                 Terms of Use
               </Link>{" "}
@@ -96,7 +96,7 @@ export function LegalConsentGate({ children }: { children: React.ReactNode }) {
               <Link to="/privacy" target="_blank" className="text-primary underline">
                 Privacy Policy
               </Link>
-              .
+              . Preschool Pro AI is owned, operated, and managed by Classroom Panda LLC.
             </p>
             <div className="mt-6 flex items-start gap-3 rounded-lg border border-border p-4">
               <Checkbox

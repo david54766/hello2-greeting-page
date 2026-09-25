@@ -51,7 +51,7 @@ export function exportCoachingPlanPDF(prompt: string, mode: string, response: Re
   doc.setTextColor(...CRIMSON);
   doc.setFont("times", "italic");
   doc.setFontSize(TITLE_SIZE);
-  doc.text("Prima Donna AI\u2122", margin, y);
+  doc.text("Preschool Pro AI\u2122", margin, y);
   y += TITLE_SIZE + 4;
 
   doc.setFont("helvetica", "normal");
@@ -123,10 +123,10 @@ export function exportCoachingPlanPDF(prompt: string, mode: string, response: Re
     doc.setFont("helvetica", "normal");
     doc.setFontSize(FOOTER_SIZE);
     doc.setTextColor(...MUTED);
-    doc.text("Prima Donna AI\u2122  \u00B7  Confidential strategic plan", margin, pageH - 24);
+    doc.text("Preschool Pro AI\u2122  \u00B7  Confidential strategic plan", margin, pageH - 24);
     doc.text(`${i} / ${pageCount}`, pageW - margin, pageH - 24, { align: "right" });
   }
 
   const iso = new Date().toISOString().slice(0, 10);
-  doc.save(`prima-donna-plan-${mode}${pf ? "-print" : ""}-${iso}.pdf`);
+  doc.save(`preschool-pro-ai-plan-${mode}${pf ? "-print" : ""}-${iso}.pdf`);
 }

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Crown, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Settings — Preschool Pro AI™" }] }),
   component: Settings,
 });
 
@@ -102,7 +102,7 @@ function Settings() {
   const requestAccountDeletion = async () => {
     if (!user || deletionRequested) return;
     const confirmed = window.confirm(
-      "Request permanent deletion of your Prima Donna AI account and associated data? This cannot be undone after processing.",
+      "Request permanent deletion of your Preschool Pro AI account and associated data? This cannot be undone after processing.",
     );
     if (!confirmed) return;
     setRequestingDeletion(true);

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/prima-donna-logo.png";
+import logo from "@/assets/preschool-pro-ai-logo.png";
 
 export function AppHeader() {
   const { user, signOut, isAdmin } = useAuth();
@@ -50,13 +50,12 @@ export function AppHeader() {
         <Link to="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0" onClick={close}>
           <img
             src={logo}
-            alt="The Preschool Prima Donna"
-            width={48}
-            height={48}
-            className="h-10 sm:h-14 md:h-16 lg:h-20 w-auto aspect-square"
+            alt="Preschool Pro AI"
+            width={280}
+            height={96}
+            className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto"
           />
-          <span className="sr-only">Prima Donna AI</span>
-          <span className="font-display text-sm sm:text-base text-primary -ml-1 self-end pb-1 sm:pb-2">AI™</span>
+          <span className="sr-only">Preschool Pro AI</span>
         </Link>
 
         {/* Desktop nav */}

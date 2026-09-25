@@ -1,0 +1,17 @@
+{
+  "name": "Preschool Pro AI",
+  "short_name": "Preschool Pro",
+  "description": "Executive AI coaching for childcare leaders.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#fff7fb",
+  "theme_color": "#ec008c",
+  "icons": [
+    {
+      "src": "/preschool-pro-ai-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

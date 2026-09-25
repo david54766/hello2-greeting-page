@@ -14,7 +14,7 @@ import {
 } from "@/lib/billing.functions";
 
 export const Route = createFileRoute("/_authenticated/billing")({
-  head: () => ({ meta: [{ title: "Billing — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Billing — Preschool Pro AI™" }] }),
   component: Billing,
 });
 

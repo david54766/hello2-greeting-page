@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const SYSTEM_VISUAL = `You are a visual asset generator for Prima Donna AI™, an executive childcare business coach. Generate ONE clean, branded illustration that helps a childcare center owner understand a concept (e.g. a sample marketing flyer, a simple org chart, a tuition tier card, a classroom layout sketch, a workflow diagram).
+const SYSTEM_VISUAL = `You are a visual asset generator for Preschool Pro AI™, an executive childcare business coach owned and managed by Classroom Panda LLC. Generate ONE clean, branded illustration that helps a childcare center owner understand a concept (e.g. a sample marketing flyer, a simple org chart, a tuition tier card, a classroom layout sketch, a workflow diagram).
 
 Style rules:
 - Polished, premium, brand-aligned. Soft rose / crimson accents, clean typography, lots of whitespace.

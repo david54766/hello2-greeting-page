@@ -4,7 +4,7 @@
 export const APP_URL = "https://app.thepreschoolprimadonna.com";
 
 function from() {
-  return process.env.EMAIL_FROM || "Prima Donna AI <noreply@thepreschoolprimadonna.com>";
+  return process.env.EMAIL_FROM || "Preschool Pro AI <noreply@thepreschoolprimadonna.com>";
 }
 
 export async function sendEmail(args: {
@@ -48,11 +48,12 @@ function shell(inner: string) {
     <tr><td align="center">
       <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #f0e3e7;border-radius:18px;overflow:hidden;">
         <tr><td style="padding:32px 40px 8px 40px;">
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;letter-spacing:0.5px;color:#9b1c3d;">Prima Donna AI™</div>
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;letter-spacing:0.5px;color:#9b1c3d;">Preschool Pro AI™</div>
         </td></tr>
         <tr><td style="padding:8px 40px 32px 40px;font-size:15px;line-height:1.65;">${inner}</td></tr>
         <tr><td style="padding:20px 40px 32px 40px;border-top:1px solid #f3e6ea;color:#8a6b73;font-size:12px;">
-          Sent from <a href="${APP_URL}" style="color:#9b1c3d;text-decoration:none;">app.thepreschoolprimadonna.com</a>
+          Preschool Pro AI is owned and managed by Classroom Panda LLC.<br>
+          <a href="${APP_URL}" style="color:#9b1c3d;text-decoration:none;">Open Preschool Pro AI</a>
         </td></tr>
       </table>
     </td></tr>
@@ -80,19 +81,19 @@ export const Templates = {
   },
   recovery(args: { link: string; isAdmin: boolean }) {
     return {
-      subject: args.isAdmin ? "Reset your super admin password" : "Reset your Prima Donna AI password",
+      subject: args.isAdmin ? "Reset your super admin password" : "Reset your Preschool Pro AI password",
       html: shell(
         `<h1 style="font-family:Georgia,serif;font-size:24px;margin:0 0 12px 0;">Password reset requested</h1>
          <p>We received a request to reset the password for ${args.isAdmin ? "your super admin account" : "your account"}. Use the button below to choose a new one.</p>
          ${button(args.link, "Set a new password")}
          <p style="color:#8a6b73;font-size:13px;">This link expires in 1 hour. If you didn't request this, you can safely ignore the email.</p>`,
       ),
-      text: `Reset your Prima Donna AI password: ${args.link}`,
+      text: `Reset your Preschool Pro AI password: ${args.link}`,
     };
   },
   decisionApproved(args: { name: string; businessName: string }) {
     return {
-      subject: "You're in — Welcome to the Prima Donna AI Elite Circle",
+      subject: "You're in — Welcome to the Preschool Pro AI Elite Circle",
       html: shell(
         `<h1 style="font-family:Georgia,serif;font-size:24px;margin:0 0 12px 0;">Congratulations, ${escapeHtml(args.name)}.</h1>
          <p>Your application for the Elite Circle has been approved. We're thrilled to welcome ${escapeHtml(args.businessName)} into the room.</p>

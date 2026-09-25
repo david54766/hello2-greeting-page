@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import loginPortrait from "@/assets/prima-donna-login.jpeg";
-import logoImg from "@/assets/prima-donna-logo.png";
+import logoImg from "@/assets/preschool-pro-ai-logo.png";
 import { toast } from "sonner";
 import { sendPasswordReset } from "@/lib/auth-email.functions";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — Prima Donna AI™" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Preschool Pro AI™" }] }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/dashboard" });
@@ -53,19 +53,16 @@ function Login() {
         <Link to="/" className="inline-flex items-center gap-2 shrink-0">
           <img
             src={logoImg}
-            alt="The Preschool Prima Donna AI"
-            width={180}
-            height={72}
+            alt="Preschool Pro AI"
+            width={260}
+            height={84}
             className="h-16 md:h-20 w-auto"
           />
-          <span className="font-display text-sm md:text-base tracking-[0.2em] uppercase text-primary/80">
-            AI™
-          </span>
         </Link>
         <div className="mx-auto w-full max-w-xs aspect-[3/4] overflow-hidden rounded-[2rem] shadow-2xl shadow-primary/20">
           <img
             src={loginPortrait}
-            alt="Founder of Prima Donna AI™"
+            alt="Preschool Pro AI childcare-business coach"
             className="size-full object-cover"
             loading="eager"
           />

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/delete-account")({
   head: () => ({
     meta: [
-      { title: "Delete Account - Prima Donna AI" },
+      { title: "Delete Account - Preschool Pro AI" },
       {
         name: "description",
-        content: "How to request deletion of your Prima Donna AI account and associated data.",
+        content: "How to request deletion of your Preschool Pro AI account and associated data.",
       },
     ],
   }),
