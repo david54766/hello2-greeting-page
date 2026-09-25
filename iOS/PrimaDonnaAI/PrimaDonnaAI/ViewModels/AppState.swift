@@ -154,6 +154,27 @@ final class AppState: ObservableObject {
         notice = .message("Terms accepted.")
     }
 
+    func hasAccountDeletionRequest() async throws -> Bool {
+        guard let userId = user?.id else {
+            throw AppError.message("Please sign in again before managing account deletion.")
+        }
+        return try await withActiveSession { authSession in
+            try await supabaseClient.hasAccountDeletionRequest(session: authSession, userId: userId)
+        }
+    }
+
+    func requestAccountDeletion() async throws {
+        guard let userId = user?.id else {
+            throw AppError.message("Please sign in again before requesting account deletion.")
+        }
+        saving = true
+        defer { saving = false }
+        try await withActiveSession { authSession in
+            try await supabaseClient.requestAccountDeletion(session: authSession, userId: userId)
+        }
+        notice = .message("Account deletion requested. Classroom Panda LLC will complete the request within 30 days.")
+    }
+
     func submitCoaching(mode: String, prompt: String) async throws -> CoachingSession {
         guard let cleanPrompt = prompt.nilIfBlank else {
             throw AppError.message("Enter a prompt before asking Raven.")

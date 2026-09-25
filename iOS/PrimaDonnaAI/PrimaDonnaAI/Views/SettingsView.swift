@@ -39,7 +39,8 @@ struct SettingsView: View {
 
                 LegalPrivacyCard(openURL: openURL)
 
-                AccountDeletionCard(openURL: openURL)
+                AccountDeletionCard()
+                    .environmentObject(appState)
 
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
@@ -165,24 +166,47 @@ private struct LegalPrivacyCard: View {
 }
 
 private struct AccountDeletionCard: View {
-    let openURL: OpenURLAction
-    private let config = AppConfig.shared
+    @EnvironmentObject private var appState: AppState
+    @State private var deletionRequested = false
+    @State private var checkingStatus = true
+    @State private var showingConfirmation = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Account deletion")
                 .font(PrimaFont.cardTitle())
-            Text("Start an account deletion request with Classroom Panda LLC. Support may verify ownership before deletion is completed.")
+            Text("Request permanent deletion of your account and associated personal, business, coaching, and community data. Classroom Panda LLC will complete accepted requests within 30 days, except for records it must retain by law.")
                 .font(PrimaFont.body)
                 .foregroundStyle(PrimaColor.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            CapsuleButton(title: "Request account deletion", systemImage: "envelope") {
-                if let url = config.accountDeletionURL {
-                    openURL(url)
-                }
+            CapsuleButton(
+                title: deletionRequested ? "Deletion requested" : checkingStatus ? "Checking status..." : "Request account deletion",
+                systemImage: deletionRequested ? "checkmark.circle" : "trash",
+                isDisabled: deletionRequested || checkingStatus || appState.saving
+            ) {
+                showingConfirmation = true
             }
         }
         .primaCard()
+        .task {
+            deletionRequested = (try? await appState.hasAccountDeletionRequest()) ?? false
+            checkingStatus = false
+        }
+        .alert("Permanently delete your account?", isPresented: $showingConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Request deletion", role: .destructive) {
+                Task {
+                    do {
+                        try await appState.requestAccountDeletion()
+                        deletionRequested = true
+                    } catch {
+                        appState.notice = .error(appState.readable(error))
+                    }
+                }
+            }
+        } message: {
+            Text("This starts permanent deletion of your Preschool Pro AI account and associated data. The request cannot be undone after processing begins.")
+        }
     }
 }
 

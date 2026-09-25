@@ -142,6 +142,32 @@ final class SupabaseClient {
         _ = try await execute(request)
     }
 
+    func hasAccountDeletionRequest(session authSession: AuthSession, userId: String) async throws -> Bool {
+        let rows: [AccountDeletionRequestRow] = try await select(
+            "account_deletion_requests",
+            select: "id,status",
+            params: ["user_id": "eq.\(userId)"],
+            limit: 1,
+            session: authSession
+        )
+        return !rows.isEmpty
+    }
+
+    func requestAccountDeletion(session authSession: AuthSession, userId: String) async throws {
+        let request = try request(
+            path: "/rest/v1/account_deletion_requests",
+            method: "POST",
+            body: [
+                "user_id": userId,
+                "platform": "ios",
+                "status": "pending"
+            ],
+            authSession: authSession,
+            prefer: "return=minimal"
+        )
+        _ = try await execute(request)
+    }
+
     func notificationPreferences(session authSession: AuthSession, userId: String) async throws -> NotificationPreferences? {
         try await select("notification_preferences", params: ["user_id": "eq.\(userId)"], limit: 1, session: authSession).first
     }
@@ -466,4 +492,9 @@ final class SupabaseClient {
 private struct StorageSignedURLPayload: Codable {
     var signedURL: String?
     var signedUrl: String?
+}
+
+private struct AccountDeletionRequestRow: Decodable {
+    let id: String
+    let status: String
 }

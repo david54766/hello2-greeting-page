@@ -2,8 +2,8 @@ import Foundation
 
 struct AppConfig {
     static let shared = AppConfig()
-    static let termsVersion = "2026-09-15.v1"
-    static let privacyVersion = "2026-09-15.v1"
+    static let termsVersion = "2026-09-24.v1"
+    static let privacyVersion = "2026-09-24.v1"
     static let supportEmail = "info@classroompanda.com"
 
     let supabaseURL: URL?
@@ -52,13 +52,6 @@ struct AppConfig {
         documentURL(path: "cookies")
     }
 
-    var accountDeletionURL: URL? {
-        mailURL(
-            subject: "Preschool Pro AI account deletion request",
-            body: "Please start deletion for my Preschool Pro AI account. I understand Classroom Panda LLC may need to verify account ownership before completing this request."
-        )
-    }
-
     var appVersionLabel: String {
         let version = Self.stringValue("CFBundleShortVersionString", bundle: .main, fallback: "1.0")
         let build = Self.stringValue("CFBundleVersion", bundle: .main)
@@ -77,17 +70,6 @@ struct AppConfig {
     private func documentURL(path: String) -> URL? {
         (webAppURL ?? URL(string: "https://app.thepreschoolprimadonna.com"))?
             .appendingPathComponent(path)
-    }
-
-    private func mailURL(subject: String, body: String) -> URL? {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = Self.supportEmail
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: subject),
-            URLQueryItem(name: "body", value: body)
-        ]
-        return components.url
     }
 
     private static func urlValue(_ key: String, bundle: Bundle) -> URL? {
