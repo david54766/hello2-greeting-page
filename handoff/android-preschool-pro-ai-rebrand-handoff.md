@@ -1,6 +1,6 @@
 # Preschool Pro AI Android Rebrand Handoff
 
-Updated: September 16, 2026
+Updated: October 10, 2026
 
 ## Repository and source state
 
@@ -8,7 +8,11 @@ Updated: September 16, 2026
 - Working branch: `codex/android-native-migration`
 - Shared rebrand commit: `2aeedde` (`Complete Preschool Pro AI brand and legal update`)
 - iOS daily-brief naming commit: `43a8311` (`Rename Raven daily brief display`)
+- Latest iOS review-build commit: `ca15985` (`Prepare Preschool Pro AI iOS build 20261010`).
+- Domain changes: `f95ce8a` (mobile clients), `8a29263` (web links), `5ad321d` (legacy handoffs).
+- Email sender change: `e26c00c` on the mobile branch; last verified web-main equivalent was `8eab9ac`. Fetch current refs before working; these are checkpoints, not a claim that remote main cannot have advanced.
 - Android is an existing published application. Update the existing listing and release; do not create a new Play Console application.
+- Inspect the Android session's own repository and dirty state first. Do not reset local changes or merge the entire mobile branch into web main. Reconcile overlapping changes carefully.
 
 ## Approved customer-facing identity
 
@@ -21,14 +25,14 @@ Updated: September 16, 2026
 
 ## Legal configuration
 
-- Terms version: `2026-09-15.v1`
-- Privacy version: `2026-09-15.v1`
+- Android and web source currently declare Terms and Privacy version `2026-09-15.v1`.
+- iOS currently declares both versions as `2026-09-24.v1`. This discrepancy is unresolved: compare the published legal documents and shared backend acceptance policy before aligning versions. Do not silently mark users as having accepted a new version or change production acceptance requirements without evaluating the published Android app.
 - Platform recorded with acceptance: `android`
 - Terms: `https://app.preschoolproai.com/terms`
 - Privacy: `https://app.preschoolproai.com/privacy`
 - Cookies: `https://app.preschoolproai.com/cookies`
 
-The legacy domain remains the live legal and authentication domain. A product-name change does not require changing these URLs until replacement routes are deployed and verified.
+The new production website is now `https://app.preschoolproai.com`; DNS/TLS and publication were verified in the iOS/web session. The old statement that the legacy domain is the primary domain is obsolete. Verify new-domain legal pages, password-reset links, auth redirect allowlists, and backward-compatible old links before the Android release. Keep the published Android callback scheme unchanged.
 
 ## Android changes already in source
 
@@ -86,6 +90,56 @@ Update customer-facing metadata without changing the existing Play application i
 8. Upload to an internal testing track first and verify install/update behavior from Google Play.
 9. Replace Play Store screenshots and listing graphics with the new brand.
 10. Review the staged rollout and release notes, then obtain business-owner approval before production rollout.
+
+## Shared product behavior to preserve
+
+- Navigation: Home, Coach, Vault, Elite, Settings. No separate Billing/Plan page or external membership-purchase link in the native iOS experience; preserve the published Android purchase architecture unless a separately approved Android change is required.
+- Home: live center snapshots, membership badge, multiple centers, recommendations, and native inline Daily brief video. The user removed the Daily Brief screenshot from store marketing, not the feature itself.
+- Coaching: permit every nonempty, non-whitespace prompt. No local prompt-quality checks or special `prompt_needs_clarification` handling. Show genuine backend errors inline, retain the editable prompt, and do not save/open a failed strategy or trigger voice for it. Keep Speak, Move, Previous Strategies, details, and Raven voice. No previous-prompt Use button.
+- Vault: fetch current backend records on entry and refresh; preserve category/tier access and signed/private downloads. Do not bundle old records. Validate storage paths and test a real download against current backend behavior.
+- Elite: open directly to Conversations. No Zoom, meeting links, slots, booking sheets/cards, or scheduler. Never call `list_raven_slots`, `list_raven_bookings`, `book_raven_slot`, or `cancel_raven_booking`.
+- Enforce Elite access using live subscription data; Essentials and Pro stay locked out. Support images and reporting, expose delete only for the author's own content, and verify server-backed blocking/filtering. iOS source uses `block_elite_user` and `unblock_elite_user`; inspect the current backend contract instead of assuming Android parity. Missing or ineffective server enforcement is a release blocker.
+- Authentication: no test bypass; password visibility, useful invalid-password errors, session restore/refresh, legal consent before authenticated content, cache reset on user change, account-deletion initiation, and sign-out cleanup.
+- Notifications: Android retains Firebase FCM, existing package identity, and matching `google-services.json`. Verify token registration/removal, preferences, upgrades, and background delivery. iOS source also integrates Firebase Messaging over APNs; a display-name/domain change is not a reason to rotate app identity or credentials.
+- Request microphone, photos, and notification permissions only as needed. Keep privacy disclosures consistent with actual collection and SDK behavior.
+
+## New domain, email, and protected endpoints
+
+- Website hosting/publishing was managed through the existing Lovable project. Do not assume Cloudflare hosts the application merely because DNS may be managed separately.
+- Server-side Resend configuration was updated. Sender: `Preschool Pro AI <noreply@preschoolproai.com>`. A single test to `info@easyfill.ai` was sent successfully and the user confirmed receipt. This verifies that test, not every transactional email workflow.
+- Support/privacy remains `info@classroompanda.com`, not the test recipient or sending-only address.
+- Supabase project remains `ihiqixkufsjeplnkwkao` with URL `https://ihiqixkufsjeplnkwkao.supabase.co`.
+- Never copy server credentials into Android, Git, handoff notes, or chat. Keep AI, voice, private files, and privileged operations server-side.
+- Existing Android source also references protected web routes `/api/tts-stream` and `/_serverFn/...` using `WEB_APP_URL`. Verify these integrations on the new domain against deployed contracts; do not blindly replace working routes or hardcode new function hashes.
+- Review local/CI `WEB_APP_URL` overrides: a correct Gradle default does not override an old value in local properties.
+
+## Assets and presentation
+
+- Use the approved Preschool Pro AI robot/graduation-cap logo and padded icon; remove the former woman image and all customer-visible Prima Donna branding.
+- Original user artwork on this Mac: `/Users/nikkismith/Downloads/PRESCHOOL PRO AI - 3.png` (horizontal), `PRESCHOOL PRO AI - 4.png` (stacked), and `PRESCHOOL PRO AI - 1.png` (icon).
+- Reusable tracked iOS reference assets: `iOS/PrimaDonnaAI/PrimaDonnaAI/Assets.xcassets/PreschoolProLogo.imageset/preschool_pro_ai_horizontal.png` and `AppIcon.appiconset/Icon-1024.png` under the same asset catalog. Use platform-appropriate Android adaptive-icon padding, not iOS rounding baked into artwork.
+- Preserve rose/off-white backgrounds, serif editorial headings, white cards, pink active states, centered logo, and crown Elite navigation. Respect Android safe areas and accessibility.
+- Produce authentic Android screenshots for Google Play. Do not reuse iOS screenshots or status bars. Apple previously rejected screenshots with non-iOS status bars; each platform must show its actual native UI.
+
+## iOS and submission status at handoff
+
+- iOS version `1.1`, build `20261010`, installed and launched on Nikki Smith's iPhone 16 Pro Max.
+- Signed Debug device build, signed Release archive, App Store distribution export, and local code-signature verification passed. These are build checks, not full end-to-end QA.
+- Archive/IPA/logs: `/Users/nikkismith/Downloads/Preschool-Pro-AI-iOS-20261010/`.
+- Source build bump committed/pushed as `ca15985`; iOS bundle ID intentionally remains `com.preschoolprimadonna.PrimaDonnaAI`.
+- App Store Connect application `6802986904`, version 1.1 draft remains Rejected from the previous submission; new review has NOT been sent.
+- Five uploaded native iOS screenshots were visually checked: Coaching Engine, Strategy Detail, Previous Strategies, Settings, Sign In. Daily Brief is excluded. Local set: `/Users/nikkismith/Downloads/Preschool-Pro-AI-App-Store-Screenshots-2026-09-24-FINAL/`.
+- Support/marketing URLs were saved with the new domain. Privacy URL change was staged but not saved, awaiting approval. Do not report it completed without verification.
+- Upload of the new binary failed because Xcode's Apple Accounts list was empty. Archive export succeeded using installed signing assets, but upload needs a signed-in account with Classroom Panda LLC App Store Connect access. The draft still attaches old build `20260819` until replacement upload/processing/selection completes.
+- Final App Review submission and production Play rollout require user review/approval. This handoff is information transfer, not authorization to publish.
+
+## Outstanding shared checks
+
+- Reconcile the legal-version mismatch above with deployed policy; this handoff is not legal certification.
+- Live backend security quick-scan previously flagged broad read policies on `raven_availability`, `raven_meeting_settings`, and `templates`, a storage ownership warning, and dependency advisories. These were not resolved or independently re-audited in the build pass. Assess actual exposure before promotion; do not tighten production policies blindly and break the published Android app.
+- Re-test auth redirects and emails, coaching, Raven voice, Vault downloads, Elite authorization/blocking/reporting/filtering, legal acceptance, account deletion, and notifications on the Android candidate.
+- No Android build, Play Console changes, Android device QA, or production release was performed by the iOS session during this handoff update. Existing source-level changes are not proof of live Android behavior.
+- No passwords, API keys, keystores, or reviewer credentials are included. Obtain approved test accounts through the existing secure configuration, not hardcoded source.
 
 ## Verification searches
 
