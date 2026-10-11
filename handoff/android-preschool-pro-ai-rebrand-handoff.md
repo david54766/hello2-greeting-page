@@ -42,6 +42,7 @@ The new production website is now `https://app.preschoolproai.com`; DNS/TLS and 
 - Android network user agent is `Preschool Pro AI Android/<version>`.
 - Horizontal logo asset is `app/src/main/res/drawable-nodpi/preschool_pro_ai_logo.png`.
 - Launcher foreground artwork is updated in `app/src/main/res/drawable/ic_launcher_foreground.png`.
+- Notification small icon `app/src/main/res/drawable/ic_launcher_monochrome.xml` now reuses that approved robot artwork with a white tint instead of the old crown. XML validation passed; Android resource compilation and notification rendering still need verification on the Android build machine (this Mac has no Android SDK/JDK at the standard paths).
 - The former `prima_donna_logo.png` asset was removed.
 - Home and detail headings now display `Daily brief`, matching iOS.
 
@@ -118,6 +119,7 @@ Update customer-facing metadata without changing the existing Play application i
 - Use the approved Preschool Pro AI robot/graduation-cap logo and padded icon; remove the former woman image and all customer-visible Prima Donna branding.
 - Original user artwork on this Mac: `/Users/nikkismith/Downloads/PRESCHOOL PRO AI - 3.png` (horizontal), `PRESCHOOL PRO AI - 4.png` (stacked), and `PRESCHOOL PRO AI - 1.png` (icon).
 - Reusable tracked iOS reference assets: `iOS/PrimaDonnaAI/PrimaDonnaAI/Assets.xcassets/PreschoolProLogo.imageset/preschool_pro_ai_horizontal.png` and `AppIcon.appiconset/Icon-1024.png` under the same asset catalog. Use platform-appropriate Android adaptive-icon padding, not iOS rounding baked into artwork.
+- Confirmed iOS app icon: magenta robot face wearing a graduation cap, small AI sparkle mark at upper right, padded rose/off-white background. The 1024px App Store asset is opaque; Debug and Release both use the `AppIcon` catalog. This is the icon included in iOS build `20261010`.
 - Preserve rose/off-white backgrounds, serif editorial headings, white cards, pink active states, centered logo, and crown Elite navigation. Respect Android safe areas and accessibility.
 - Produce authentic Android screenshots for Google Play. Do not reuse iOS screenshots or status bars. Apple previously rejected screenshots with non-iOS status bars; each platform must show its actual native UI.
 
