@@ -38,7 +38,7 @@ android {
         buildConfigField(
             "String",
             "WEB_APP_URL",
-            "\"${localProperties.getProperty("WEB_APP_URL", "https://app.thepreschoolprimadonna.com")}\""
+            "\"${localProperties.getProperty("WEB_APP_URL", "https://app.preschoolproai.com")}\""
         )
         buildConfigField(
             "String",

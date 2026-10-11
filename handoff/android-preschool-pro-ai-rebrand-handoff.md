@@ -24,9 +24,9 @@ Updated: September 16, 2026
 - Terms version: `2026-09-15.v1`
 - Privacy version: `2026-09-15.v1`
 - Platform recorded with acceptance: `android`
-- Terms: `https://app.thepreschoolprimadonna.com/terms`
-- Privacy: `https://app.thepreschoolprimadonna.com/privacy`
-- Cookies: `https://app.thepreschoolprimadonna.com/cookies`
+- Terms: `https://app.preschoolproai.com/terms`
+- Privacy: `https://app.preschoolproai.com/privacy`
+- Cookies: `https://app.preschoolproai.com/cookies`
 
 The legacy domain remains the live legal and authentication domain. A product-name change does not require changing these URLs until replacement routes are deployed and verified.
 

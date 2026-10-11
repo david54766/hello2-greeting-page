@@ -68,7 +68,7 @@ struct AppConfig {
     }
 
     private func documentURL(path: String) -> URL? {
-        (webAppURL ?? URL(string: "https://app.thepreschoolprimadonna.com"))?
+        (webAppURL ?? URL(string: "https://app.preschoolproai.com"))?
             .appendingPathComponent(path)
     }
 

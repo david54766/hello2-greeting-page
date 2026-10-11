@@ -211,9 +211,9 @@ private enum class AuthMode {
 private val AppContentMaxWidth = 760.dp
 private val AppCardShape = RoundedCornerShape(8.dp)
 private const val ELITE_ATTACHMENT_LIMIT = 8
-private const val TERMS_URL = "https://app.thepreschoolprimadonna.com/terms"
-private const val PRIVACY_URL = "https://app.thepreschoolprimadonna.com/privacy"
-private const val COOKIE_URL = "https://app.thepreschoolprimadonna.com/cookies"
+private const val TERMS_URL = "https://app.preschoolproai.com/terms"
+private const val PRIVACY_URL = "https://app.preschoolproai.com/privacy"
+private const val COOKIE_URL = "https://app.preschoolproai.com/cookies"
 
 private fun Modifier.appContentWidth(): Modifier =
     this

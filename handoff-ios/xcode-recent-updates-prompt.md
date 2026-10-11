@@ -84,9 +84,9 @@ Use the Android app as the source of truth for recent product decisions, but imp
   - Privacy: `2026-07-21.v1`
 - After restoring or creating a Supabase session, query `public.legal_acceptances` for the signed-in user and both current versions. Do not expose the main workspace until a matching row exists.
 - If acceptance is missing, show a polished rose/white full-screen legal gate with links to:
-  - `https://app.thepreschoolprimadonna.com/terms`
-  - `https://app.thepreschoolprimadonna.com/privacy`
-  - `https://app.thepreschoolprimadonna.com/cookies`
+  - `https://app.preschoolproai.com/terms`
+  - `https://app.preschoolproai.com/privacy`
+  - `https://app.preschoolproai.com/cookies`
 - Require an unchecked-by-default control reading: “I agree to the Terms of Service and acknowledge the Privacy Policy.” Enable “Agree and continue” only after that affirmative action. Provide “Decline and sign out.”
 - On acceptance, insert into `legal_acceptances`: `user_id`, `terms_version`, `privacy_version`, `platform = 'ios'`, the iOS app version/build, a short device/app user-agent value, and server-generated `accepted_at`. Use the unique conflict key `(user_id,terms_version,privacy_version)` with ignore-duplicate behavior.
 - Require the same Terms/Privacy checkbox before in-app account creation. Auth metadata may include the versions, but metadata is not the authoritative acceptance record; the database row is.
