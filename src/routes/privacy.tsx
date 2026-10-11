@@ -32,7 +32,7 @@ function PrivacyPage() {
               Preschool Pro AI™ is owned, operated, and managed by Classroom Panda LLC
               ("Classroom Panda," "we," "us," or "our"). We provide an AI-powered executive
               coaching platform for childcare center owners at{" "}
-              <a href="https://app.thepreschoolprimadonna.com" className="text-primary">
+              <a href="https://app.preschoolproai.com" className="text-primary">
                 the Preschool Pro AI website
               </a>
               .

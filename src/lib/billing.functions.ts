@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getStripe, priceIdFor, type Tier } from "./stripe.server";
 
-const APP_URL = "https://app.thepreschoolprimadonna.com";
+const APP_URL = process.env.APP_URL || "https://app.preschoolproai.com";
 
 async function getOrCreateCustomer(userId: string, email: string): Promise<string> {
   const { data: sub } = await supabaseAdmin
