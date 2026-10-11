@@ -287,7 +287,9 @@ An iOS unit/UI test suite and a fresh full multi-device regression matrix were n
 - App Store Connect application `6802986904`, version 1.1 draft remains Rejected from the previous submission; new review has NOT been sent.
 - Five uploaded native iOS screenshots were visually checked: Coaching Engine, Strategy Detail, Previous Strategies, Settings, Sign In. Daily Brief is excluded. Local set: `/Users/nikkismith/Downloads/Preschool-Pro-AI-App-Store-Screenshots-2026-09-24-FINAL/`.
 - Support/marketing URLs were saved with the new domain. Privacy URL change was staged but not saved, awaiting approval. Do not report it completed without verification.
-- Initial upload failed because Xcode's Apple Accounts list was empty. The user signed in; retry succeeded at 22:50 CDT on October 10. Apple accepted build `20261010` for processing. The draft still attaches old build `20260819` until processing and replacement selection complete. Upload is not an App Review submission.
+- Initial upload failed because Xcode's Apple Accounts list was empty. The user signed in; retry succeeded at 22:50 CDT on October 10. Processing subsequently completed, the export-compliance questionnaire was saved, and build `1.1 (20261010)` now shows **Testing** in the internal `Owner Review` group. The owner's existing App Store Connect account shows **Invited**. Automatic distribution is off; only this build was assigned. No public test link or external beta group was created.
+- The App Store distribution draft still needs its old `20260819` build replaced with the new build before final review. Enabling internal TestFlight testing is not an App Review submission.
+- This binary retains `TARGETED_DEVICE_FAMILY = 1` (iPhone only). The user intends to test on iPad in iPhone compatibility mode; no dedicated iPad/universal-layout update or verified TestFlight iPad installation is claimed.
 - Final App Review submission and production Play rollout require user review/approval. This handoff is information transfer, not authorization to publish.
 
 ## Outstanding shared checks
