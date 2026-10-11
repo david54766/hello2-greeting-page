@@ -4,7 +4,7 @@
 export const APP_URL = process.env.APP_URL || "https://app.preschoolproai.com";
 
 function from() {
-  return process.env.EMAIL_FROM || "Preschool Pro AI <noreply@thepreschoolprimadonna.com>";
+  return process.env.EMAIL_FROM || "Preschool Pro AI <noreply@preschoolproai.com>";
 }
 
 export async function sendEmail(args: {
