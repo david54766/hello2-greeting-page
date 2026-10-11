@@ -14,7 +14,7 @@ The initial request that started this Android build was:
 >
 > Here is the elite client login so you can view the full layout.
 >
-> URL: https://app.thepreschoolprimadonna.com/login  
+> URL: https://app.preschoolproai.com/login
 > Email: info@easyfill.ai  
 > Temp password: [REDACTED FOR HANDOFF]
 
@@ -54,7 +54,7 @@ SUPABASE_URL=https://owjhaoiqiujpdndcwccl.supabase.co
 SUPABASE_ANON_KEY=<publishable or anon Supabase key>
 QA_EMAIL=<debug temp-login email>
 QA_PASSWORD=<debug temp-login password>
-WEB_APP_URL=https://app.thepreschoolprimadonna.com
+WEB_APP_URL=https://app.preschoolproai.com
 AUTH_REDIRECT_URL=preschoolprimadonna://auth-callback
 ```
 

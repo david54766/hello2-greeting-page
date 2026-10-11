@@ -114,7 +114,7 @@ git checkout codex/android-native-migration
 ```text
 SUPABASE_URL=https://owjhaoiqiujpdndcwccl.supabase.co
 SUPABASE_ANON_KEY=<publishable-or-anon-key>
-WEB_APP_URL=https://app.thepreschoolprimadonna.com
+WEB_APP_URL=https://app.preschoolproai.com
 AUTH_REDIRECT_URL=preschoolprimadonna://auth-callback
 QA_EMAIL=<debug-temp-login-email>
 QA_PASSWORD=<debug-temp-login-password>
