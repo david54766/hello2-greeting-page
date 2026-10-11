@@ -34,6 +34,11 @@ class SessionStore(context: Context) {
         preferences.edit { clear() }
     }
 
+    fun pushToken(): String? = preferences.getString("push_token", null)
+    fun savePushToken(token: String) { preferences.edit { putString("push_token", token) } }
+    fun pushAlertsEnabled(): Boolean = preferences.getBoolean("push_alerts", true)
+    fun savePushAlerts(enabled: Boolean) { preferences.edit { putBoolean("push_alerts", enabled) } }
+
     private companion object {
         const val KEY_SESSION = "session"
     }

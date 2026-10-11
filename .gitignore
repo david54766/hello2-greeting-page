@@ -33,11 +33,16 @@ dist-ssr
 
 # Android
 .gradle/
+.kotlin/
 build/
 app/build/
 local.properties
 *.iml
 *.keystore
+*.jks
+signing/
+release/
+supabase/functions/.env
 qa/
 
 # iOS local signing/config

@@ -4,8 +4,19 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
-const val CURRENT_TERMS_VERSION = "2026-09-15.v1"
-const val CURRENT_PRIVACY_VERSION = "2026-09-15.v1"
+const val CURRENT_TERMS_VERSION = "2026-09-24.v1"
+const val CURRENT_PRIVACY_VERSION = "2026-09-24.v1"
+
+fun profileTimezone(saved: String?, detected: String): String = saved?.takeIf { it.isNotBlank() } ?: detected
+
+@Serializable
+data class AccountDeletionRequest(val id: String, val status: String)
+
+@Serializable
+data class EliteBlock(
+    @SerialName("blocked_user_id") val userId: String,
+    @SerialName("blocked_user_name") val name: String? = null
+)
 
 @Serializable
 data class AuthSession(
@@ -89,6 +100,15 @@ data class TemplateItem(
     @SerialName("is_elite") val isElite: Boolean? = null
 )
 
+fun canAccessTemplate(subscription: Subscription?, isAdmin: Boolean, template: TemplateItem): Boolean {
+    if (isAdmin) return true
+    if (subscription?.status != "active") return false
+    val tiers = listOf("essentials", "pro", "elite")
+    val required = if (template.isElite == true) "elite" else template.tierRequired ?: "essentials"
+    val requiredRank = tiers.indexOf(required)
+    return requiredRank >= 0 && tiers.indexOf(subscription.tier) >= requiredRank
+}
+
 @Serializable
 data class RavenVideo(
     val id: String,
@@ -153,5 +173,7 @@ data class DashboardData(
     val videos: List<RavenVideo> = emptyList(),
     val coachingSessions: List<CoachingSession> = emptyList(),
     val eliteThreads: List<EliteThread> = emptyList(),
+    val eliteBlocks: List<EliteBlock> = emptyList(),
+    val eliteError: String? = null,
     val todayRecommendation: String? = null
 )

@@ -22,8 +22,8 @@ android {
         applicationId = "com.preschoolprimadonna.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = providers.gradleProperty("releaseVersionCode").orElse("20261010").get().toInt()
+        versionName = "1.1"
 
         buildConfigField(
             "String",
@@ -51,10 +51,25 @@ android {
         buildConfig = true
         compose = true
     }
+
+    signingConfigs {
+        create("upload") {
+            System.getenv("ANDROID_UPLOAD_STORE_FILE")?.let { storeFile = file(it) }
+            storePassword = System.getenv("ANDROID_UPLOAD_STORE_PASSWORD")
+            keyAlias = System.getenv("ANDROID_UPLOAD_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_UPLOAD_KEY_PASSWORD")
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("upload")
+        }
+    }
 }
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.4.0")
 
     implementation(platform("androidx.compose:compose-bom:2026.05.01"))
     implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
@@ -68,6 +83,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.media3:media3-exoplayer:1.10.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.10.1")
     implementation("androidx.media3:media3-ui:1.10.1")
     implementation("androidx.security:security-crypto:1.1.0")
     implementation("com.google.firebase:firebase-messaging")

@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.preschoolprimadonna.app.data.AuthSession
+import com.preschoolprimadonna.app.data.AccountDeletionRequest
 import com.preschoolprimadonna.app.data.AuthUser
 import com.preschoolprimadonna.app.data.Center
 import com.preschoolprimadonna.app.data.CoachingSession
@@ -21,6 +22,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -47,6 +58,10 @@ data class PrimaDonnaState(
     val eliteReplies: List<EliteReply> = emptyList(),
     val voiceLoadingSessionId: String? = null,
     val voicePlayingSessionId: String? = null,
+    val deletionRequest: AccountDeletionRequest? = null,
+    val deletionStatusLoaded: Boolean = false,
+    val deletionStatusLoading: Boolean = false,
+    val deletionError: String? = null,
     val error: String? = null,
     val message: String? = null
 )
@@ -56,18 +71,27 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     private val sessionStore by lazy { SessionStore(application) }
     private val _state = MutableStateFlow(PrimaDonnaState(loading = true))
     private var voicePlayer: MediaPlayer? = null
+    private val accountScope = CoroutineScope(viewModelScope.coroutineContext + SupervisorJob(viewModelScope.coroutineContext[Job]))
+    private val refreshMutex = Mutex()
+    private var voiceJob: Job? = null
+    private var pushToken: String? = null
 
     val state: StateFlow<PrimaDonnaState> = _state
 
     init {
-        viewModelScope.launch {
-            val storedSession = readStoredSession()
+        accountScope.launch {
+            val storedSession = runCatching { readStoredSession() }.getOrElse { error ->
+                if (error is CancellationException) throw error
+                _state.value = PrimaDonnaState(error = "Saved sign-in could not be read. Please sign in again.")
+                return@launch
+            }
             if (storedSession == null) {
                 _state.value = PrimaDonnaState(loading = false)
             } else {
                 _state.value = PrimaDonnaState(session = storedSession, loading = true)
                 runCatching { loadDataWithRefresh(storedSession) }
                     .onFailure { throwable ->
+                        if (throwable is CancellationException) throw throwable
                         _state.update {
                             it.copy(loading = false, saving = false, error = throwable.readableMessage())
                         }
@@ -77,13 +101,17 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun signIn(email: String, password: String) {
-        viewModelScope.launch {
+        accountScope.launch {
             runBlockingAction {
                 val session = api.signIn(email.trim(), password)
                 saveStoredSession(session)
                 _state.update {
                     it.copy(
                         session = session,
+                        data = DashboardData(),
+                        user = null,
+                        deletionRequest = null,
+                        deletionStatusLoaded = false,
                         passwordRecoverySession = null,
                         error = null,
                         message = "Welcome back."
@@ -95,7 +123,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun signUp(fullName: String, email: String, password: String) {
-        viewModelScope.launch {
+        accountScope.launch {
             runBlockingAction {
                 val session = api.signUp(
                     email = email.trim(),
@@ -128,7 +156,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun requestPasswordReset(email: String) {
-        viewModelScope.launch {
+        accountScope.launch {
             runBlockingAction {
                 api.requestPasswordReset(email.trim(), BuildConfig.AUTH_REDIRECT_URL)
                 _state.update {
@@ -144,7 +172,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
 
     fun completePasswordReset(password: String) {
         val recoverySession = _state.value.passwordRecoverySession ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runBlockingAction {
                 api.updatePassword(recoverySession, password)
                 saveStoredSession(recoverySession)
@@ -162,6 +190,10 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun handleAuthRedirect(uri: Uri) {
+        if (uri.scheme != "preschoolprimadonna" || uri.host != "auth-callback") return
+        accountScope.coroutineContext.cancelChildren()
+        stopRavenVoice()
+        _state.value = PrimaDonnaState()
         val params = uri.authParams()
         val redirectError = params["error_description"] ?: params["error"]
         if (!redirectError.isNullOrBlank()) {
@@ -181,6 +213,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             }
             _state.update {
                 it.copy(
+                    data = DashboardData(), user = null,
                     passwordRecoverySession = session,
                     session = null,
                     loading = false,
@@ -190,33 +223,101 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             }
             return
         }
-        viewModelScope.launch {
+        accountScope.launch {
             runBlockingAction {
-                loadData(session)
                 saveStoredSession(session)
                 _state.update {
                     it.copy(
                         session = session,
+                        data = DashboardData(),
+                        user = null,
+                        deletionRequest = null,
+                        deletionStatusLoaded = false,
                         passwordRecoverySession = null,
                         error = null,
                         message = "Welcome back."
                     )
                 }
+                loadDataWithRefresh(session)
             }
         }
     }
 
     fun signOut() {
+        val session = _state.value.session
+        val userId = _state.value.user?.id ?: session?.user?.id
+        val token = pushToken ?: sessionStore.pushToken()
+        accountScope.coroutineContext.cancelChildren()
         releaseRavenPlayer()
-        viewModelScope.launch(Dispatchers.IO) {
-            sessionStore.clear()
+        pushToken = null
+        _state.value = PrimaDonnaState(loading = true)
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                sessionStore.clear()
+                getApplication<Application>().cacheDir.listFiles()
+                    ?.filter { it.name.startsWith("raven_voice_") }?.forEach { it.delete() }
+            }
+            // Invalidate this installation's token even when the backend is unreachable.
+            withTimeoutOrNull(8000) {
+                kotlinx.coroutines.suspendCancellableCoroutine<Unit> { continuation ->
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance().deleteToken()
+                        .addOnCompleteListener {
+                            if (continuation.isActive) continuation.resumeWith(Result.success(Unit))
+                        }
+                }
+            }
+            if (session != null && userId != null && token != null) {
+                withTimeoutOrNull(8000) { runCatching { api.unregisterPushToken(session, userId, token) } }
+            }
+            _state.value = PrimaDonnaState()
         }
-        _state.value = PrimaDonnaState()
+    }
+
+    fun loadDeletionStatus() {
+        val session = _state.value.session ?: return
+        val userId = _state.value.user?.id ?: return
+        if (_state.value.deletionStatusLoading) return
+        accountScope.launch {
+            _state.update { it.copy(deletionStatusLoading = true, deletionError = null) }
+            runCatching { withRefreshRetry(session) { api.getAccountDeletionRequest(it, userId) } }
+                .onSuccess { request ->
+                    _state.update { it.copy(deletionRequest = request, deletionStatusLoaded = true, deletionStatusLoading = false) }
+                }.onFailure { error ->
+                    if (error is CancellationException) throw error
+                    _state.update { it.copy(deletionStatusLoading = false, deletionError = error.readableMessage()) }
+                }
+        }
+    }
+
+    fun requestAccountDeletion() {
+        val session = _state.value.session ?: return
+        val userId = _state.value.user?.id ?: return
+        if (_state.value.saving || !_state.value.deletionStatusLoaded || _state.value.deletionRequest != null) return
+        accountScope.launch {
+            runSavingAction("Account deletion requested.") {
+                val request = withRefreshRetry(session) { api.requestAccountDeletion(it, userId) }
+                _state.update { it.copy(deletionRequest = request, deletionStatusLoaded = true) }
+            }
+        }
+    }
+
+    fun setEliteBlocked(userId: String, blocked: Boolean) {
+        val session = _state.value.session ?: return
+        if (_state.value.saving || userId == _state.value.user?.id) return
+        accountScope.launch {
+            runSavingAction(if (blocked) "Member blocked." else "Member unblocked.") {
+                withRefreshRetry(session) { activeSession ->
+                    api.setEliteBlocked(activeSession, userId, blocked)
+                    _state.update { it.copy(selectedEliteThread = null, eliteReplies = emptyList()) }
+                    loadData(activeSession)
+                }
+            }
+        }
     }
 
     fun refresh() {
         val session = _state.value.session ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runBlockingAction {
                 loadDataWithRefresh(session)
             }
@@ -226,7 +327,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     fun saveProfile(fullName: String, businessName: String, state: String, timezone: String) {
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Profile saved.") {
                 withRefreshRetry(session) { activeSession ->
                     api.updateProfile(activeSession, userId, fullName, businessName, state, timezone)
@@ -239,10 +340,11 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     fun saveNotificationPreferences(preferences: NotificationPreferences) {
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Notification preferences saved.") {
                 withRefreshRetry(session) { activeSession ->
                     api.saveNotificationPreferences(activeSession, userId, preferences)
+                    sessionStore.savePushAlerts(preferences.pushAlerts)
                     loadData(activeSession)
                 }
             }
@@ -252,7 +354,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     fun acceptLegalTerms() {
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: session.user?.id ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Terms accepted.") {
                 withRefreshRetry(session) { activeSession ->
                     api.acceptLegalTerms(activeSession, userId)
@@ -271,7 +373,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     ) {
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Setup saved.") {
                 withRefreshRetry(session) { activeSession ->
                     api.updateProfile(activeSession, userId, fullName, businessName, state, timezone)
@@ -285,7 +387,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     fun addCenter(center: Center) {
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Center added.") {
                 withRefreshRetry(session) { activeSession ->
                     api.addCenter(activeSession, userId, center)
@@ -299,7 +401,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: return
         if (center.id.isNullOrBlank()) return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Center updated.") {
                 withRefreshRetry(session) { activeSession ->
                     api.updateCenter(activeSession, userId, center)
@@ -313,7 +415,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: return
         if (centerId.isBlank()) return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Center deleted.") {
                 withRefreshRetry(session) { activeSession ->
                     api.deleteCenter(activeSession, userId, centerId)
@@ -325,7 +427,11 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
 
     fun submitCoachingPrompt(mode: String, prompt: String) {
         val cleanPrompt = prompt.trim()
-        if (cleanPrompt.isBlank()) {
+        if (_state.value.saving || cleanPrompt.isBlank()) {
+            return
+        }
+        if (cleanPrompt.length > 4000) {
+            _state.update { it.copy(error = "Keep your question within 4,000 characters.") }
             return
         }
         val session = _state.value.session
@@ -333,12 +439,10 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             _state.update { it.copy(error = "Please sign in again before running a strategy session.", message = null) }
             return
         }
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Strategy generated.") {
-                withRefreshRetry(session) { activeSession ->
-                    api.runCoaching(activeSession, mode, cleanPrompt)
-                    loadData(activeSession)
-                }
+                withRefreshRetry(session) { api.runCoaching(it, mode, cleanPrompt) }
+                loadDataWithRefresh(_state.value.session ?: return@runSavingAction)
             }
         }
     }
@@ -346,7 +450,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     fun deleteCoachingSession(sessionId: String) {
         val session = _state.value.session ?: return
         val userId = _state.value.user?.id ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Session deleted.") {
                 withRefreshRetry(session) { activeSession ->
                     api.deleteCoachingSession(activeSession, userId, sessionId)
@@ -362,12 +466,13 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             _state.update { it.copy(error = "Please sign in again before playing Raven voice.", message = null) }
             return
         }
+        stopRavenVoice()
         val text = session.ravenVoiceText()
         if (text.isBlank()) {
             _state.update { it.copy(error = "This session does not have a saved response to play.", message = null) }
             return
         }
-        viewModelScope.launch {
+        voiceJob = accountScope.launch {
             _state.update {
                 it.copy(
                     voiceLoadingSessionId = session.id,
@@ -388,6 +493,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 startRavenPlayback(session.id, files)
             }.onFailure { throwable ->
+                        if (throwable is CancellationException) throw throwable
                 _state.update {
                     it.copy(
                         voiceLoadingSessionId = null,
@@ -400,25 +506,26 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun stopRavenVoice() {
+        voiceJob?.cancel()
+        voiceJob = null
         releaseRavenPlayer()
         _state.update { it.copy(voiceLoadingSessionId = null, voicePlayingSessionId = null) }
     }
 
-    fun createEliteThread(title: String, body: String, imageUrls: List<String> = emptyList()) {
+    fun createEliteThread(title: String, body: String, imageUrls: List<String> = emptyList(), onSuccess: () -> Unit = {}) {
         val session = _state.value.session ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Conversation posted.") {
-                withRefreshRetry(session) { activeSession ->
-                    api.createEliteThread(activeSession, title, body, imageUrls)
-                    loadData(activeSession)
-                }
+                withRefreshRetry(session) { api.createEliteThread(it, title, body, imageUrls) }
+                onSuccess()
+                loadDataWithRefresh(_state.value.session ?: return@runSavingAction)
             }
         }
     }
 
     fun openEliteThread(threadId: String) {
         val session = _state.value.session ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             _state.update { it.copy(saving = true, error = null, message = null) }
             runCatching {
                 val detail = withRefreshRetry(session) { activeSession ->
@@ -433,6 +540,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                     )
                 }
             }.onFailure { throwable ->
+                        if (throwable is CancellationException) throw throwable
                 _state.update {
                     it.copy(saving = false, error = throwable.readableMessage())
                 }
@@ -444,12 +552,13 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         _state.update { it.copy(selectedEliteThread = null, eliteReplies = emptyList(), error = null) }
     }
 
-    fun replyEliteThread(threadId: String, body: String, imageUrls: List<String> = emptyList()) {
+    fun replyEliteThread(threadId: String, body: String, imageUrls: List<String> = emptyList(), onSuccess: () -> Unit = {}) {
         val session = _state.value.session ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Reply posted.") {
+                withRefreshRetry(session) { api.replyEliteThread(it, threadId, body, imageUrls) }
+                onSuccess()
                 withRefreshRetry(session) { activeSession ->
-                    api.replyEliteThread(activeSession, threadId, body, imageUrls)
                     loadData(activeSession)
                     val detail = api.getEliteThread(activeSession, threadId)
                     _state.update {
@@ -485,7 +594,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
 
     fun deleteEliteThread(threadId: String) {
         val session = _state.value.session ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Conversation deleted.") {
                 withRefreshRetry(session) { activeSession ->
                     api.deleteEliteThread(activeSession, threadId)
@@ -509,7 +618,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     ) {
         val session = _state.value.session ?: return
         val userId = session.user?.id ?: _state.value.user?.id ?: return
-        viewModelScope.launch {
+        accountScope.launch {
             runSavingAction("Report sent for compliance review.") {
                 withRefreshRetry(session) { activeSession ->
                     val activeUserId = activeSession.user?.id ?: userId
@@ -532,7 +641,9 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     fun registerPushToken(token: String) {
         val session = _state.value.session ?: return
         val userId = session.user?.id ?: _state.value.user?.id ?: return
-        viewModelScope.launch {
+        pushToken = token
+        sessionStore.savePushToken(token)
+        accountScope.launch {
             runCatching {
                 withRefreshRetry(session) { activeSession ->
                     api.registerPushToken(
@@ -558,7 +669,14 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
 
     suspend fun signedUrl(bucket: String, path: String): String {
         val session = _state.value.session ?: error("Not signed in")
-        return api.signedStorageUrl(session, bucket, path)
+        if (bucket == "templates") {
+            val data = _state.value.data
+            check(data.templates.any { it.storagePath == path &&
+                com.preschoolprimadonna.app.data.canAccessTemplate(data.subscription, data.isAdmin, it) }) {
+                "This resource is not included in your current plan."
+            }
+        }
+        return withRefreshRetry(session) { api.signedStorageUrl(it, bucket, path) }
     }
 
     fun clearNotice() {
@@ -568,6 +686,11 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     private suspend fun loadData(session: AuthSession) {
         val user = session.user ?: api.getCurrentUser(session)
         val userId = user.id
+        val acceptance = api.getLegalAcceptance(session, userId)
+        if (acceptance == null) {
+            _state.update { it.copy(user = user, data = DashboardData(), loading = false, saving = false) }
+            return
+        }
         val data = supervisorScope {
             val profile = async { api.getProfile(session, userId) }
             val subscription = async { api.getSubscription(session, userId) }
@@ -576,9 +699,6 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 runCatching { api.getNotificationPreferences(session, userId) }
                     .getOrNull()
                     ?: NotificationPreferences(userId = userId)
-            }
-            val legalAcceptance = async {
-                runCatching { api.getLegalAcceptance(session, userId) }.getOrNull()
             }
             val centers = async { api.getCenters(session, userId) }
             val templates = async { api.getTemplates(session) }
@@ -589,22 +709,22 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             val resolvedIsAdmin = isAdmin.await()
             val hasEliteAccess = resolvedIsAdmin ||
                 (resolvedSubscription?.tier == "elite" && resolvedSubscription.status == "active")
-            val eliteThreads = if (hasEliteAccess) {
-                runCatching { api.getEliteThreads(session) }.getOrDefault(emptyList())
-            } else {
-                emptyList()
-            }
+            val eliteResult = if (hasEliteAccess) runCatching {
+                api.getEliteThreads(session) to api.getEliteBlocks(session)
+            }.onFailure { if (it is CancellationException) throw it } else null
             DashboardData(
                 profile = profile.await(),
                 subscription = resolvedSubscription,
                 isAdmin = resolvedIsAdmin,
                 notificationPreferences = notificationPreferences.await(),
-                legalAcceptance = legalAcceptance.await(),
+                legalAcceptance = acceptance,
                 centers = centers.await(),
                 templates = templates.await(),
                 videos = videos.await(),
                 coachingSessions = sessions.await(),
-                eliteThreads = eliteThreads,
+                eliteThreads = eliteResult?.getOrNull()?.first.orEmpty(),
+                eliteBlocks = eliteResult?.getOrNull()?.second.orEmpty(),
+                eliteError = eliteResult?.exceptionOrNull()?.readableMessage(),
                 todayRecommendation = todayRecommendation.await()
             )
         }
@@ -617,6 +737,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 error = null
             )
         }
+        sessionStore.savePushAlerts(data.notificationPreferences.pushAlerts)
     }
 
     private suspend fun loadDataWithRefresh(session: AuthSession) {
@@ -639,12 +760,17 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun refreshStoredSession(session: AuthSession): AuthSession {
-        val refreshToken = session.refreshToken
-            ?: throw IllegalStateException("Session expired. Please sign in again.")
-        val refreshed = api.refresh(refreshToken)
-        saveStoredSession(refreshed)
-        _state.update { it.copy(session = refreshed, error = null) }
-        return refreshed
+        return refreshMutex.withLock {
+            currentCoroutineContext().ensureActive()
+            val current = _state.value.session ?: throw CancellationException("Signed out")
+            if (current.accessToken != session.accessToken) return@withLock current
+            val refreshToken = session.refreshToken
+                ?: throw IllegalStateException("Session expired. Please sign in again.")
+            val refreshed = api.refresh(refreshToken)
+            saveStoredSession(refreshed)
+            _state.update { it.copy(session = refreshed, error = null) }
+            refreshed
+        }
     }
 
     private suspend fun readStoredSession(): AuthSession? = withContext(Dispatchers.IO) {
@@ -659,6 +785,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         _state.update { it.copy(loading = true, error = null, message = null) }
         runCatching { block() }
             .onFailure { throwable ->
+                        if (throwable is CancellationException) throw throwable
                 _state.update {
                     it.copy(loading = false, saving = false, error = throwable.readableMessage())
                 }
@@ -672,6 +799,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 _state.update { state -> state.copy(saving = false, message = successMessage) }
             }
             .onFailure { throwable ->
+                        if (throwable is CancellationException) throw throwable
                 _state.update {
                     it.copy(saving = false, error = throwable.readableMessage())
                 }

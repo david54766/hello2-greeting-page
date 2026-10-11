@@ -33,6 +33,8 @@ class PrimaDonnaMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
+        val store = SessionStore(this)
+        if (store.read() == null || !store.pushAlertsEnabled()) return
         val title = message.notification?.title
             ?: message.data["title"]
             ?: getString(R.string.app_name)
@@ -61,6 +63,11 @@ class PrimaDonnaMessagingService : FirebaseMessagingService() {
                     appVersion = BuildConfig.VERSION_NAME,
                     deviceName = deviceName()
                 )
+                if (SessionStore(this@PrimaDonnaMessagingService).read()?.accessToken == session.accessToken) {
+                    SessionStore(this@PrimaDonnaMessagingService).savePushToken(token)
+                } else {
+                    api.unregisterPushToken(session, user.id, token)
+                }
             }
         }
     }
