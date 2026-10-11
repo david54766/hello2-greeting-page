@@ -1,6 +1,6 @@
 # Preschool Pro AI: Android Implementation and Release Review
 
-Date: October 10, 2026 (America/Chicago). This supplements, rather than rewrites, the historical cross-machine handoff.
+Started October 10, 2026; verification continued October 11 (America/Chicago). This supplements, rather than rewrites, the historical cross-machine handoff.
 
 ## Release decision
 
@@ -33,11 +33,14 @@ No production rollout, Play Console edits, iOS submission, secret rotation, live
 10. Small/landscape/large-font Home and Coach views can scroll when fixed-height content would otherwise be clipped. Normal tall layouts remain fixed. See `MainActivity.kt:2184`.
 11. Vault downloads now lock according to active tier/admin status, including Elite-only records; the download action rechecks the loaded entitlement. Storage URL construction encodes filename segments so `#`/`?` cannot alter the request. These client checks do not replace storage RLS.
 12. Push notification defaults and themed launcher icons reference the new robot artwork. The foreground notification handler suppresses messages for signed-out/locally disabled accounts. Backend notification payload delivery and category preferences still require live testing.
+13. Native testing exposed login fields being removed during a request and text scrolling behind the status bar. The initial-session loading gate is now separate from subsequent sign-in requests, preserving the form on failure, and the login scroll region respects system safe areas.
+14. The login action now grows vertically for larger fonts instead of clipping its second line. Verified at 150% font scale on a compact emulator viewport.
+15. A failed notification-preference read no longer replaces an existing opt-out with default opt-in values; the fetch failure propagates instead.
 
 ### Unresolved release risks
 
 - **High: live backend authorization and deployment are not verified.** The connected Supabase account denied project-management access to `ihiqixkufsjeplnkwkao`. Anonymous empty-result probes are not RLS evidence. Review live templates/storage tier policies, Elite tier/ownership/blocking policies, report visibility, and deletion-request ownership using separate accounts before release.
-- **High: end-to-end account testing is blocked.** Ignored local QA credentials returned an authentication error. No working Essentials/Pro/Elite/disposable accounts were provided during the pass. No real deletion was requested and no owner's consent was accepted for testing.
+- **High: authenticated regression is partial.** The newly supplied Essentials and Pro accounts passed live login, refresh, role/plan/center reads and backend Elite denial. Native Essentials login reached the legal gate. Both accounts have no current consent record; terms were not accepted on their behalf. Elite password confirmation and a disposable deletion account remain outstanding. Voice, playback, posting, moderation and notification delivery are not yet end-to-end verified.
 - **High: deletion fulfillment is outside this UI.** The client submits/status-checks requests; it does not erase accounts itself. Confirm operational ownership, processing, and retention rules. Do not promise an unverified completion SLA.
 - **High: backend changes are source only.** Deploy the complete `mobile-api` function directory, including new `strategy-validation.ts`, to the correct project through its authorized owner. Do not copy a service-role or provider key into the app.
 - **Medium: signed candidate versionCode needs Play confirmation.** Candidate defaults to `20261010`, name `1.1`. Confirm it exceeds the highest uploaded code, not merely the active release. Override with `-PreleaseVersionCode=<higher-code>` when needed.
@@ -55,12 +58,12 @@ No production rollout, Play Console edits, iOS submission, secret rotation, live
 | Supabase/Firebase | Configuration checked; live behavior pending | Local URL is `https://ihiqixkufsjeplnkwkao.supabase.co`. No server secrets in BuildConfig; existing Firebase package retained. |
 | Legal / ownership | Changed now | Sep 24 version gate; existing rose legal UI and Classroom Panda LLC/contact retained. Policy/legal certification not performed. |
 | Deletion | Changed now; fulfillment blocked | Same request contract as iOS/web; no destructive live test. Main migration is `supabase/migrations/20260722120000_create_account_deletion_requests.sql`; do not blindly replay production migrations. |
-| Authentication / upgrade | Source fixed; partial runtime evidence | Invalid login/cold start/upgrade and screenshots below; successful auth/refresh/relogin still needs QA account. |
-| Home / centers | Existing behavior retained | Per-center enrollment, revenue estimate, capacity, membership, Daily Brief. Live data correctness unverified. |
+| Authentication / upgrade | Source fixed; partial runtime evidence | Signed APK Essentials login reached legal gate; Essentials/Pro REST login and refresh passed. Invalid login retains form. Full post-consent regression remains open. |
+| Home / centers | Existing behavior retained; live reads checked | Each supplied Essentials/Pro account exposes its one expected sample center. Screen-level metric calculations and video playback remain unverified. |
 | Coach / Raven | Changed now; contract tests | Prompt limits only; errors retained; structured output validation; ordered 650-character voice chunks. Actual generated speech/interrupt behavior requires live test. |
 | Video | Changed now | Native player and HLS support; real signed MP4/MOV/HLS playback unverified. |
 | Vault | Changed now | Refresh on entry, tier locks, signed path encoding. Newly published record/download and server security need live QA. |
-| Elite | Changed now | Report queue, block/unblock, visible errors; existing image attachment and ownership delete controls retained. Essentials/Pro server denial unverified. |
+| Elite | Changed now; live lower-tier denial passed | Report queue, block/unblock, visible errors; existing image attachment and ownership delete controls retained. Deployed mobile-api denied Essentials and Pro list_threads calls. Elite access/moderation still requires testing. |
 | Settings | Changed now | Timezone preservation, deletion and blocked list; profile/center changes retained. Live CRUD not exercised. |
 | Push | Changed now; live delivery pending | Token cleanup, local opt-out guard, default icon. No test notification sent. |
 | Store listing / distribution | Not changed | No console fields saved, no internal-track upload, no production submission. |
@@ -106,8 +109,21 @@ Artifacts are in this checkout's ignored `release/` directory; signing files are
 
 | File | SHA-256 |
 | --- | --- |
-| `Preschool-Pro-AI-1.1-20261010-DEBUG.apk` | `F40722C82717F737A78A380D233F4EF089239CBBEC5E2843C68E23D157906BFC` |
-| `Preschool-Pro-AI-1.1-20261010-CANDIDATE.apk` | `8D7D22F3594F10FB04B36CBB77EF40F18A6AB58EFD4DB52B0AA8C17989814A6F` |
-| `Preschool-Pro-AI-1.1-20261010-CANDIDATE.aab` | `C5BE6A54F6B3B97E59869781395DB1FCA12C02C5B570D888843617C6146C42C7` |
+| `Preschool-Pro-AI-1.1-20261010-DEBUG.apk` | `2E53B220C6589092A516C8E8E4A6D211B5B5C4041A7CD07E99A7E27B3C64C736` |
+| `Preschool-Pro-AI-1.1-20261010-CANDIDATE.apk` | `87C21201F68E267BD3FEFDF3D51B527BB10C5F7E2FEEE7815B3CED5D43D26FA2` |
+| `Preschool-Pro-AI-1.1-20261010-CANDIDATE.aab` | `5594E5A7188C7DE310F9F67338321467AE2B1CF12DE8C5BBA09124A12A9ECD27` |
 
 These are testing candidates, not approved store submissions. The prior handoff's `versionCode = 1` statement describes the starting source and is superseded by the candidate above.
+
+## October 11 live QA
+
+- Accounts: supplied Essentials and Pro testers, active expected tiers, role `user` (not admin). Passwords and tokens are deliberately excluded from source and this report. Elite password was omitted; confirmation requested.
+- Both accounts successfully authenticated and refreshed tokens against `ihiqixkufsjeplnkwkao`. REST test sessions were locally revoked after the read-only checks.
+- Essentials center: `[QA] Little Steps - Raleigh`; Pro center: `[QA] Bright Futures - Austin`. Each account returned one center through its own-user query. This is not a cross-user RLS penetration test.
+- Both returned the current `TESTING` Essentials template and four published video records. Notification-preference and deletion-request reads succeeded with no rows. Record visibility does not prove signed download or video playback.
+- Deployed `mobile-api` rejected `list_threads` for both accounts with `Elite access required`. No client-only gating claim is substituted for that server check.
+- Signed candidate installed successfully over the earlier same-certificate candidate. Native Essentials login reached the current legal gate. No legal-acceptance row, deletion request, conversation, report or sample content was created by these checks.
+- Native invalid-password errors, password visibility, form retention, safe-area scrolling, portrait branding and compact 150% font-size login layout were checked. No claim of full tablet/multi-manufacturer coverage is made.
+- The Android 36 emulator experienced OS/SystemUI/keyboard ANRs under host memory pressure. Captured logs did not show an app-specific crash/ANR, but this does not establish app-wide stability. Repeat the full matrix on physical devices and a less constrained emulator host.
+- Screenshots: [large-font login](screenshots/android-20261011-login-font150.png), [Essentials legal gate](screenshots/android-20261011-essentials-legal.png).
+- Final combined rebuild completed successfully in 3m 11s with one worker and in-process Kotlin. Final artifact hashes above supersede earlier candidates from this pass.

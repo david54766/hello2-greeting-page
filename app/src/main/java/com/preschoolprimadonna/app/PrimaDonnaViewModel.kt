@@ -696,9 +696,8 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
             val subscription = async { api.getSubscription(session, userId) }
             val isAdmin = async { runCatching { api.isAdmin(session, userId) }.getOrDefault(false) }
             val notificationPreferences = async {
-                runCatching { api.getNotificationPreferences(session, userId) }
-                    .getOrNull()
-                    ?: NotificationPreferences(userId = userId)
+                // A failed read must not replace an existing opt-out with defaults.
+                api.getNotificationPreferences(session, userId) ?: NotificationPreferences(userId = userId)
             }
             val centers = async { api.getCenters(session, userId) }
             val templates = async { api.getTemplates(session) }

@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -236,13 +237,17 @@ private fun appCardBorder(): BorderStroke =
 @Composable
 private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var initialSessionResolved by remember { mutableStateOf(false) }
+    LaunchedEffect(state.loading) {
+        if (!state.loading) initialSessionResolved = true
+    }
     var selectedScreen by rememberSaveable { mutableStateOf(AppScreen.Dashboard.name) }
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    if (state.loading && state.session == null && state.passwordRecoverySession == null) {
+    if (!initialSessionResolved && state.loading && state.session == null && state.passwordRecoverySession == null) {
         FullScreenLoading()
         return
     }
@@ -460,6 +465,7 @@ private fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .safeDrawingPadding()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 30.dp),
@@ -655,7 +661,7 @@ private fun LoginScreen(
                         shape = RoundedCornerShape(999.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp)
+                            .heightIn(min = 54.dp)
                     ) {
                         Text(
                             if (state.loading) {
@@ -666,7 +672,8 @@ private fun LoginScreen(
                                     AuthMode.SignUp -> "Create account"
                                     AuthMode.Reset -> "Send reset email"
                                 }
-                            }
+                            },
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
                     if (mode == AuthMode.Reset) {
