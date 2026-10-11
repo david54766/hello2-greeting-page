@@ -132,7 +132,7 @@ Update customer-facing metadata without changing the existing Play application i
 - App Store Connect application `6802986904`, version 1.1 draft remains Rejected from the previous submission; new review has NOT been sent.
 - Five uploaded native iOS screenshots were visually checked: Coaching Engine, Strategy Detail, Previous Strategies, Settings, Sign In. Daily Brief is excluded. Local set: `/Users/nikkismith/Downloads/Preschool-Pro-AI-App-Store-Screenshots-2026-09-24-FINAL/`.
 - Support/marketing URLs were saved with the new domain. Privacy URL change was staged but not saved, awaiting approval. Do not report it completed without verification.
-- Upload of the new binary failed because Xcode's Apple Accounts list was empty. Archive export succeeded using installed signing assets, but upload needs a signed-in account with Classroom Panda LLC App Store Connect access. The draft still attaches old build `20260819` until replacement upload/processing/selection completes.
+- Initial upload failed because Xcode's Apple Accounts list was empty. The user signed in; retry succeeded at 22:50 CDT on October 10. Apple accepted build `20261010` for processing. The draft still attaches old build `20260819` until processing and replacement selection complete. Upload is not an App Review submission.
 - Final App Review submission and production Play rollout require user review/approval. This handoff is information transfer, not authorization to publish.
 
 ## Outstanding shared checks
