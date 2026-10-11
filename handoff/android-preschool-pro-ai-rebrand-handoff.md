@@ -1,6 +1,20 @@
-# Preschool Pro AI Android Rebrand Handoff
+# Preschool Pro AI Complete Rebrand and Android Handoff
 
 Updated: October 10, 2026
+
+## Read this first
+
+This is the cross-machine handoff for everything recorded in the iOS/web session since the Prima Donna AI to Preschool Pro AI name change. It includes shared requirements, source changes, observed deployment results, and unresolved checks. It does not certify that the separate Android machine, currently published Android binary, every backend deployment, or every account already matches this source.
+
+The user wants the Android session to inspect its actual application, cross-check every relevant change, fix discrepancies without breaking existing users, and prepare a signed candidate for review. Do not recreate the Android project, change its application identity, rotate credentials, or release to production merely because this document exists. Final production rollout and App Review submission remain subject to owner approval.
+
+Status vocabulary used here:
+
+- Source change: confirmed in the shared Git branch; not necessarily deployed or device-tested.
+- Verified: the specific check described was actually observed in the iOS/web session.
+- Pending: requires further work or confirmation. Do not convert it into a completed claim.
+
+No passwords, signing material, private API keys, or reviewer credentials are included. Local Mac artifact paths below are informational; the other machine should obtain tracked source and assets from GitHub, not expect those paths to exist there.
 
 ## Repository and source state
 
@@ -13,6 +27,30 @@ Updated: October 10, 2026
 - Email sender change: `e26c00c` on the mobile branch; last verified web-main equivalent was `8eab9ac`. Fetch current refs before working; these are checkpoints, not a claim that remote main cannot have advanced.
 - Android is an existing published application. Update the existing listing and release; do not create a new Play Console application.
 - Inspect the Android session's own repository and dirty state first. Do not reset local changes or merge the entire mobile branch into web main. Reconcile overlapping changes carefully.
+
+The last shared checkpoint before this expanded handoff is `c64903b`. Fetch the latest branch to obtain this document's subsequent commit as well. The actual iOS Git checkout is `/Users/nikkismith/Documents/Codex/2026-06-13/files-mentioned-by-the-user-prima/work/reference-main`; other older copies of the Xcode project exist on the Mac and should not be used as source of truth. That checkout has a pre-existing unrelated modification to `src/routeTree.gen.ts`, intentionally left untouched and uncommitted by the build/handoff work.
+
+## Chronology since the name change
+
+| Commit | Recorded change | Scope / caution |
+| --- | --- | --- |
+| `d7297ef` | Initial native iOS rebrand | Visible app name, logo, icon sizes, user-facing strings, and related configuration; not a new app identity. |
+| `2aeedde` | Shared brand and legal update | Android branding, website/app UI, legal ownership/contact copy, web icons/manifest, email/PDF/coaching brand references. |
+| `43a8311` | Daily brief display rename | iOS Home titles, model fallback text, and supporting view-model strings; Raven coaching preserved. |
+| `ede8c08` | Initial Android rebrand handoff | Guidance for updating the existing published application. |
+| `18b0f61` | iOS 1.1 candidate | Version/build preparation, not a new bundle identifier. |
+| `c4afded` | Web feature-copy correction | Personalized Daily Brief; Elite promises private conversations instead of live coaching sessions. |
+| `a9dc0ab` | Refreshed iOS icon and legal controls | Padded icon assets, iOS legal-version bump, and backend-backed account-deletion request UI replacing mailto-only initiation. |
+| `f95ce8a` | Mobile new-domain defaults | Android Gradle/legal URLs and iOS config/examples; inspect local/CI overrides too. |
+| `8a29263` | Web new-domain links | Public metadata, email links, signup, privacy, and web billing redirect defaults. |
+| `5ad321d` | Legacy handoff domain updates | Markdown handoffs updated; old PDF/DOCX handoffs are historical and may be stale. |
+| `e26c00c` | New-domain email sender | Server mailer default; last observed corresponding main commit `8eab9ac`. |
+| `ca15985` | iOS build 20261010 | Debug and Release build number bumped together. |
+| `79fdfa4` | Expanded Android status handoff | Domain, legal discrepancy, QA and release state. |
+| `e9b9f1f` | Android notification icon | Old crown drawable replaced with a white-tinted reference to the approved robot image. |
+| `c64903b` | Successful upload recorded | Xcode sign-in blocker resolved; Apple accepted iOS build for processing. |
+
+Scheduler removal, coaching behavior, Firebase integration, protected downloads, and Elite safety work partly predate the rebrand. They remain required regression checks; do not interpret all of them as newly implemented or freshly tested by these commits.
 
 ## Approved customer-facing identity
 
@@ -33,6 +71,23 @@ Updated: October 10, 2026
 - Cookies: `https://app.preschoolproai.com/cookies`
 
 The new production website is now `https://app.preschoolproai.com`; DNS/TLS and publication were verified in the iOS/web session. The old statement that the legacy domain is the primary domain is obsolete. Verify new-domain legal pages, password-reset links, auth redirect allowlists, and backward-compatible old links before the Android release. Keep the published Android callback scheme unchanged.
+
+Legal content changed in source includes page titles/descriptions, the introductory contracting/operator identity, cookies ownership copy, support links, and intellectual-property wording. The Terms now refer to the Preschool Pro AI brand and proprietary coaching frameworks owned by Classroom Panda LLC rather than the former branded doctrine. Footer copyright/management copy also names Classroom Panda LLC.
+
+Specific consent locations to compare:
+
+- Android: `app/src/main/java/com/preschoolprimadonna/app/data/Models.kt`.
+- Web: `src/lib/legal-consent.ts` and `src/lib/cookie-consent.functions.ts` (cookie version remains `2026-09-15.v1` in inspected source).
+- iOS: `iOS/PrimaDonnaAI/PrimaDonnaAI/Config/AppConfig.swift`.
+- Shared records: `legal_acceptances`; use the correct platform (`android` or `ios`) and genuine acceptance event. Validate backend/RLS access with separate user accounts, without altering existing users' consent silently.
+
+The requested company management wording is a product/legal-copy requirement, not evidence that an external business registration, trademark, legal opinion, or every provider's business profile was reviewed or changed. Any claims of legal compliance need a separate review of actual documents, data handling, and fulfillment processes.
+
+### Account deletion implementation detail
+
+The iOS September 24 change replaced email-only initiation with authenticated reads/inserts in `account_deletion_requests`. It inserts the signed-in `user_id`, `platform: ios`, and `status: pending`; Settings shows a confirmation and requested state. It does not implement the operational deletion worker or prove requests are completed. Visible copy promises completion of accepted requests within 30 days, except legally retained records.
+
+Android must verify its own deletion initiation, backend authorization, status/error handling, and actual fulfillment process. Do not simply duplicate a 30-day promise unless the business can fulfill it. Do not send a real deletion request from the owner's or reviewer account during QA. Use an approved disposable account when testing destructive lifecycle behavior.
 
 ## Android changes already in source
 
@@ -113,6 +168,106 @@ Update customer-facing metadata without changing the existing Play application i
 - Never copy server credentials into Android, Git, handoff notes, or chat. Keep AI, voice, private files, and privileged operations server-side.
 - Existing Android source also references protected web routes `/api/tts-stream` and `/_serverFn/...` using `WEB_APP_URL`. Verify these integrations on the new domain against deployed contracts; do not blindly replace working routes or hardcode new function hashes.
 - Review local/CI `WEB_APP_URL` overrides: a correct Gradle default does not override an old value in local properties.
+
+### Hosting and account boundaries
+
+- Existing Lovable project: `https://lovable.dev/projects/2deeab71-45bd-45e5-8dc0-4f218025b354`. The iOS/web session observed the site as published and up to date after the domain/email work.
+- Production application URL is the `app.` subdomain, not an assumed apex-domain deployment. Apex/old-domain redirects and DNS record ownership were not comprehensively audited in the final build pass.
+- No DNS record values or Resend API keys are included here. Read the actual provider configuration before changing records; do not infer a DNS target from the old host.
+- A new Resend key was added server-side and `EMAIL_FROM` set to the approved sender. A send-only key returned success for sending, but did not permit querying the message afterward. The user's receipt confirmation is the delivery evidence.
+- Google Play listing, Android signing/Play App Signing, Firebase project settings, OAuth verification domains, and provider business profiles have not all been verified by this session. Inspect those accounts directly on the Android machine.
+- Update web payment return/cancel domains only within the existing web purchase flow; this does not authorize adding Stripe purchase UI to the iPhone app or changing a published Android billing integration.
+
+## File map for the receiving session
+
+Paths in this section are relative to the shared repository. Use `git diff 88f908d..HEAD -- <path>` and individual commits to distinguish the rebrand from unrelated work. The range's base is immediately before the first iOS rebrand commit.
+
+### Android
+
+| File / directory | What to cross-check |
+| --- | --- |
+| `app/build.gradle.kts` | New `WEB_APP_URL` default; existing application ID; release versionCode/versionName still need reconciliation. |
+| `app/src/main/res/values/strings.xml` | Launcher label. |
+| `app/src/main/java/com/preschoolprimadonna/app/MainActivity.kt` | Visible branding, logo references, legal links, consent and ownership text, Daily brief naming. |
+| `app/src/main/java/com/preschoolprimadonna/app/data/Models.kt` | Legal versions; discrepancy with iOS. |
+| `app/src/main/java/com/preschoolprimadonna/app/data/SupabaseRestClient.kt` | Branded user agent, protected endpoint compatibility, and use of new-domain configuration. |
+| `app/src/main/java/com/preschoolprimadonna/app/push/PrimaDonnaMessagingService.kt` | Displayed channel name and notification icon resource. |
+| `app/src/main/res/drawable-nodpi/preschool_pro_ai_logo.png` | New horizontal logo; former `prima_donna_logo.png` removed. |
+| `app/src/main/res/drawable/ic_launcher_foreground.png` | Approved adaptive launcher foreground. |
+| `app/src/main/res/drawable/ic_launcher_monochrome.xml` | New white-tinted robot reference used by notifications; visual device QA pending. |
+| `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `ic_launcher_round.xml` | Existing adaptive-icon wiring; inspect safe-area clipping across launcher masks. |
+
+### iOS
+
+| File / directory | What changed |
+| --- | --- |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI.xcodeproj/project.pbxproj` | Build/version settings and AppIcon wiring; existing bundle identity retained. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Info.plist` | Preschool Pro AI display/name and relevant branded permission copy. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Assets.xcassets/AppIcon.appiconset/` | All listed iPhone/iPad/App Store icon images replaced/refreshed. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Assets.xcassets/PreschoolProLogo.imageset/` | New horizontal logo, replacing the old logo set. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Config/` | AppConfig, BuildSettings, Secrets example, legal versions, and new-domain defaults. Real Secrets.xcconfig stays local/ignored. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Models/Models.swift` | Branded/fallback display strings. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Views/Components/PrimaComponents.swift` | Header logo presentation/accessibility. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Views/LoginView.swift`, `SettingsView.swift` | Product name, company ownership, legal/privacy controls, deletion request UI. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Views/HomeView.swift`, `ViewModels/HomeViewModel.swift`, `ViewModels/AppState.swift` | Daily brief labels and account-deletion state/actions. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/Services/SupabaseClient.swift` | Branded request identifier and authenticated deletion-request records. |
+| `iOS/PrimaDonnaAI/PrimaDonnaAI/PrimaDonnaAIApp.swift` | Product-facing/legal presentation references. |
+
+### Web and backend
+
+| File / directory | What changed |
+| --- | --- |
+| `public/preschool-pro-ai-icon.png`, `public/preschool-pro-ai-logo.png`, `public/site.webmanifest` | New public icons/logo and installable-site identity; old crown SVG removed. |
+| `src/assets/preschool-pro-ai-logo.png` | New imported logo; old imported logo removed. |
+| `src/components/AppHeader.tsx`, `SiteFooter.tsx`, `LegalConsentGate.tsx` | Logo, product name, consent copy, and company ownership. |
+| `src/routes/__root.tsx` | App-wide metadata and new-domain image/link references. |
+| `src/routes/index.tsx` | Branding and feature promises: Daily Brief and private Elite conversations. |
+| `src/routes/terms.tsx`, `privacy.tsx`, `cookies.tsx` | Product identity, company ownership/contact, legal metadata, and domain links. |
+| `src/routes/login.tsx`, `signup.tsx`, `reset-password.tsx`, `admin-login.tsx`, `apply-elite.tsx` | Authentication/application branding and relevant redirect defaults. |
+| `src/routes/_authenticated/` | Customer-visible brand/title updates across dashboard, coach, Vault/templates, Elite, settings, billing, and admin/Elite-gate pages. |
+| `src/lib/legal-consent.ts`, `cookie-consent.functions.ts` | Shared legal-version metadata. |
+| `src/lib/mailer.server.ts`, `billing.functions.ts` | Branded sending defaults and new-domain email/payment redirect URLs. |
+| `src/lib/export-pdf.ts` | Exported-document branding. |
+| `src/lib/coaching.functions.ts`, `coach-image.functions.ts` | Coaching/image brand references. |
+| `src/routes/api/public/hooks/generate-daily-recommendations.ts` | Product name in recommendation-related source. |
+| `supabase/functions/mobile-api/index.ts` | Rebrand string change; source presence does not prove a new deployed Edge Function version. |
+| `scripts/configure-supabase-resend-smtp.ps1` | Sender display-name reference; inspect runtime email configuration separately. |
+| `supabase/LEGAL_CONSENT_DEPLOYMENT.md`, `handoff/`, `handoff-ios/` | Updated Markdown guidance; historical attached PDF/DOCX documents can retain outdated content. |
+
+## Android verification matrix
+
+Run these checks against a candidate installed from the existing application's signed release lineage. Record device, Android version, app version/code, account tier, steps, result, and evidence. Do not call an entire row passed based only on a source search.
+
+| Area | Required checks |
+| --- | --- |
+| Upgrade continuity | Install over published build without uninstalling; package/signature accepted; existing session and user data preserved; deep links continue working. |
+| Brand | Launcher name, adaptive/round icon, notification icon, splash/sign-in/header, app switcher, settings, accessibility labels, exports and store assets use Preschool Pro AI. |
+| Layout | Small and large phones, tablet where supported, portrait/landscape, font scaling, keyboard, loading/empty/error states; no clipped logo or unreadable icon. |
+| Auth | Invalid credentials, visibility toggle, successful sign-in, cold start, expired-session refresh, sign-out and cross-user cache isolation; no bypass. |
+| Legal | Current real policy versions, working terms/privacy/cookies links, authenticated consent persistence, correct platform, no entry before required acceptance. |
+| Home | Current membership, center selection/swiping, enrollment, estimated revenue, facility goal, recommendations from live data. |
+| Daily brief | In-app detail, remote MP4/MOV/HLS as supplied, source aspect ratio, play/pause, load/error/retry, no forced external browser. |
+| Coaching | Broad, short, detailed, subjectless, nonsense, and unrelated nonempty input all reach the backend; genuine rejection/network failure preserves input without history or voice; blank-only input blocked. |
+| Strategy/voice | Mode selection, speech input, Move, history/details, no Use button, protected voice endpoint, timeout/retry, interrupt/resume without frozen UI. |
+| Vault | Live refresh on entry/pull, newly published record appears without rebuild, categories, tier badges, details, signed downloads and invalid-path errors. |
+| Elite | Essentials and Pro denied independently; Elite can view/create/reply/attach; ownership-based deletion; reporting; server blocking/filtering, including after refresh/relogin. |
+| Settings/deletion | Profile, centers, timezone default, current plan, legal/support links; real deletion request/status using disposable approved account and verified fulfillment handling. |
+| Push | Initial permission, declined permission, token refresh, new-domain/backend registration, per-category preferences, foreground/background delivery and sign-out cleanup. |
+| Privacy/security | No private server keys, no sensitive request logs, matching Firebase package, correct permissions/Data safety declarations, accessible RLS/storage only as intended. |
+| Release | Unit/instrumented tests and lint, signed AAB, higher versionCode, native screenshots, Play internal-track installation, rollback/update plan. |
+
+An iOS unit/UI test suite and a fresh full multi-device regression matrix were not run during the October 10 build-only pass. Debug/Release compilation and successful installation/upload are not substitutes for those tests. Do not inherit older claims of complete QA without evidence.
+
+## Receiving session deliverables
+
+1. Confirm the actual Android repository, branch, existing dirty files, latest integrated commits, package ID, signing lineage, live Play versionCode, and Firebase app before editing.
+2. Produce a discrepancy checklist across every section of this handoff: already correct, changed now, unverified, or blocked. Include file/line evidence and actual runtime tests where applicable.
+3. Implement scoped Android corrections while preserving published-app compatibility. Do not use legal-version changes or RLS rewrites as incidental cleanup.
+4. Run the matrix, record failed/skipped tests honestly, and attach native screenshots showing the new brand.
+5. Produce a signed release AAB with a valid incremented versionCode and report its exact location and checksum. Keep signing files/passwords out of Git and messages.
+6. Prepare internal testing and listing updates under the existing Play application. Report which console fields have actually been saved versus merely proposed.
+7. Commit/push scoped source and an updated QA report. State any changed backend deployment separately from client commits.
+8. Stop before production release until the user reviews the build and approves rollout. Do not imply the Android build exists until the artifact has actually been produced.
 
 ## Assets and presentation
 
