@@ -62,7 +62,7 @@ function Signup() {
           accepted_terms_version: TERMS_VERSION,
           acknowledged_privacy_version: PRIVACY_VERSION,
         },
-        emailRedirectTo: `https://app.thepreschoolprimadonna.com/dashboard`,
+        emailRedirectTo: new URL("/dashboard", window.location.origin).toString(),
       },
     });
     if (error) {

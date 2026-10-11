@@ -67,8 +67,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Preschool Pro AI™ — Executive Coaching for Childcare Leaders" },
       { name: "twitter:description", content: "Premium AI-powered executive business coaching for childcare center owners. Strategic intelligence, on demand." },
-      { property: "og:image", content: "https://app.thepreschoolprimadonna.com/preschool-pro-ai-logo.png" },
-      { name: "twitter:image", content: "https://app.thepreschoolprimadonna.com/preschool-pro-ai-logo.png" },
+      { property: "og:image", content: "https://app.preschoolproai.com/preschool-pro-ai-logo.png" },
+      { name: "twitter:image", content: "https://app.preschoolproai.com/preschool-pro-ai-logo.png" },
       { name: "theme-color", content: "#ec008c" },
     ],
     links: [

@@ -1,7 +1,7 @@
 // Server-only Resend mailer + branded email templates.
 // Never import from client code.
 
-export const APP_URL = "https://app.thepreschoolprimadonna.com";
+export const APP_URL = process.env.APP_URL || "https://app.preschoolproai.com";
 
 function from() {
   return process.env.EMAIL_FROM || "Preschool Pro AI <noreply@thepreschoolprimadonna.com>";
