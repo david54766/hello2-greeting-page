@@ -1,8 +1,45 @@
 # Preschool Pro AI Complete Rebrand and Android Handoff
 
-Updated: October 10, 2026
+Updated: October 13, 2026
 
 Android implementation follow-up: [Implementation and release review](android-implementation-review-2026-10-10.md). That report records subsequent Android changes and unresolved release gates; the source-state statements below remain the original cross-machine checkpoint.
+
+## October 13 iOS feedback for the Windows session
+
+The owner reported that Home appeared to show only one center despite four saved centers, Elite's conversation body placeholder was against its border, and voice playback failed. The requested customer-facing playback button is now **Speak Voice**. This changes the label, not the voice provider or protected backend action.
+
+iOS source commit: `975edeb` (11 files). The Mac then merged the Windows commits through `2838785` without changing their Android or backend work. Fetch the latest `codex/android-native-migration` before editing; do not overwrite the other machine's changes or the published Android application.
+
+- Home: the existing data model already includes all saved centers. Keep swiping, but make other centers discoverable with a named picker, previous/next buttons, and `Center 1 of 4` style count. The iOS snapshot now measures its content instead of forcing three cards into 310 points.
+- Elite: added vertical inset to multiline fields and explicit leading alignment to the composer heading. Conversations and access checks are unchanged. Check Android's composer with the keyboard open and long text before deciding whether it needs an equivalent fix.
+- Voice: iOS detail/history controls now say `Speak Voice`, observe playback state directly, and show backend errors inline in the sheet with `Retry voice`. Loading can be cancelled; late responses from cancelled or replaced requests are ignored. Starting speech input stops playback, and starting playback stops recording.
+- No schema, secret, backend deployment, Android package identity, legal acceptance, or App Store submission changes were made in this iOS patch.
+
+### Shared voice blocker
+
+An authenticated production request was reproduced on October 13 UTC:
+
+```text
+POST https://ihiqixkufsjeplnkwkao.supabase.co/functions/v1/mobile-api
+action: synthesize_raven_voice
+HTTP: 200
+ok: false
+error: Raven voice is temporarily unavailable.
+audio bytes: 0
+```
+
+The approved QA account signs in successfully. This failure occurs before iOS audio decoding and is not resolved by a new app binary. In the checked-in function, this message follows a non-success ElevenLabs response. The Mac's Supabase connector cannot access project logs, so the actual upstream cause is not confirmed. The Windows session should inspect the corresponding `ElevenLabs TTS error` log status and sanitized provider error, then verify server-side `ELEVENLABS_API_KEY`, configured voice access, and provider quota as indicated by that evidence. Do not rotate keys blindly, print secrets, or move provider credentials into either mobile client. Preserve compatibility with the published Android app and retest a short voice request plus a complete strategy after correcting the server issue.
+
+### iOS candidate and verification
+
+- Version/build: **1.1 (20261013)**. Debug simulator build, Release archive, distribution export, and signature verification passed.
+- 10 XCTest checks passed on iPhone 17 Pro / iOS 26.5 Simulator: all four centers retained, empty-state fallback, valid/failed/empty/malformed voice payloads, backend error preservation, playback failure/retry state, cancellation identity, and layout rendering.
+- Home/Elite fixture layouts rendered at 375, 430, and 768 points and were visually inspected. These are test-fixture images, not App Store screenshots or physical-device/keyboard verification.
+- Hands-on simulator login succeeded and Home showed `Center 1 of 4`; a system password-save prompt temporarily blocked continued interaction. Center switching and keyboard checks remain pending at this checkpoint.
+- No successful end-to-end live voice playback, new TestFlight upload, or final App Review submission is claimed. Current TestFlight owner build remains the previously uploaded **1.1 (20261010)** until another upload is confirmed.
+- Mac artifacts: `/Users/nikkismith/Downloads/Preschool-Pro-AI-iOS-20261013/` contains the archive, IPA, test result bundle, logs, layout fixtures, and `BUILD-NOTES.txt`. These artifacts are local, not in Git.
+
+The Windows session was not listed among this Mac's connected sessions, so this shared Git handoff is the cross-machine delivery path. Please cross-check the Android center selector, composer padding, voice button wording, and inline voice errors without assuming the iOS patch modifies Android.
 
 ## Read this first
 
