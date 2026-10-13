@@ -2,6 +2,8 @@
 
 Updated: October 10, 2026
 
+Android implementation follow-up: [Implementation and release review](android-implementation-review-2026-10-10.md). That report records subsequent Android changes and unresolved release gates; the source-state statements below remain the original cross-machine checkpoint.
+
 ## Read this first
 
 This is the cross-machine handoff for everything recorded in the iOS/web session since the Prima Donna AI to Preschool Pro AI name change. It includes shared requirements, source changes, observed deployment results, and unresolved checks. It does not certify that the separate Android machine, currently published Android binary, every backend deployment, or every account already matches this source.

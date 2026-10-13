@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -113,6 +114,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -129,6 +131,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.VideoSize
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -146,6 +154,7 @@ import com.preschoolprimadonna.app.data.LegalAcceptance
 import com.preschoolprimadonna.app.data.RavenVideo
 import com.preschoolprimadonna.app.data.Subscription
 import com.preschoolprimadonna.app.data.TemplateItem
+import com.preschoolprimadonna.app.data.canAccessTemplate
 import com.preschoolprimadonna.app.ui.PrimaDonnaTheme
 import com.preschoolprimadonna.app.ui.PrimaGold
 import com.preschoolprimadonna.app.ui.PrimaPink
@@ -228,13 +237,17 @@ private fun appCardBorder(): BorderStroke =
 @Composable
 private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
+    var initialSessionResolved by remember { mutableStateOf(false) }
+    LaunchedEffect(state.loading) {
+        if (!state.loading) initialSessionResolved = true
+    }
     var selectedScreen by rememberSaveable { mutableStateOf(AppScreen.Dashboard.name) }
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    if (state.loading && state.session == null && state.passwordRecoverySession == null) {
+    if (!initialSessionResolved && state.loading && state.session == null && state.passwordRecoverySession == null) {
         FullScreenLoading()
         return
     }
@@ -259,7 +272,11 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
         return
     }
 
-    if (!state.loading && state.data.legalAcceptance == null) {
+    if (state.loading && state.data.legalAcceptance == null) {
+        FullScreenLoading()
+        return
+    }
+    if (state.data.legalAcceptance == null) {
         LegalConsentScreen(
             state = state,
             onAccept = viewModel::acceptLegalTerms,
@@ -268,7 +285,7 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
         return
     }
 
-    LaunchedEffect(state.session.accessToken, state.user?.id, state.data.legalAcceptance?.id) {
+    LaunchedEffect(state.user?.id, state.data.legalAcceptance?.id) {
         if (state.user != null && state.data.legalAcceptance != null) {
             if (
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -303,7 +320,7 @@ private fun PrimaDonnaApp(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel
         }
     }
     LaunchedEffect(screen) {
-        if (screen == AppScreen.Vault) {
+        if (screen == AppScreen.Vault || screen == AppScreen.Elite) {
             viewModel.refresh()
         }
     }
@@ -448,6 +465,7 @@ private fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .safeDrawingPadding()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 30.dp),
@@ -643,7 +661,7 @@ private fun LoginScreen(
                         shape = RoundedCornerShape(999.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp)
+                            .heightIn(min = 54.dp)
                     ) {
                         Text(
                             if (state.loading) {
@@ -654,7 +672,8 @@ private fun LoginScreen(
                                     AuthMode.SignUp -> "Create account"
                                     AuthMode.Reset -> "Send reset email"
                                 }
-                            }
+                            },
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
                     if (mode == AuthMode.Reset) {
@@ -1262,8 +1281,13 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 Toast.makeText(context, "Speech recognition is not available on this device.", Toast.LENGTH_LONG).show()
             }
     }
-    LaunchedEffect(state.saving, state.data.coachingSessions.firstOrNull()?.id, waitingForStrategy) {
+    LaunchedEffect(state.saving, state.error, state.data.coachingSessions.firstOrNull()?.id, waitingForStrategy) {
         val latestSession = state.data.coachingSessions.firstOrNull()
+        if (waitingForStrategy && !state.saving && state.error != null) {
+            waitingForStrategy = false
+            strategyBaselineId = null
+            return@LaunchedEffect
+        }
         if (waitingForStrategy && !state.saving && latestSession != null && latestSession.id != strategyBaselineId) {
             strategyPopupId = latestSession.id
             waitingForStrategy = false
@@ -1310,6 +1334,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             OutlinedTextField(
                 value = prompt,
                 onValueChange = { prompt = it },
@@ -1344,7 +1369,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                         strategyBaselineId = state.data.coachingSessions.firstOrNull()?.id
                         viewModel.submitCoachingPrompt(mode, prompt)
                     },
-                    enabled = prompt.isNotBlank() && !state.saving,
+                    enabled = prompt.isNotBlank() && prompt.trim().length <= 4000 && !state.saving,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
@@ -1421,6 +1446,7 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         if (selectedTemplate != null) {
             TemplateDetail(
                 template = selectedTemplate,
+                canDownload = canAccessTemplate(state.data.subscription, state.data.isAdmin, selectedTemplate),
                 viewModel = viewModel,
                 onBack = { selectedTemplateId = null }
             )
@@ -1440,6 +1466,7 @@ private fun VaultScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
             filteredTemplates.forEach { item ->
                 TemplateCard(
                     template = item,
+                    canDownload = canAccessTemplate(state.data.subscription, state.data.isAdmin, item),
                     viewModel = viewModel,
                     onOpen = { selectedTemplateId = item.id }
                 )
@@ -1482,9 +1509,10 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                     viewModel.closeEliteThread()
                 },
                 onReply = {
-                    viewModel.replyEliteThread(selectedThread.id, replyBody, replyImageUrls)
-                    replyBody = ""
-                    replyImageUrls = emptyList()
+                    viewModel.replyEliteThread(selectedThread.id, replyBody, replyImageUrls) {
+                        replyBody = ""
+                        replyImageUrls = emptyList()
+                    }
                 },
                 replyImageUrls = replyImageUrls,
                 onReplyImageUrlsChange = { replyImageUrls = it },
@@ -1512,12 +1540,17 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                         reportedAuthor = reply?.authorName
                     )
                 },
+                currentUserId = userId,
+                onBlockMember = { viewModel.setEliteBlocked(it, true) },
                 saving = state.saving
             )
         } else {
             val latestThreads = state.data.eliteThreads.sortedByDescending { it.createdAt.orEmpty() }
             SectionTitle("Latest conversations")
-            if (latestThreads.isEmpty()) {
+            if (state.data.eliteError != null) {
+                Text(state.data.eliteError, color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = viewModel::refresh, enabled = !state.loading) { Text("Retry") }
+            } else if (latestThreads.isEmpty()) {
                 EmptyState("No Elite conversations yet.")
             } else {
                 latestThreads.forEach { thread ->
@@ -1552,10 +1585,11 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
             )
             Button(
                 onClick = {
-                    viewModel.createEliteThread(threadTitle, threadBody, threadImageUrls)
-                    threadTitle = ""
-                    threadBody = ""
-                    threadImageUrls = emptyList()
+                    viewModel.createEliteThread(threadTitle, threadBody, threadImageUrls) {
+                        threadTitle = ""
+                        threadBody = ""
+                        threadImageUrls = emptyList()
+                    }
                 },
                 enabled = threadTitle.trim().length >= 3 && threadBody.trim().length >= 3 && !state.saving
             ) {
@@ -1617,9 +1651,7 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
     var profileState by rememberSaveable(profile?.updatedAt) { mutableStateOf(profile?.state.orEmpty()) }
     var timezone by rememberSaveable(profile?.updatedAt, detectedTimezone) {
         mutableStateOf(
-            profile?.timezone
-                ?.takeIf { it.isNotBlank() && it != "America/New_York" }
-                ?: detectedTimezone
+            com.preschoolprimadonna.app.data.profileTimezone(profile?.timezone, detectedTimezone)
         )
     }
     var editingCenterId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1704,6 +1736,10 @@ private fun SettingsScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMode
 
         SectionTitle("Legal and privacy")
         LegalSettingsCard(state.data.legalAcceptance)
+        AccountDeletionControls(state, viewModel)
+        if (state.data.isAdmin || (subscription?.tier == "elite" && subscription.status == "active")) {
+            BlockedMembersControls(state, viewModel)
+        }
 
         SectionTitle("Your centers")
         if (state.data.centers.isEmpty()) {
@@ -2153,18 +2189,24 @@ private fun BrandMark(compact: Boolean) {
 
 @Composable
 private fun FixedScreen(content: @Composable ColumnScope.() -> Unit) {
-    Box(
+    val fontScale = LocalDensity.current.fontScale
+    BoxWithConstraints(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter
     ) {
+        val minimumHeight = if (fontScale > 1.2f) (640 * fontScale).dp else 640.dp
+        val allowScroll = maxHeight < minimumHeight
+        val contentHeight = if (allowScroll) minimumHeight else maxHeight
+        Box(Modifier.then(if (allowScroll) Modifier.verticalScroll(rememberScrollState()) else Modifier)) {
         Column(
             modifier = Modifier
-                .fillMaxHeight()
+                .height(contentHeight)
                 .appContentWidth()
                 .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             content()
+        }
         }
     }
 }
@@ -2472,13 +2514,18 @@ private fun RavenDailyBriefScreen(
     var videoUrl by remember(video?.storagePath) { mutableStateOf<String?>(null) }
     var videoLoading by remember(video?.storagePath) { mutableStateOf(video?.storagePath != null) }
     var videoError by remember(video?.storagePath) { mutableStateOf<String?>(null) }
+    var videoAspectRatio by remember(video?.storagePath) { mutableStateOf(16f / 9f) }
+    var retry by remember { mutableStateOf(0) }
 
-    LaunchedEffect(video?.storagePath) {
+    LaunchedEffect(video?.storagePath, retry) {
         val path = video?.storagePath
         if (path == null) {
             videoLoading = false
             return@LaunchedEffect
         }
+        videoLoading = true
+        videoError = null
+        videoUrl = null
         runCatching { viewModel.signedUrl("raven-videos", path) }
             .onSuccess { videoUrl = it }
             .onFailure { videoError = it.message ?: "This video is temporarily unavailable." }
@@ -2529,9 +2576,9 @@ private fun RavenDailyBriefScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.Black),
                 shape = AppCardShape,
                 modifier = Modifier
-                    .widthIn(max = 420.dp)
+                    .widthIn(max = if (videoAspectRatio < 1f) 420.dp else 700.dp)
                     .fillMaxWidth()
-                    .aspectRatio(9f / 16f)
+                    .aspectRatio(videoAspectRatio)
                     .align(Alignment.CenterHorizontally)
             ) {
                 Box(
@@ -2540,13 +2587,15 @@ private fun RavenDailyBriefScreen(
                 ) {
                     when {
                         videoLoading -> CircularProgressIndicator(color = Color.White)
-                        videoUrl != null -> InAppVideoPlayer(videoUrl!!)
-                        else -> Text(
-                            text = videoError ?: "This video is not available.",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(18.dp)
+                        videoError == null && videoUrl != null -> InAppVideoPlayer(
+                            videoUrl!!,
+                            onAspectRatio = { videoAspectRatio = it },
+                            onError = { videoError = "This video could not be played. Please try again." }
                         )
+                        else -> Column(Modifier.padding(18.dp)) {
+                            Text(videoError ?: "This video is not available.", color = Color.White)
+                            TextButton(onClick = { retry++ }) { Text("Retry") }
+                        }
                     }
                 }
             }
@@ -2556,8 +2605,9 @@ private fun RavenDailyBriefScreen(
 
 @UnstableApi
 @Composable
-private fun InAppVideoPlayer(url: String) {
+private fun InAppVideoPlayer(url: String, onAspectRatio: (Float) -> Unit, onError: () -> Unit) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val player = remember(url) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(url))
@@ -2565,8 +2615,25 @@ private fun InAppVideoPlayer(url: String) {
             prepare()
         }
     }
-    DisposableEffect(player) {
-        onDispose { player.release() }
+    DisposableEffect(player, lifecycleOwner) {
+        val listener = object : Player.Listener {
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                if (videoSize.width > 0 && videoSize.height > 0) {
+                    onAspectRatio(videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height)
+                }
+            }
+            override fun onPlayerError(error: PlaybackException) { onError() }
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) player.pause()
+        }
+        player.addListener(listener)
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            player.removeListener(listener)
+            player.release()
+        }
     }
     AndroidView(
         factory = { viewContext ->
@@ -2596,7 +2663,7 @@ private fun EmptyState(text: String) {
 }
 
 @Composable
-private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel, onOpen: (() -> Unit)? = null) {
+private fun TemplateCard(template: TemplateItem, canDownload: Boolean, viewModel: PrimaDonnaViewModel, onOpen: (() -> Unit)? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Card(
@@ -2657,12 +2724,12 @@ private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel,
                                 .onFailure { Toast.makeText(context, it.message ?: "Download failed.", Toast.LENGTH_LONG).show() }
                         }
                     },
-                    enabled = template.storagePath != null,
+                    enabled = canDownload && !template.storagePath.isNullOrBlank(),
                     modifier = downloadModifier
                 ) {
                     Icon(Icons.Outlined.Download, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Download", maxLines = 1)
+                    Text(if (canDownload) "Download" else "Locked", maxLines = 1)
                 }
             }
         }
@@ -2670,7 +2737,7 @@ private fun TemplateCard(template: TemplateItem, viewModel: PrimaDonnaViewModel,
 }
 
 @Composable
-private fun TemplateDetail(template: TemplateItem, viewModel: PrimaDonnaViewModel, onBack: () -> Unit) {
+private fun TemplateDetail(template: TemplateItem, canDownload: Boolean, viewModel: PrimaDonnaViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -2702,7 +2769,7 @@ private fun TemplateDetail(template: TemplateItem, viewModel: PrimaDonnaViewMode
                     .onFailure { Toast.makeText(context, it.message ?: "Download failed.", Toast.LENGTH_LONG).show() }
             }
         },
-        enabled = template.storagePath != null,
+        enabled = canDownload && !template.storagePath.isNullOrBlank(),
         modifier = Modifier.fillMaxWidth()
     ) {
         Icon(Icons.Outlined.Download, contentDescription = null)
@@ -3201,6 +3268,8 @@ private fun EliteThreadDetailPanel(
     uploadImage: suspend (Uri) -> String,
     onReportThread: (String, String) -> Unit,
     onReportReply: (String, String, String) -> Unit,
+    currentUserId: String?,
+    onBlockMember: (String) -> Unit,
     saving: Boolean
 ) {
     var reportingThread by rememberSaveable { mutableStateOf(false) }
@@ -3229,6 +3298,9 @@ private fun EliteThreadDetailPanel(
             Spacer(Modifier.height(12.dp))
             Text(thread.body.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             AttachmentGallery(thread.imageUrls)
+            thread.userId?.takeIf { it != currentUserId }?.let { authorId ->
+                BlockMemberButton(thread.authorName, !saving) { onBlockMember(authorId) }
+            }
             Spacer(Modifier.height(12.dp))
             OutlinedButton(
                 onClick = { reportingThread = true },
@@ -3262,6 +3334,9 @@ private fun EliteThreadDetailPanel(
                     Spacer(Modifier.height(8.dp))
                     Text(reply.body.orEmpty())
                     AttachmentGallery(reply.imageUrls)
+                    reply.userId?.takeIf { it != currentUserId }?.let { authorId ->
+                        BlockMemberButton(reply.authorName, !saving) { onBlockMember(authorId) }
+                    }
                     Spacer(Modifier.height(8.dp))
                     TextButton(
                         onClick = { reportingReplyId = reply.id },

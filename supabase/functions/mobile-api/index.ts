@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.106.0';
+import { parseStrategyResponse, strategyKey } from './strategy-validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -188,8 +189,7 @@ async function runCoaching({ supabase, userId }: MobileContext, data: Record<str
   if (res.status === 429) return { ok: false, error: 'Rate limit reached. Try again in a moment.' };
   if (res.status === 402) return { ok: false, error: 'OpenAI credits exhausted. Check API billing.' };
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.error('OpenAI coaching error', res.status, text);
+    console.error('OpenAI coaching error', res.status);
     return { ok: false, error: 'Strategist temporarily unavailable.' };
   }
 
@@ -199,7 +199,7 @@ async function runCoaching({ supabase, userId }: MobileContext, data: Record<str
 
   let parsed: StructuredResponse;
   try {
-    parsed = JSON.parse(call.function.arguments);
+    parsed = parseStrategyResponse(call.function.arguments);
   } catch {
     return { ok: false, error: 'Malformed strategy response.' };
   }
@@ -296,7 +296,7 @@ async function screenTextRemote(text: string): Promise<boolean> {
 }
 
 function openAIAPIKey(): string | undefined {
-  return Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY') ?? Deno.env.get('AI_STRATEGY_KEY');
+  return strategyKey((name) => Deno.env.get(name));
 }
 
 async function moderateElitePost(parts: Array<string | null | undefined>): Promise<boolean> {
@@ -309,7 +309,7 @@ async function loadBlockedIds({ supabase }: MobileContext): Promise<Set<string>>
   const { data, error } = await supabase.rpc('elite_blocked_user_ids');
   if (error) {
     console.error('elite_blocked_user_ids error', error.message);
-    return new Set();
+    throw new Error('Member privacy settings could not be loaded. Please try again.');
   }
   return new Set(((data as string[] | null) ?? []).filter(Boolean));
 }
@@ -481,7 +481,7 @@ async function countReplies(supabase: SupabaseClient) {
 function readMode(value: unknown): string {
   const mode = String(value ?? 'ceo').trim().toLowerCase();
   if (mode === 'strategy') return 'ceo';
-  if (mode in MODE_PROMPTS) return mode;
+  if (Object.hasOwn(MODE_PROMPTS, mode)) return mode;
   throw new Error('mode is invalid');
 }
 

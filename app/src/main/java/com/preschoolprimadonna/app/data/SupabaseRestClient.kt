@@ -3,6 +3,13 @@ package com.preschoolprimadonna.app.data
 import com.preschoolprimadonna.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -57,7 +64,11 @@ private data class UserRoleRow(
     val role: String? = null
 )
 
-class SupabaseRestClient {
+class SupabaseRestClient(
+    private val supabaseUrl: String = BuildConfig.SUPABASE_URL,
+    private val webAppUrl: String = BuildConfig.WEB_APP_URL,
+    private val anonKey: String = BuildConfig.SUPABASE_ANON_KEY
+) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
@@ -88,7 +99,7 @@ class SupabaseRestClient {
                 "password" to JsonPrimitive(password)
             )
         )
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/token?grant_type=password")
+        val request = baseRequest("${supabaseUrl}/auth/v1/token?grant_type=password")
             .post(body.toString().toRequestBody(jsonMediaType))
             .build()
         return json.decodeFromString(execute(request))
@@ -108,7 +119,7 @@ class SupabaseRestClient {
                 }
             )
         }
-        val url = "${BuildConfig.SUPABASE_URL}/auth/v1/signup".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/auth/v1/signup".toHttpUrl().newBuilder()
             .apply {
                 redirectTo.takeIf { it.isNotBlank() }?.let { addQueryParameter("redirect_to", it) }
             }
@@ -123,7 +134,7 @@ class SupabaseRestClient {
         val body = buildJsonObject {
             put("email", email)
         }
-        val url = "${BuildConfig.SUPABASE_URL}/auth/v1/recover".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/auth/v1/recover".toHttpUrl().newBuilder()
             .apply {
                 redirectTo.takeIf { it.isNotBlank() }?.let { addQueryParameter("redirect_to", it) }
             }
@@ -138,7 +149,7 @@ class SupabaseRestClient {
         val body = buildJsonObject {
             put("password", password)
         }
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/user", session)
+        val request = baseRequest("${supabaseUrl}/auth/v1/user", session)
             .put(body.toString().toRequestBody(jsonMediaType))
             .build()
         execute(request)
@@ -146,14 +157,14 @@ class SupabaseRestClient {
 
     suspend fun refresh(refreshToken: String): AuthSession {
         val body = JsonObject(mapOf("refresh_token" to JsonPrimitive(refreshToken)))
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token")
+        val request = baseRequest("${supabaseUrl}/auth/v1/token?grant_type=refresh_token")
             .post(body.toString().toRequestBody(jsonMediaType))
             .build()
         return json.decodeFromString(execute(request))
     }
 
     suspend fun getCurrentUser(session: AuthSession): AuthUser {
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/auth/v1/user", session)
+        val request = baseRequest("${supabaseUrl}/auth/v1/user", session)
             .get()
             .build()
         return json.decodeFromString(execute(request))
@@ -202,7 +213,7 @@ class SupabaseRestClient {
             put("app_version", BuildConfig.VERSION_NAME)
             put("user_agent", "Preschool Pro AI Android/${BuildConfig.VERSION_NAME}")
         }
-        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/legal_acceptances".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/rest/v1/legal_acceptances".toHttpUrl().newBuilder()
             .addQueryParameter("on_conflict", "user_id,terms_version,privacy_version")
             .build()
         val request = baseRequest(url.toString(), session)
@@ -351,7 +362,7 @@ class SupabaseRestClient {
 
     private suspend fun synthesizeRavenVoiceWebStream(session: AuthSession, text: String): ByteArray {
         val request = Request.Builder()
-            .url("${BuildConfig.WEB_APP_URL.trimEnd('/')}/api/tts-stream")
+            .url("${webAppUrl.trimEnd('/')}/api/tts-stream")
             .header("Authorization", "Bearer ${session.accessToken}")
             .header("Content-Type", "application/json")
             .header("accept", "audio/mpeg")
@@ -363,7 +374,7 @@ class SupabaseRestClient {
     }
 
     suspend fun deleteCoachingSession(session: AuthSession, userId: String, sessionId: String) {
-        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/coaching_sessions".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/rest/v1/coaching_sessions".toHttpUrl().newBuilder()
             .addQueryParameter("id", "eq.$sessionId")
             .addQueryParameter("user_id", "eq.$userId")
             .build()
@@ -437,27 +448,50 @@ class SupabaseRestClient {
         reportedBody: String?,
         reportedAuthor: String?
     ) {
-        val metadata = buildJsonObject {
-            put("thread_id", threadId)
-            put("target", if (replyId.isNullOrBlank()) "thread" else "reply")
-            replyId?.takeIf { it.isNotBlank() }?.let { put("reply_id", it) }
+        val payload = buildJsonObject {
+            put("content_type", if (replyId.isNullOrBlank()) "thread" else "reply")
+            put("content_id", replyId?.takeIf { it.isNotBlank() } ?: threadId)
             put("reason", reason.trim())
             put("details", details.trim())
-            reportedTitle?.takeIf { it.isNotBlank() }?.let { put("reported_title", it.trim().take(240)) }
-            reportedBody?.takeIf { it.isNotBlank() }?.let { put("reported_body", it.trim().take(1600)) }
-            reportedAuthor?.takeIf { it.isNotBlank() }?.let { put("reported_author", it.trim().take(160)) }
-            put("source", "android")
+            put("platform", "android")
         }
-        val body = buildJsonObject {
+        mobileApi(session, "report_elite_content", payload).throwIfServerResultError()
+    }
+
+    suspend fun getEliteBlocks(session: AuthSession): List<EliteBlock> {
+        val result = mobileApi(session, "list_elite_blocks")
+        return json.decodeFromJsonElement(result["blocks"] ?: JsonArray(emptyList()))
+    }
+
+    suspend fun setEliteBlocked(session: AuthSession, userId: String, blocked: Boolean) {
+        mobileApi(session, if (blocked) "block_elite_user" else "unblock_elite_user",
+            buildJsonObject { put("blocked_user_id", userId) }).throwIfServerResultError()
+    }
+
+    suspend fun getAccountDeletionRequest(session: AuthSession, userId: String): AccountDeletionRequest? =
+        select<AccountDeletionRequest>(session, "account_deletion_requests", "id,status",
+            mapOf("user_id" to "eq.$userId"), limit = 1).firstOrNull()
+
+    suspend fun requestAccountDeletion(session: AuthSession, userId: String): AccountDeletionRequest {
+        getAccountDeletionRequest(session, userId)?.let { return it }
+        val payload = buildJsonObject {
             put("user_id", userId)
-            put("event_type", "elite_conversation_report")
-            put("metadata", metadata)
+            put("platform", "android")
+            put("status", "pending")
         }
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/rest/v1/usage_events", session)
-            .post(body.toString().toRequestBody(jsonMediaType))
-            .header("Prefer", "return=minimal")
-            .build()
-        execute(request)
+        val request = baseRequest("${supabaseUrl}/rest/v1/account_deletion_requests", session)
+            .post(payload.toString().toRequestBody(jsonMediaType))
+            .header("Prefer", "return=representation").build()
+        return json.decodeFromString<List<AccountDeletionRequest>>(execute(request)).firstOrNull()
+            ?: error("The deletion request could not be confirmed. Please refresh its status.")
+    }
+
+    suspend fun unregisterPushToken(session: AuthSession, userId: String, token: String) {
+        val url = "${supabaseUrl}/rest/v1/push_tokens".toHttpUrl().newBuilder()
+            .addQueryParameter("user_id", "eq.$userId")
+            .addQueryParameter("token", "eq.$token").build()
+        execute(baseRequest(url.toString(), session)
+            .patch("{\"enabled\":false}".toRequestBody(jsonMediaType)).build())
     }
 
     suspend fun uploadEliteImage(
@@ -469,13 +503,13 @@ class SupabaseRestClient {
     ): String {
         val cleanExtension = extension.trim().trimStart('.').lowercase().ifBlank { "jpg" }
         val path = "$userId/${System.currentTimeMillis()}-${UUID.randomUUID()}.$cleanExtension"
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/storage/v1/object/elite-images/$path", session)
+        val request = baseRequest("${supabaseUrl}/storage/v1/object/elite-images/$path", session)
             .post(bytes.toRequestBody(contentType.toMediaType()))
             .header("Content-Type", contentType)
             .header("x-upsert", "false")
             .build()
         execute(request)
-        return "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/elite-images/$path"
+        return "${supabaseUrl}/storage/v1/object/public/elite-images/$path"
     }
 
     suspend fun registerPushToken(
@@ -493,7 +527,7 @@ class SupabaseRestClient {
             put("app_version", appVersion)
             put("device_model", deviceName)
         }
-        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/push_tokens".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/rest/v1/push_tokens".toHttpUrl().newBuilder()
             .addQueryParameter("on_conflict", "user_id,token")
             .build()
         val request = baseRequest(url.toString(), session)
@@ -515,7 +549,7 @@ class SupabaseRestClient {
             put("ai_product_updates", preferences.aiProductUpdates)
             put("push_alerts", preferences.pushAlerts)
         }
-        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/notification_preferences".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/rest/v1/notification_preferences".toHttpUrl().newBuilder()
             .addQueryParameter("on_conflict", "user_id")
             .build()
         val request = baseRequest(url.toString(), session)
@@ -541,7 +575,7 @@ class SupabaseRestClient {
                 "timezone" to JsonPrimitive(timezone)
             )
         )
-        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/profiles".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/rest/v1/profiles".toHttpUrl().newBuilder()
             .addQueryParameter("id", "eq.$userId")
             .build()
         val request = baseRequest(url.toString(), session)
@@ -553,7 +587,7 @@ class SupabaseRestClient {
 
     suspend fun addCenter(session: AuthSession, userId: String, center: Center): Center? {
         val body = centerBody(center, includeUserId = userId)
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/rest/v1/centers", session)
+        val request = baseRequest("${supabaseUrl}/rest/v1/centers", session)
             .post(body.toString().toRequestBody(jsonMediaType))
             .header("Prefer", "return=representation")
             .build()
@@ -562,7 +596,7 @@ class SupabaseRestClient {
 
     suspend fun updateCenter(session: AuthSession, userId: String, center: Center): Center? {
         val centerId = center.id ?: error("Center id is required")
-        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/centers".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/rest/v1/centers".toHttpUrl().newBuilder()
             .addQueryParameter("id", "eq.$centerId")
             .addQueryParameter("user_id", "eq.$userId")
             .build()
@@ -574,7 +608,7 @@ class SupabaseRestClient {
     }
 
     suspend fun deleteCenter(session: AuthSession, userId: String, centerId: String) {
-        val url = "${BuildConfig.SUPABASE_URL}/rest/v1/centers".toHttpUrl().newBuilder()
+        val url = "${supabaseUrl}/rest/v1/centers".toHttpUrl().newBuilder()
             .addQueryParameter("id", "eq.$centerId")
             .addQueryParameter("user_id", "eq.$userId")
             .build()
@@ -585,10 +619,17 @@ class SupabaseRestClient {
     }
 
     suspend fun signedStorageUrl(session: AuthSession, bucket: String, path: String): String {
+        require(bucket.isNotBlank() && '/' !in bucket) { "Invalid storage bucket" }
         val safePath = path.trimStart('/')
+        require(safePath.isNotBlank() && !safePath.contains("://") &&
+            safePath.split('/').none { it == "." || it == ".." }) { "Invalid storage path" }
+        val signingUrl = supabaseUrl.toHttpUrl().newBuilder()
+            .addPathSegments("storage/v1/object/sign")
+            .addPathSegment(bucket)
+        safePath.split('/').forEach { signingUrl.addPathSegment(it) }
         val body = JsonObject(mapOf("expiresIn" to JsonPrimitive(3600)))
         val request = baseRequest(
-            "${BuildConfig.SUPABASE_URL}/storage/v1/object/sign/$bucket/$safePath",
+            signingUrl.build().toString(),
             session
         )
             .post(body.toString().toRequestBody(jsonMediaType))
@@ -600,11 +641,11 @@ class SupabaseRestClient {
         return if (relative.startsWith("http")) {
             relative
         } else if (relative.startsWith("/storage/v1/")) {
-            "${BuildConfig.SUPABASE_URL}$relative"
+            "${supabaseUrl}$relative"
         } else if (relative.startsWith("/object/")) {
-            "${BuildConfig.SUPABASE_URL}/storage/v1$relative"
+            "${supabaseUrl}/storage/v1$relative"
         } else {
-            "${BuildConfig.SUPABASE_URL}$relative"
+            "${supabaseUrl}$relative"
         }
     }
 
@@ -698,7 +739,7 @@ class SupabaseRestClient {
         params: Map<String, String> = emptyMap(),
         limit: Int? = null
     ): List<T> {
-        val builder = "${BuildConfig.SUPABASE_URL}/rest/v1/$table".toHttpUrl().newBuilder()
+        val builder = "${supabaseUrl}/rest/v1/$table".toHttpUrl().newBuilder()
             .addQueryParameter("select", select)
         params.forEach { (key, value) -> builder.addQueryParameter(key, value) }
         limit?.let { builder.addQueryParameter("limit", it.toString()) }
@@ -735,7 +776,7 @@ class SupabaseRestClient {
             put("action", action)
             data?.let { put("data", it) }
         }
-        val request = baseRequest("${BuildConfig.SUPABASE_URL}/functions/v1/mobile-api", session)
+        val request = baseRequest("${supabaseUrl}/functions/v1/mobile-api", session)
             .post(body.toString().toRequestBody(jsonMediaType))
             .build()
         val decoded = json.decodeFromString<JsonObject>(execute(request))
@@ -755,7 +796,7 @@ class SupabaseRestClient {
         method: String = "GET",
         data: JsonElement? = null
     ): JsonObject {
-        val urlBuilder = "${BuildConfig.WEB_APP_URL.trimEnd('/')}/_serverFn/$hash".toHttpUrl().newBuilder()
+        val urlBuilder = "${webAppUrl.trimEnd('/')}/_serverFn/$hash".toHttpUrl().newBuilder()
         val requestBuilder = Request.Builder()
             .header("Authorization", "Bearer ${session.accessToken}")
             .header("accept", "application/json")
@@ -825,30 +866,32 @@ class SupabaseRestClient {
     private fun baseRequest(url: String, session: AuthSession? = null): Request.Builder {
         val builder = Request.Builder()
             .url(url)
-            .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+            .header("apikey", anonKey)
             .header("Content-Type", "application/json")
         session?.let { builder.header("Authorization", "Bearer ${it.accessToken}") }
         return builder
     }
 
-    private suspend fun execute(request: Request): String = withContext(Dispatchers.IO) {
-        client.newCall(request).execute().use { response ->
-            val payload = response.body.string()
-            if (!response.isSuccessful) {
-                throw IllegalStateException(payload.ifBlank { "HTTP ${response.code}" })
-            }
-            payload
-        }
-    }
+    private suspend fun execute(request: Request): String = executeBytes(request).toString(Charsets.UTF_8)
 
-    private suspend fun executeBytes(request: Request): ByteArray = withContext(Dispatchers.IO) {
-        client.newCall(request).execute().use { response ->
-            val payload = response.body.bytes()
-            if (!response.isSuccessful) {
-                throw IllegalStateException(payload.toString(Charsets.UTF_8).ifBlank { "HTTP ${response.code}" })
+    private suspend fun executeBytes(request: Request): ByteArray = suspendCancellableCoroutine { continuation ->
+        val call = client.newCall(request)
+        continuation.invokeOnCancellation { call.cancel() }
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (continuation.isActive) continuation.resumeWithException(e)
             }
-            payload
-        }
+            override fun onResponse(call: Call, response: Response) {
+                val result = runCatching {
+                    response.use {
+                        val payload = it.body.bytes()
+                        if (!it.isSuccessful) throw IllegalStateException(payload.toString(Charsets.UTF_8).ifBlank { "HTTP ${it.code}" })
+                        payload
+                    }
+                }
+                if (continuation.isActive) result.fold(continuation::resume, continuation::resumeWithException)
+            }
+        })
     }
 
     private companion object {
