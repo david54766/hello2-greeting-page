@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB0000000000000000000001 /* RegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000000000000000000001; };
 		AA0000000000000000000001 /* PrimaDonnaAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000001 /* PrimaDonnaAIApp.swift */; };
 		AA0000000000000000000002 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* AppConfig.swift */; };
 		AA0000000000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* Models.swift */; };
@@ -41,6 +42,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		BC0000000000000000000001 /* RegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/RegressionTests.swift; sourceTree = SOURCE_ROOT; };
+		BC0000000000000000000002 /* PrimaDonnaAITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PrimaDonnaAITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB0000000000000000000000 /* PrimaDonnaAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PrimaDonnaAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB0000000000000000000001 /* PrimaDonnaAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaDonnaAIApp.swift; sourceTree = "<group>"; };
 		BB0000000000000000000002 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
@@ -93,6 +96,7 @@
 		DD0000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
+				BC0000000000000000000001 /* RegressionTests.swift */,
 				DD0000000000000000000002 /* PrimaDonnaAI */,
 				DD0000000000000000000008 /* Products */,
 			);
@@ -197,6 +201,17 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		EF0000000000000000000001 /* PrimaDonnaAITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA0000000000000000000001;
+			buildPhases = (AB0000000000000000000002,);
+			buildRules = ();
+			dependencies = (AB0000000000000000000004,);
+			name = PrimaDonnaAITests;
+			productName = PrimaDonnaAITests;
+			productReference = BC0000000000000000000002;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		EE0000000000000000000001 /* PrimaDonnaAI */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = FF0000000000000000000002 /* Build configuration list for PBXNativeTarget "PrimaDonnaAI" */;
@@ -250,6 +265,7 @@
 			projectRoot = "";
 			targets = (
 				EE0000000000000000000001 /* PrimaDonnaAI */,
+				EF0000000000000000000001 /* PrimaDonnaAITests */,
 			);
 		};
 /* End PBXProject section */
@@ -268,6 +284,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AB0000000000000000000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AB0000000000000000000001,); runOnlyForDeploymentPostprocessing = 0; };
 		GG0000000000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -304,6 +321,40 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		FA0000000000000000000002 /* Tests Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 924X3K6N4N;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.preschoolprimadonna.PrimaDonnaAITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PrimaDonnaAI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PrimaDonnaAI";
+			};
+			name = Debug;
+		};
+		FA0000000000000000000003 /* Tests Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 924X3K6N4N;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.preschoolprimadonna.PrimaDonnaAITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PrimaDonnaAI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PrimaDonnaAI";
+			};
+			name = Release;
+		};
 		HH0000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -428,7 +479,7 @@
 				APS_ENVIRONMENT = development;
 				CODE_SIGN_ENTITLEMENTS = PrimaDonnaAI/PrimaDonnaAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20261010;
+				CURRENT_PROJECT_VERSION = 20261013;
 				DEVELOPMENT_TEAM = 924X3K6N4N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -458,7 +509,7 @@
 				APS_ENVIRONMENT = production;
 				CODE_SIGN_ENTITLEMENTS = PrimaDonnaAI/PrimaDonnaAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20261010;
+				CURRENT_PROJECT_VERSION = 20261013;
 				DEVELOPMENT_TEAM = 924X3K6N4N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -481,6 +532,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		FA0000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (FA0000000000000000000002, FA0000000000000000000003,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		FF0000000000000000000001 /* Build configuration list for PBXProject "PrimaDonnaAI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -524,6 +576,8 @@
 			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
+		AB0000000000000000000003 = {isa = PBXContainerItemProxy; containerPortal = EE0000000000000000000002; proxyType = 1; remoteGlobalIDString = EE0000000000000000000001; remoteInfo = PrimaDonnaAI; };
+		AB0000000000000000000004 = {isa = PBXTargetDependency; target = EE0000000000000000000001; targetProxy = AB0000000000000000000003; };
 	};
 	rootObject = EE0000000000000000000002 /* Project object */;
 }

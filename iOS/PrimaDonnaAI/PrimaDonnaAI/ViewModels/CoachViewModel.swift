@@ -38,6 +38,7 @@ final class CoachViewModel: ObservableObject {
     }
 
     func requestSpeech(appState: AppState) async {
+        appState.stopRavenVoice()
         isListening = true
         errorText = nil
         defer { isListening = false }

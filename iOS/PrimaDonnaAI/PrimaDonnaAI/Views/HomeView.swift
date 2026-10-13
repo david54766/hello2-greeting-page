@@ -6,6 +6,7 @@ struct HomeView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = HomeViewModel()
     @State private var showDailyBrief = false
+    @State private var selectedCenterID = ""
 
     var body: some View {
         PrimaPage {
@@ -20,14 +21,69 @@ struct HomeView: View {
                 }
             }
 
-            TabView {
-                ForEach(viewModel.snapshotCenters(from: appState.data)) { center in
-                    CenterSnapshotView(center: center)
-                        .padding(.horizontal, 2)
+            let centers = viewModel.snapshotCenters(from: appState.data)
+            let selection = Binding(
+                get: { centers.contains { $0.id == selectedCenterID } ? selectedCenterID : centers[0].id },
+                set: { selectedCenterID = $0 }
+            )
+            let selectedIndex = centers.firstIndex { $0.id == selection.wrappedValue } ?? 0
+            VStack(alignment: .leading, spacing: 12) {
+                if centers.count > 1 {
+                    HStack(spacing: 12) {
+                        Menu {
+                            Picker("Center", selection: selection) {
+                                ForEach(centers) { center in
+                                    Text(center.displayName).tag(center.id)
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(centers[selectedIndex].displayName)
+                                    .font(PrimaFont.cardTitle())
+                                    .multilineTextAlignment(.leading)
+                                Image(systemName: "chevron.down")
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        }
+                        .tint(PrimaColor.accent)
+                        .accessibilityLabel("Select center")
+                        .accessibilityValue(centers[selectedIndex].displayName)
+                        Button {
+                            selection.wrappedValue = centers[selectedIndex - 1].id
+                        } label: {
+                            Image(systemName: "chevron.left").frame(width: 44, height: 44)
+                        }
+                        .disabled(selectedIndex == 0)
+                        .accessibilityLabel("Previous center")
+                        Button {
+                            selection.wrappedValue = centers[selectedIndex + 1].id
+                        } label: {
+                            Image(systemName: "chevron.right").frame(width: 44, height: 44)
+                        }
+                        .disabled(selectedIndex == centers.count - 1)
+                        .accessibilityLabel("Next center")
+                    }
+                    .tint(PrimaColor.accent)
+                    Text("Center \(selectedIndex + 1) of \(centers.count)")
+                        .font(PrimaFont.small)
+                        .foregroundStyle(PrimaColor.secondary)
                 }
+
+                // Measure the selected card naturally; the pager must not clip its three stats.
+                CenterSnapshotView(center: centers[selectedIndex])
+                    .hidden()
+                    .accessibilityHidden(true)
+                    .overlay {
+                        TabView(selection: selection) {
+                            ForEach(centers) { center in
+                                CenterSnapshotView(center: center)
+                                    .padding(.horizontal, 2)
+                                    .tag(center.id)
+                            }
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                    }
             }
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
-            .frame(height: 310)
 
             VStack(alignment: .leading, spacing: 18) {
                 EditorialTitle(text: "Today's strategic\nrecommendation", size: 31)
@@ -78,7 +134,7 @@ private struct CenterSnapshotView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             MetaBadge(text: center.centerBadge)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
 
             SnapshotStatCard(label: "Enrollment", value: center.enrollmentSize.map(String.init) ?? "Add enrollment")
             SnapshotStatCard(label: "Est. monthly revenue", value: PrimaFormat.currency(center.estimatedMonthlyRevenue))

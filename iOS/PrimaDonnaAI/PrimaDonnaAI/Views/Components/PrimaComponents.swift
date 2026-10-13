@@ -320,8 +320,10 @@ struct FormField: View {
                 .lineLimit(3...6)
                 .font(PrimaFont.body)
                 .foregroundStyle(PrimaColor.ink)
+                .padding(.vertical, 14)
                 .fieldShell()
                 .keyboardType(keyboardType)
+                .accessibilityLabel(title)
         } else {
             TextField(title, text: $text)
                 .font(PrimaFont.body)

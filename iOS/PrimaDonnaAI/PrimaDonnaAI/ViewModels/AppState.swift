@@ -191,18 +191,20 @@ final class AppState: ObservableObject {
 
     func playRavenVoice(for coachingSession: CoachingSession) async {
         guard !coachingSession.ravenVoiceText.isEmpty else {
-            notice = .error("This strategy does not have a response to play.")
+            audioPlayback.fail(message: "This strategy does not have a response to play.", sessionId: coachingSession.id)
             return
         }
-        audioPlayback.startLoading(sessionId: coachingSession.id)
+        speechInput.stopRecording()
+        let requestID = audioPlayback.startLoading(sessionId: coachingSession.id)
         do {
             let audio = try await withActiveSession { authSession in
                 try await mobileApiClient.synthesizeRavenVoice(session: authSession, text: coachingSession.ravenVoiceText)
             }
+            guard audioPlayback.loadingRequestID == requestID else { return }
             try audioPlayback.play(audioData: audio, sessionId: coachingSession.id)
         } catch {
-            audioPlayback.stop()
-            notice = .error(readable(error))
+            guard audioPlayback.loadingRequestID == requestID else { return }
+            audioPlayback.fail(message: readable(error), sessionId: coachingSession.id)
         }
     }
 

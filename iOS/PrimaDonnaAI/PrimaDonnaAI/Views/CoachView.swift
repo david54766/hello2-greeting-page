@@ -116,18 +116,8 @@ private struct CoachingHistorySheet: View {
                                         viewModel.resultSession = session
                                         dismiss()
                                     }
-                                    CapsuleButton(
-                                        title: voiceButtonTitle(for: session),
-                                        systemImage: appState.audioPlayback.playingSessionId == session.id ? "stop.fill" : "play.fill",
-                                        isDisabled: appState.audioPlayback.loadingSessionId == session.id
-                                    ) {
-                                        if appState.audioPlayback.playingSessionId == session.id {
-                                            appState.stopRavenVoice()
-                                        } else {
-                                            Task { await viewModel.play(session, appState: appState) }
-                                        }
-                                    }
                                 }
+                                StrategyVoiceControl(session: session, playback: appState.audioPlayback)
                             }
                             .primaCard()
                         }
@@ -143,12 +133,6 @@ private struct CoachingHistorySheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func voiceButtonTitle(for session: CoachingSession) -> String {
-        if appState.audioPlayback.loadingSessionId == session.id {
-            return "Loading..."
-        }
-        return appState.audioPlayback.playingSessionId == session.id ? "Stop" : "Play"
-    }
 }
 
 private struct StrategyResultSheet: View {
@@ -182,17 +166,7 @@ private struct StrategyResultSheet: View {
                     .primaCard()
                 }
 
-                CapsuleButton(
-                    title: voiceButtonTitle,
-                    systemImage: appState.audioPlayback.playingSessionId == session.id ? "stop.fill" : "play.fill",
-                    isDisabled: appState.audioPlayback.loadingSessionId == session.id
-                ) {
-                    if appState.audioPlayback.playingSessionId == session.id {
-                        appState.stopRavenVoice()
-                    } else {
-                        Task { await appState.playRavenVoice(for: session) }
-                    }
-                }
+                StrategyVoiceControl(session: session, playback: appState.audioPlayback)
             }
             .padding(24)
         }
@@ -201,11 +175,46 @@ private struct StrategyResultSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private var voiceButtonTitle: String {
-        if appState.audioPlayback.loadingSessionId == session.id {
-            return "Loading Raven voice..."
+}
+
+private struct StrategyVoiceControl: View {
+    @EnvironmentObject private var appState: AppState
+    let session: CoachingSession
+    @ObservedObject var playback: AudioPlaybackService
+
+    private var isLoading: Bool { playback.loadingSessionId == session.id }
+    private var isPlaying: Bool { playback.playingSessionId == session.id }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            CapsuleButton(
+                title: isLoading ? "Loading voice..." : (isPlaying ? "Stop Voice" : "Speak Voice"),
+                systemImage: isPlaying ? "stop.fill" : "speaker.wave.2",
+                isDisabled: isLoading
+            ) {
+                if isPlaying {
+                    appState.stopRavenVoice()
+                } else {
+                    Task { await appState.playRavenVoice(for: session) }
+                }
+            }
+            if isLoading {
+                Button("Cancel", role: .cancel) { appState.stopRavenVoice() }
+                    .tint(PrimaColor.accent)
+                    .frame(minHeight: 44)
+            }
+            if playback.failedSessionId == session.id, let error = playback.errorMessage {
+                Text(error)
+                    .font(PrimaFont.small)
+                    .foregroundStyle(PrimaColor.accent)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Retry voice") {
+                    Task { await appState.playRavenVoice(for: session) }
+                }
+                .tint(PrimaColor.accent)
+                .frame(minHeight: 44)
+            }
         }
-        return appState.audioPlayback.playingSessionId == session.id ? "Stop Raven voice" : "Play Raven voice"
     }
 }
 

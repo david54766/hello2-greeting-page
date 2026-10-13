@@ -46,8 +46,10 @@ final class MobileApiClient {
         if let error = payload.error ?? payload.message {
             throw AppError.message(error)
         }
-        guard let base64 = payload.audioBase64, let data = Data(base64Encoded: base64) else {
-            throw AppError.message("Raven voice did not return playable audio.")
+        guard payload.ok != false,
+              let base64 = payload.audioBase64,
+              let data = Data(base64Encoded: base64), !data.isEmpty else {
+            throw AppError.message("Voice did not return playable audio. Please try again.")
         }
         return data
     }

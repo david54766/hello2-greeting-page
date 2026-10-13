@@ -24,6 +24,7 @@ struct EliteView: View {
                 }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
         .sheet(item: $viewModel.selectedThreadDetail) { detail in
             EliteThreadDetailSheet(viewModel: viewModel, detail: detail)
                 .environmentObject(appState)
@@ -83,6 +84,8 @@ private struct ConversationsPanel: View {
                 Text("Start a conversation")
                     .font(PrimaFont.cardTitle())
                     .foregroundStyle(PrimaColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 FormField(title: "Title", text: $viewModel.newThreadTitle)
                 FormField(title: "What should the room weigh in on?", text: $viewModel.newThreadBody, axis: .vertical)
                 AttachmentPreviewStrip(images: viewModel.newThreadImages) { image in
