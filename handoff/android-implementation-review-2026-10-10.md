@@ -66,7 +66,7 @@ No production rollout, Play Console edits, iOS submission, secret rotation, live
 | Elite | Changed now; live conversation access checks passed | Deployed mobile-api list_elite_threads returned HTTP 403 for Essentials/Pro and HTTP 200 with three threads for Elite. Block-list read succeeded for Elite. Native post-consent rendering, writes and moderation still require testing. |
 | Settings | Changed now | Timezone preservation, deletion and blocked list; profile/center changes retained. Live CRUD not exercised. |
 | Push | Changed now; live delivery pending | Token cleanup, local opt-out guard, default icon. No test notification sent. |
-| Store listing / distribution | Not changed | No console fields saved, no internal-track upload, no production submission. |
+| Store listing / distribution | Drafts updated October 11 | Rebranded listing text and Data Safety saved as drafts; privacy URL staged. No bundle upload, review submission or publication. See Play Console record below. |
 | iOS | Reference reviewed only | No Xcode build on Windows. Historical iOS handoff status is not a fresh iOS test result. |
 
 ## Verification record
@@ -128,3 +128,59 @@ These are testing candidates, not approved store submissions. The prior handoff'
 - The Android 36 emulator experienced OS/SystemUI/keyboard ANRs under host memory pressure. Captured logs did not show an app-specific crash/ANR, but this does not establish app-wide stability. Repeat the full matrix on physical devices and a less constrained emulator host.
 - Screenshots: [large-font login](screenshots/android-20261011-login-font150.png), [Essentials legal gate](screenshots/android-20261011-essentials-legal.png).
 - Final combined rebuild completed successfully in 3m 11s with one worker and in-process Kotlin. Final artifact hashes above supersede earlier candidates from this pass.
+
+## October 11 Play Console preparation
+
+Owner requested preparation only, explicitly not submission. Worked in Classroom Panda LLC's existing `com.preschoolprimadonna.app` listing. No review submission, production rollout, legal agreement acceptance or publication was performed.
+
+- Saved default English listing as a draft: Preschool Pro AI title, childcare-business short description, and full description covering Home, coaching/Raven playback, Daily Brief, Vault, Elite Circle and Settings. Describes adult users, membership requirements and AI limitations.
+- Saved privacy-policy URL `https://app.preschoolproai.com/privacy`. Publishing overview explicitly lists this one change under "Changes not yet submitted for review".
+- Saved Data Safety as a draft: account creation uses username/password; deletion URL is `https://app.preschoolproai.com/delete-account`; stored names are not ephemeral; optional center address information is optional collection; other profile/context information includes personalization. Other existing answers retained following code review. Drafts are not yet staged review items.
+- Preserved existing Business category, adult target audience, no-ads/no-advertising-ID declarations, and `info@classroompanda.com` support contact. Existing content rating was not reissued.
+- Existing uploaded bundle is version code 1 / version name 0.1.0, used by production and internal testing. Candidate code 20261010 has not been uploaded or accepted by Play. Upload-certificate comparison in Play remains outstanding.
+- New icon upload was blocked by Chrome's ChatGPT extension local-file access setting. Asked the owner to enable Allow access to file URLs or handle uploads manually; did not change that permission. No old artwork was removed. Signed AAB upload remains blocked for the same reason.
+- Asked permission to store supplied QA credentials in Google's reviewer-access instructions; no response during this preparation. Existing reviewer instructions were left unchanged. Credentials are intentionally excluded from this report.
+- Store contact website still uses the old domain. Its dialog exposes "Save and publish", so it was left unchanged to honor the no-publication instruction.
+- New feature graphic and current authenticated phone/tablet screenshots are still needed. Existing listing graphics retain Prima Donna AI branding. Do not use iOS screenshots as Android evidence.
+- Both public privacy and deletion pages loaded without authentication. Privacy text contains iOS-specific language; reconcile it with Android speech and push behavior before final submission. Provider retention/sharing classifications and deletion fulfillment still require final review.
+- Managed publishing was already off and was not changed. Nothing is in review from this work. The Play Console tab was retained for continuation.
+- Local evidence: `qa/play-console-unsubmitted-20261011.jpg` (ignored QA artifact).
+
+Do not treat these saved drafts as launch approval. Backend deployment and the full functional smoke tests listed above remain release gates.
+
+## October 13 Android handoff implementation
+
+Fast-forwarded to shared commit `bfd432b`, retaining the other machine's iOS changes and the local October 11 Play preparation record. No iOS edits made in this pass.
+
+### Implemented
+
+- Home uses a named center picker, previous/next arrows, `Center N of M` count, and snap-to-page horizontal swiping. Each page uses that center's own enrollment, tuition estimate and capacity. Empty accounts retain the existing fallback. Home measures content and can scroll vertically when needed rather than clipping fixed-height snapshots.
+- Elite conversation/reply fields use white backgrounds, separate leading-aligned labels, standard native inner padding and bounded multiline editing. Screen-list keyboard insets keep content reachable.
+- Strategy details and history show `Speak Voice`, `Cancel voice`, `Stop voice`, or `Retry voice` according to live state. Errors are attached to the relevant strategy and shown beside the control rather than only behind a drawer in the global snackbar.
+- Voice requests carry a generation identity; cancelled/replaced requests and stale MediaPlayer callbacks cannot take over a newer request, including replay of the same strategy. Speech input stops current playback/generation. Android's speech-recognition activity owns recording and must return before another playback control is accessible.
+- MediaPlayer prepares asynchronously; synchronous setup and callback failures become retryable inline errors. Generated cache files are removed on completion, cancellation, failure and sign-out. Empty/malformed base64 responses are rejected.
+- Package, callback, backend, legal versions, notification channel and signing lineage remain unchanged. Version code is now `20261013`, version name `1.1`.
+
+### Verified
+
+- `testDebugUnitTest assembleDebug lintDebug assembleRelease bundleRelease` passed using JDK 21, one Gradle worker and in-process Kotlin compilation.
+- 22 Android JVM tests passed, no failures/errors/skips. New tests cover all four centers and their metrics, no centers, provider error preservation, empty/missing/malformed audio, successful retry and request cancellation/replacement identity. These are contract/state tests, not rendered UI instrumentation.
+- Lint: zero errors, 15 warnings, 2 hints; release vital lint passed.
+- `apksigner verify --print-certs` passed. SHA-256 certificate remains `807e72f4ae8d67a524bb0a0180b2c2f371f6b126a1397eb84238c4a70ae8036f`.
+- `bundletool validate` passed. `jarsigner -verify` returned `jar verified` with the same self-signed/no-timestamp/ZIP-streaming warnings recorded for the earlier candidate. No Play acceptance test performed.
+
+| Artifact in ignored release directory | SHA-256 |
+| --- | --- |
+| `Preschool-Pro-AI-1.1-20261013-CANDIDATE.apk` | `25BCDF5ABFBF4F65F80AF8646D26C5F9A65A237B62E46D397EB12726B3F833F3` |
+| `Preschool-Pro-AI-1.1-20261013-CANDIDATE.aab` | `E033C10B32CCD4F9CFE831BF423DC45CBE0E515FA66BCFA88542004B0D4424DE` |
+| `Preschool-Pro-AI-1.1-20261013-DEBUG.apk` | `9387AA2F0932247EADB285D282EFC88647F35CA414CE6960A78E9839AA1A7F53` |
+
+### Shared voice blocker and remaining checks
+
+An authenticated short production request to `synthesize_raven_voice` on project `ihiqixkufsjeplnkwkao` returned HTTP 200, `ok: false`, `Raven voice is temporarily unavailable.`, and zero audio. The QA session was signed out after the check. No strategy/content/consent/deletion record was created.
+
+The Supabase connector denied permission to query project logs. The checked-in handler emits this message after a non-success ElevenLabs response; the actual provider status is still unknown. No backend, secret, schema or quota change was made. Do not claim a client rebuild fixes this.
+
+Backend owner action: inspect the matching `ElevenLabs TTS error` log's status and sanitized provider error; verify server-side `ELEVENLABS_API_KEY`, `ELEVENLABS_RAVEN_VOICE_ID` (default `EcNmy6NxONUCla9ZNPCn`), voice access and quota based on that evidence. Do not print or move secrets into clients, rotate keys blindly, or change unrelated deployed functions. After correction, retest a short request and complete strategy on both mobile platforms.
+
+New native rendered-layout, keyboard, center interaction and actual MediaPlayer tests have not been performed in this pass. Test at normal/large fonts on a small phone and tablet; verify all four centers, long names, long Elite text with keyboard, provider-error retry, rapid cancellation/replacement and full successful audio playback. These candidates are not launch-certified. No Play Console or App Store submission was made.

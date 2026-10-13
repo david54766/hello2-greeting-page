@@ -22,7 +22,7 @@ android {
         applicationId = "com.preschoolprimadonna.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("releaseVersionCode").orElse("20261010").get().toInt()
+        versionCode = providers.gradleProperty("releaseVersionCode").orElse("20261013").get().toInt()
         versionName = "1.1"
 
         buildConfigField(

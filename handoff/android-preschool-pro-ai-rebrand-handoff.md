@@ -6,6 +6,8 @@ Android implementation follow-up: [Implementation and release review](android-im
 
 ## October 13 iOS feedback for the Windows session
 
+Android follow-up on October 13: implemented named Home center picker, previous/next controls and count with swipe paging; content-measured snapshots; padded white Elite body/reply fields; Speak Voice, inline errors, retry and cancel; request-identity protection and asynchronous playback preparation. Signed Android candidate is 1.1 (20261013). 22 Android tests pass; lint has zero errors. A fresh authenticated production voice probe still returned `ok: false`, `Raven voice is temporarily unavailable.`, and no audio. Supabase log access was denied, so no provider fix or successful live playback is claimed. See the implementation review's October 13 section for exact artifacts and remaining device checks. No Play submission or backend deployment occurred.
+
 The owner reported that Home appeared to show only one center despite four saved centers, Elite's conversation body placeholder was against its border, and voice playback failed. The requested customer-facing playback button is now **Speak Voice**. This changes the label, not the voice provider or protected backend action.
 
 iOS source commit: `975edeb` (11 files). The Mac then merged the Windows commits through `2838785` without changing their Android or backend work. Fetch the latest `codex/android-native-migration` before editing; do not overwrite the other machine's changes or the published Android application.

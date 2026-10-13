@@ -18,6 +18,7 @@ import com.preschoolprimadonna.app.data.EliteThread
 import com.preschoolprimadonna.app.data.NotificationPreferences
 import com.preschoolprimadonna.app.data.SessionStore
 import com.preschoolprimadonna.app.data.SupabaseRestClient
+import com.preschoolprimadonna.app.data.VoiceRequestTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -58,6 +59,8 @@ data class PrimaDonnaState(
     val eliteReplies: List<EliteReply> = emptyList(),
     val voiceLoadingSessionId: String? = null,
     val voicePlayingSessionId: String? = null,
+    val voiceErrorSessionId: String? = null,
+    val voiceError: String? = null,
     val deletionRequest: AccountDeletionRequest? = null,
     val deletionStatusLoaded: Boolean = false,
     val deletionStatusLoading: Boolean = false,
@@ -74,6 +77,8 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     private val accountScope = CoroutineScope(viewModelScope.coroutineContext + SupervisorJob(viewModelScope.coroutineContext[Job]))
     private val refreshMutex = Mutex()
     private var voiceJob: Job? = null
+    private val voiceRequests = VoiceRequestTracker()
+    private var voiceFiles = emptyList<File>()
     private var pushToken: String? = null
 
     val state: StateFlow<PrimaDonnaState> = _state
@@ -248,7 +253,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         val userId = _state.value.user?.id ?: session?.user?.id
         val token = pushToken ?: sessionStore.pushToken()
         accountScope.coroutineContext.cancelChildren()
-        releaseRavenPlayer()
+        stopRavenVoice()
         pushToken = null
         _state.value = PrimaDonnaState(loading = true)
         viewModelScope.launch {
@@ -461,17 +466,18 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun playRavenVoice(session: CoachingSession) {
+        stopRavenVoice()
         val authSession = _state.value.session
         if (authSession == null) {
-            _state.update { it.copy(error = "Please sign in again before playing Raven voice.", message = null) }
+            _state.update { it.copy(voiceErrorSessionId = session.id, voiceError = "Please sign in again before playing Raven voice.") }
             return
         }
-        stopRavenVoice()
         val text = session.ravenVoiceText()
         if (text.isBlank()) {
-            _state.update { it.copy(error = "This session does not have a saved response to play.", message = null) }
+            _state.update { it.copy(voiceErrorSessionId = session.id, voiceError = "This session does not have a saved response to play.") }
             return
         }
+        val request = voiceRequests.begin()
         voiceJob = accountScope.launch {
             _state.update {
                 it.copy(
@@ -484,32 +490,45 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
                 val audioChunks = withRefreshRetry(authSession) { activeSession ->
                     api.synthesizeRavenVoiceChunks(activeSession, text)
                 }
-                val files = withContext(Dispatchers.IO) {
-                    audioChunks.mapIndexed { index, audio ->
-                        File(getApplication<Application>().cacheDir, "raven_voice_${session.id}_$index.mp3").apply {
-                            writeBytes(audio)
+                currentCoroutineContext().ensureActive()
+                if (!voiceRequests.isCurrent(request)) return@launch
+                val files = audioChunks.indices.map { index ->
+                    File(getApplication<Application>().cacheDir, "raven_voice_${request}_$index.mp3")
+                }
+                var handedToPlayer = false
+                try {
+                    withContext(Dispatchers.IO) {
+                        audioChunks.forEachIndexed { index, audio ->
+                            currentCoroutineContext().ensureActive()
+                            require(audio.isNotEmpty()) { "Raven voice returned empty audio." }
+                            files[index].writeBytes(audio)
                         }
                     }
+                    currentCoroutineContext().ensureActive()
+                    if (voiceRequests.isCurrent(request)) {
+                        voiceFiles = files
+                        startRavenPlayback(session.id, files, request)
+                        handedToPlayer = true
+                    }
+                } finally {
+                    if (!handedToPlayer) files.forEach { it.delete() }
                 }
-                startRavenPlayback(session.id, files)
             }.onFailure { throwable ->
-                        if (throwable is CancellationException) throw throwable
-                _state.update {
-                    it.copy(
-                        voiceLoadingSessionId = null,
-                        voicePlayingSessionId = null,
-                        error = throwable.readableMessage()
-                    )
+                if (throwable is CancellationException) throw throwable
+                if (voiceRequests.isCurrent(request)) {
+                    failRavenVoice(session.id, request, throwable.readableMessage())
                 }
             }
         }
     }
 
     fun stopRavenVoice() {
+        voiceRequests.cancel()
         voiceJob?.cancel()
         voiceJob = null
         releaseRavenPlayer()
-        _state.update { it.copy(voiceLoadingSessionId = null, voicePlayingSessionId = null) }
+        clearVoiceFiles()
+        _state.update { it.copy(voiceLoadingSessionId = null, voicePlayingSessionId = null, voiceErrorSessionId = null, voiceError = null) }
     }
 
     fun createEliteThread(title: String, body: String, imageUrls: List<String> = emptyList(), onSuccess: () -> Unit = {}) {
@@ -851,72 +870,72 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
         return runCatching { URLDecoder.decode(value, Charsets.UTF_8.name()) }.getOrDefault(value)
     }
 
-    private fun startRavenPlayback(sessionId: String, files: List<File>) {
+    private fun startRavenPlayback(sessionId: String, files: List<File>, request: Long) {
+        if (!voiceRequests.isCurrent(request)) return
         if (files.isEmpty()) {
-            _state.update {
-                it.copy(
-                    voiceLoadingSessionId = null,
-                    voicePlayingSessionId = null,
-                    error = "Raven voice could not generate audio for this strategy."
-                )
-            }
+            failRavenVoice(sessionId, request, "Raven voice could not generate audio for this strategy.")
             return
         }
         releaseRavenPlayer()
-        _state.update {
-            it.copy(
-                voiceLoadingSessionId = null,
-                voicePlayingSessionId = sessionId,
-                error = null,
-                message = null
-            )
-        }
-        playRavenFile(sessionId, files, index = 0)
+        playRavenFile(sessionId, files, index = 0, request = request)
     }
 
-    private fun playRavenFile(sessionId: String, files: List<File>, index: Int) {
+    private fun playRavenFile(sessionId: String, files: List<File>, index: Int, request: Long) {
+        if (!voiceRequests.isCurrent(request)) return
         if (index >= files.size) {
-            releaseRavenPlayer()
-            _state.update { state ->
-                if (state.voicePlayingSessionId == sessionId) {
-                    state.copy(voicePlayingSessionId = null)
-                } else {
-                    state
-                }
-            }
+            stopRavenVoice()
             return
         }
-        val file = files[index]
-        val player = MediaPlayer().apply {
-            setDataSource(file.absolutePath)
-            setOnCompletionListener { completedPlayer ->
-                if (voicePlayer === completedPlayer) {
-                    voicePlayer = null
-                }
-                completedPlayer.release()
-                if (_state.value.voicePlayingSessionId == sessionId) {
-                    playRavenFile(sessionId, files, index + 1)
+        runCatching {
+            val player = MediaPlayer()
+            voicePlayer = player
+            player.setDataSource(files[index].absolutePath)
+            player.setOnPreparedListener { preparedPlayer ->
+                if (voiceRequests.isCurrent(request) && voicePlayer === preparedPlayer) {
+                    runCatching { preparedPlayer.start() }
+                        .onSuccess {
+                            _state.update { it.copy(voiceLoadingSessionId = null, voicePlayingSessionId = sessionId) }
+                        }
+                        .onFailure { failRavenVoice(sessionId, request, "Raven voice could not play on this device.") }
                 }
             }
-            setOnErrorListener { _, _, _ ->
-                releaseRavenPlayer()
-                _state.update {
-                    it.copy(
-                        voiceLoadingSessionId = null,
-                        voicePlayingSessionId = null,
-                        error = "Raven voice could not play on this device."
-                    )
+            player.setOnCompletionListener { completedPlayer ->
+                if (voiceRequests.isCurrent(request) && voicePlayer === completedPlayer) {
+                    voicePlayer = null
+                    completedPlayer.release()
+                    playRavenFile(sessionId, files, index + 1, request)
+                }
+            }
+            player.setOnErrorListener { failedPlayer, _, _ ->
+                if (voicePlayer === failedPlayer) {
+                    failRavenVoice(sessionId, request, "Raven voice could not play on this device.")
                 }
                 true
             }
-            prepare()
-            start()
+            player.prepareAsync()
+        }.onFailure {
+            failRavenVoice(sessionId, request, "Raven voice could not play on this device.")
         }
-        voicePlayer = player
+    }
+
+    private fun failRavenVoice(sessionId: String, request: Long, message: String) {
+        if (!voiceRequests.isCurrent(request)) return
+        voiceRequests.cancel()
+        releaseRavenPlayer()
+        clearVoiceFiles()
+        _state.update { it.copy(voiceLoadingSessionId = null, voicePlayingSessionId = null, voiceErrorSessionId = sessionId, voiceError = message) }
+    }
+
+    private fun clearVoiceFiles() {
+        voiceFiles.forEach { it.delete() }
+        voiceFiles = emptyList()
     }
 
     private fun releaseRavenPlayer() {
         voicePlayer?.let { player ->
+            player.setOnPreparedListener(null)
+            player.setOnCompletionListener(null)
+            player.setOnErrorListener(null)
             runCatching {
                 if (player.isPlaying) player.stop()
             }
@@ -926,7 +945,7 @@ class PrimaDonnaViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     override fun onCleared() {
-        releaseRavenPlayer()
+        stopRavenVoice()
         super.onCleared()
     }
 

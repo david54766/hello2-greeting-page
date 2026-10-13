@@ -357,7 +357,12 @@ class SupabaseRestClient(
         })
         val audio = result["audio_base64"]?.jsonPrimitive?.contentOrNull
             ?: throw IllegalStateException("No Raven audio returned")
-        return Base64.getDecoder().decode(audio)
+        if (audio.isBlank()) throw IllegalStateException("Raven voice returned empty audio. Please retry.")
+        return try {
+            Base64.getDecoder().decode(audio)
+        } catch (_: IllegalArgumentException) {
+            throw IllegalStateException("Raven voice returned invalid audio. Please retry.")
+        }
     }
 
     private suspend fun synthesizeRavenVoiceWebStream(session: AuthSession, text: String): ByteArray {
@@ -370,7 +375,9 @@ class SupabaseRestClient(
                 put("text", text)
             }.toString().toRequestBody(jsonMediaType))
             .build()
-        return executeBytes(request)
+        return executeBytes(request).also {
+            if (it.isEmpty()) throw IllegalStateException("Raven voice returned empty audio. Please retry.")
+        }
     }
 
     suspend fun deleteCoachingSession(session: AuthSession, userId: String, sessionId: String) {

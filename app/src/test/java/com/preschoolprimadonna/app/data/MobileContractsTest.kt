@@ -143,4 +143,75 @@ class MobileContractsTest {
         assertTrue(chunks.all { it.length <= 650 })
         assertEquals(text, chunks.joinToString(" "))
     }
+
+    @Test fun voicePreservesProviderErrorWithoutFallbackOrAudio() = runBlocking {
+        respond("""{"ok":false,"error":"Raven voice is temporarily unavailable."}""")
+        val error = runCatching { api.synthesizeRavenVoiceChunks(session, "Hello.") }.exceptionOrNull()
+        assertEquals("Raven voice is temporarily unavailable.", error?.message)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun homeRetainsAllFourCentersAndTheirOwnMetrics() = runBlocking {
+        respond((1..4).joinToString(prefix = "[", postfix = "]") {
+            """{"id":"center-$it","name":"Center $it","enrollment_size":${it * 10},"capacity":${it * 20}}"""
+        })
+        val centers = api.getCenters(session, "user-1")
+        assertEquals(4, centers.size)
+        centers.forEachIndexed { index, center ->
+            assertEquals("center-${index + 1}", center.id)
+            assertEquals((index + 1) * 10, center.enrollmentSize)
+            assertEquals((index + 1) * 20, center.capacity)
+        }
+        assertEquals("eq.user-1", server.takeRequest().requestUrl!!.queryParameter("user_id"))
+    }
+
+    @Test fun homeHandlesNoSavedCenters() = runBlocking {
+        respond("[]")
+        assertTrue(api.getCenters(session, "user-1").isEmpty())
+    }
+
+    @Test fun voiceRejectsEmptyAudio() = runBlocking {
+        respond("""{"ok":true,"audio_base64":""}""")
+        val error = runCatching { api.synthesizeRavenVoiceChunks(session, "Hello.") }.exceptionOrNull()
+        assertEquals("Raven voice returned empty audio. Please retry.", error?.message)
+    }
+
+    @Test fun voiceRejectsMalformedAudio() = runBlocking {
+        respond("""{"ok":true,"audio_base64":"%%%"}""")
+        val error = runCatching { api.synthesizeRavenVoiceChunks(session, "Hello.") }.exceptionOrNull()
+        assertEquals("Raven voice returned invalid audio. Please retry.", error?.message)
+    }
+
+    @Test fun voiceRejectsMissingAudio() = runBlocking {
+        respond("""{"ok":true}""")
+        assertEquals("No Raven audio returned", runCatching { api.synthesizeRavenVoiceChunks(session, "Hello.") }.exceptionOrNull()?.message)
+    }
+
+    @Test fun voiceRetryCanSucceedAfterProviderFailure() = runBlocking {
+        respond("""{"ok":false,"error":"Raven voice is temporarily unavailable."}""")
+        respond("""{"ok":true,"audio_base64":"YWJj"}""")
+        assertTrue(runCatching { api.synthesizeRavenVoiceChunks(session, "Hello.") }.isFailure)
+        assertArrayEquals("abc".toByteArray(), api.synthesizeRavenVoiceChunks(session, "Hello.").single())
+    }
+
+    @Test fun canceledVoiceRequestCannotBecomeCurrentAgain() {
+        val tracker = VoiceRequestTracker()
+        val old = tracker.begin()
+        assertTrue(tracker.isCurrent(old))
+        tracker.cancel()
+        assertFalse(tracker.isCurrent(old))
+        val retry = tracker.begin()
+        assertTrue(tracker.isCurrent(retry))
+        assertFalse(tracker.isCurrent(old))
+    }
+
+    @Test fun replacedVoiceRequestCannotOverrideNewPlayback() {
+        val tracker = VoiceRequestTracker()
+        val old = tracker.begin()
+        val new = tracker.begin()
+        assertFalse(tracker.isCurrent(old))
+        assertTrue(tracker.isCurrent(new))
+        tracker.cancel()
+        assertFalse(tracker.isCurrent(new))
+    }
 }

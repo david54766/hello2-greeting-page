@@ -44,6 +44,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
@@ -63,6 +65,9 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
@@ -1194,6 +1199,33 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
     val snapshotCenters = centers.takeIf { it.isNotEmpty() } ?: listOf(
         Center(name = data.profile?.businessName ?: "Your center")
     )
+    val centerPager = rememberPagerState(pageCount = { snapshotCenters.size })
+    val centerScope = rememberCoroutineScope()
+    var centerPickerOpen by remember { mutableStateOf(false) }
+    val currentCenter = centerPager.currentPage.coerceIn(snapshotCenters.indices)
+
+    if (centerPickerOpen) {
+        AlertDialog(
+            onDismissRequest = { centerPickerOpen = false },
+            title = { Text("Choose center") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    snapshotCenters.forEachIndexed { index, center ->
+                        TextButton(
+                            onClick = {
+                                centerPickerOpen = false
+                                centerScope.launch { centerPager.animateScrollToPage(index) }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(center.name?.takeIf { it.isNotBlank() } ?: "Center ${index + 1}", modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { centerPickerOpen = false }) { Text("Close") } }
+        )
+    }
 
     if (dailyBriefOpen) {
         RavenDailyBriefScreen(
@@ -1205,13 +1237,13 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
         return
     }
 
-    FixedScreen {
+    ScreenList {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionTitle("Center snapshot")
+            Box(Modifier.weight(1f)) { SectionTitle("Center snapshot") }
             if (showTierBadge) {
                 MetaBadge(
                     tier,
@@ -1220,21 +1252,23 @@ private fun DashboardScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewMod
                 )
             }
         }
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val cardWidth = maxWidth
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                snapshotCenters.forEach { center ->
-                    CenterSnapshotPage(
-                        center = center,
-                        modifier = Modifier.width(cardWidth)
-                    )
+        if (snapshotCenters.size > 1) {
+            OutlinedButton(onClick = { centerPickerOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(snapshotCenters[currentCenter].name ?: "Choose center", modifier = Modifier.weight(1f))
+                Icon(Icons.Outlined.ExpandMore, contentDescription = "Choose center")
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                IconButton(onClick = { centerScope.launch { centerPager.animateScrollToPage(currentCenter - 1) } }, enabled = currentCenter > 0) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous center")
+                }
+                Text("Center ${currentCenter + 1} of ${snapshotCenters.size}", style = MaterialTheme.typography.labelLarge)
+                IconButton(onClick = { centerScope.launch { centerPager.animateScrollToPage(currentCenter + 1) } }, enabled = currentCenter < snapshotCenters.lastIndex) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next center")
                 }
             }
+        }
+        HorizontalPager(state = centerPager, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) { index ->
+            CenterSnapshotPage(center = snapshotCenters[index], modifier = Modifier.fillMaxWidth())
         }
         SectionTitle("Today's strategic recommendation")
         DailyRecommendationCard(
@@ -1272,6 +1306,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
         }
     }
     val startSpeech: () -> Unit = {
+        viewModel.stopRavenVoice()
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
@@ -1302,6 +1337,7 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 session = selectedSession,
                 voiceLoading = state.voiceLoadingSessionId == selectedSession.id,
                 voicePlaying = state.voicePlayingSessionId == selectedSession.id,
+                voiceError = state.voiceError.takeIf { state.voiceErrorSessionId == selectedSession.id },
                 onBack = { selectedSessionId = null },
                 onPlayVoice = { viewModel.playRavenVoice(selectedSession) },
                 onStopVoice = { viewModel.stopRavenVoice() },
@@ -1418,6 +1454,8 @@ private fun CoachScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
             sessions = state.data.coachingSessions,
             voiceLoadingSessionId = state.voiceLoadingSessionId,
             voicePlayingSessionId = state.voicePlayingSessionId,
+            voiceErrorSessionId = state.voiceErrorSessionId,
+            voiceError = state.voiceError,
             onDismiss = { historyOpen = false },
             onOpen = {
                 selectedSessionId = it
@@ -1570,13 +1608,7 @@ private fun EliteScreen(state: PrimaDonnaState, viewModel: PrimaDonnaViewModel) 
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                value = threadBody,
-                onValueChange = { threadBody = it },
-                label = { Text("What should the room know?") },
-                minLines = 4,
-                modifier = Modifier.fillMaxWidth()
-            )
+            EliteBodyField(threadBody, { threadBody = it }, "What should the room know?", !state.saving)
             EliteImageAttachments(
                 imageUrls = threadImageUrls,
                 onImageUrlsChange = { threadImageUrls = it },
@@ -2221,6 +2253,7 @@ private fun ScreenList(content: @Composable ColumnScope.() -> Unit) {
             modifier = Modifier
                 .fillMaxHeight()
                 .appContentWidth()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -2928,6 +2961,8 @@ private fun CoachingHistoryDrawer(
     sessions: List<CoachingSession>,
     voiceLoadingSessionId: String?,
     voicePlayingSessionId: String?,
+    voiceErrorSessionId: String?,
+    voiceError: String?,
     onDismiss: () -> Unit,
     onOpen: (String) -> Unit,
     onPlayVoice: (CoachingSession) -> Unit,
@@ -2994,6 +3029,7 @@ private fun CoachingHistoryDrawer(
                                 session = session,
                                 voiceLoading = voiceLoadingSessionId == session.id,
                                 voicePlaying = voicePlayingSessionId == session.id,
+                                voiceError = voiceError.takeIf { voiceErrorSessionId == session.id },
                                 onOpen = { onOpen(session.id) },
                                 onPlayVoice = { onPlayVoice(session) },
                                 onStopVoice = onStopVoice
@@ -3013,7 +3049,8 @@ private fun CoachingSessionRailItem(
     voicePlaying: Boolean,
     onOpen: () -> Unit,
     onPlayVoice: () -> Unit,
-    onStopVoice: () -> Unit
+    onStopVoice: () -> Unit,
+    voiceError: String? = null
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -3063,31 +3100,8 @@ private fun CoachingSessionRailItem(
                 ) {
                     Text("Details", maxLines = 1, fontWeight = FontWeight.SemiBold)
                 }
-                TextButton(
-                    onClick = if (voicePlaying) onStopVoice else onPlayVoice,
-                    enabled = session.response != null && !voiceLoading,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(34.dp)
-                ) {
-                    Icon(
-                        Icons.Outlined.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(17.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = when {
-                            voiceLoading -> "Load"
-                            voicePlaying -> "Stop"
-                            else -> "Play"
-                        },
-                        maxLines = 1,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
             }
+            VoiceControls(voiceLoading, voicePlaying, voiceError, session.response != null, onPlayVoice, onStopVoice)
         }
     }
 }
@@ -3127,25 +3141,11 @@ private fun SessionCard(
                 OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
                     Text("Details")
                 }
-                OutlinedButton(
-                    onClick = if (voicePlaying) onStopVoice else onPlayVoice,
-                    enabled = session.response != null && !voiceLoading,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Outlined.PlayArrow, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = when {
-                            voiceLoading -> "Loading"
-                            voicePlaying -> "Stop"
-                            else -> "Play"
-                        }
-                    )
-                }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Outlined.Delete, contentDescription = "Delete session")
                 }
             }
+            VoiceControls(voiceLoading, voicePlaying, null, session.response != null, onPlayVoice, onStopVoice)
         }
     }
 }
@@ -3155,6 +3155,7 @@ private fun CoachingSessionDetail(
     session: CoachingSession,
     voiceLoading: Boolean,
     voicePlaying: Boolean,
+    voiceError: String?,
     onBack: () -> Unit,
     onPlayVoice: () -> Unit,
     onStopVoice: () -> Unit,
@@ -3224,27 +3225,72 @@ private fun CoachingSessionDetail(
             }
         }
     }
+    VoiceControls(voiceLoading, voicePlaying, voiceError, session.response != null, onPlayVoice, onStopVoice)
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Button(
-            onClick = if (voicePlaying) onStopVoice else onPlayVoice,
-            enabled = session.response != null && !voiceLoading,
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(Icons.Outlined.PlayArrow, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = when {
-                    voiceLoading -> "Preparing voice"
-                    voicePlaying -> "Stop voice"
-                    else -> "Play Raven voice"
-                }
-            )
-        }
         TextButton(onClick = onDelete) {
             Icon(Icons.Outlined.Delete, contentDescription = null)
             Spacer(Modifier.width(6.dp))
             Text("Delete")
         }
+    }
+}
+
+@Composable
+private fun VoiceControls(
+    loading: Boolean,
+    playing: Boolean,
+    error: String?,
+    hasResponse: Boolean,
+    onPlay: () -> Unit,
+    onStop: () -> Unit
+) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (loading) Text("Preparing voice...", style = MaterialTheme.typography.bodySmall)
+        if (error != null) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(
+            onClick = if (loading || playing) onStop else onPlay,
+            enabled = hasResponse || loading || playing,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        ) {
+            Icon(
+                when {
+                    loading -> Icons.Outlined.Close
+                    playing -> Icons.Outlined.Stop
+                    error != null -> Icons.Outlined.Refresh
+                    else -> Icons.Outlined.PlayArrow
+                },
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(when {
+                loading -> "Cancel voice"
+                playing -> "Stop voice"
+                error != null -> "Retry voice"
+                else -> "Speak Voice"
+            })
+        }
+    }
+}
+
+@Composable
+private fun EliteBodyField(value: String, onValueChange: (String) -> Unit, label: String, enabled: Boolean) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.Start) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            placeholder = { Text(label) },
+            minLines = 4,
+            maxLines = 8,
+            shape = AppCardShape,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -3352,13 +3398,7 @@ private fun EliteThreadDetailPanel(
         }
     }
     SectionTitle("Add reply")
-    OutlinedTextField(
-        value = replyBody,
-        onValueChange = onReplyChange,
-        label = { Text("Reply") },
-        minLines = 4,
-        modifier = Modifier.fillMaxWidth()
-    )
+    EliteBodyField(replyBody, onReplyChange, "Reply", !saving)
     EliteImageAttachments(
         imageUrls = replyImageUrls,
         onImageUrlsChange = onReplyImageUrlsChange,
