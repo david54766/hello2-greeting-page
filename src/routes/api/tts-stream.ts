@@ -43,6 +43,8 @@ export const Route = createFileRoute("/api/tts-stream")({
             body: JSON.stringify({
               text: parsed.data.text,
               model_id: "eleven_multilingual_v2",
+              ...(parsed.data.previousText ? { previous_text: parsed.data.previousText } : {}),
+              ...(parsed.data.nextText ? { next_text: parsed.data.nextText } : {}),
               voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.2, use_speaker_boost: true },
             }),
           },
