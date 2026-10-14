@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2, ArrowLeft, ImageIcon, X } from "lucide-react";
+import { Building2, Loader2, Sparkles, Copy, History, Volume2, Square, Mic, MicOff, Download, Printer, Trash2, ArrowLeft, ImageIcon, X } from "lucide-react";
 import { exportCoachingPlanPDF } from "@/lib/export-pdf";
 import {
   AlertDialog,
@@ -88,6 +88,37 @@ function Coach() {
   const fetchRevenueProfile = useServerFn(getRevenueProfile);
   const generateImage = useServerFn(generateCoachImage);
   const qc = useQueryClient();
+
+  // ---------- Center focus ----------
+  const [centerId, setCenterId] = useState<string | null>(null);
+  const centersQ = useQuery({
+    queryKey: ["centers", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("centers")
+        .select("id, name, city, state")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: true });
+      return data ?? [];
+    },
+  });
+  const centerList = centersQ.data ?? [];
+  useEffect(() => {
+    if (!user) return;
+    const saved = window.localStorage.getItem(`coach-center-${user.id}`);
+    if (saved) setCenterId(saved);
+  }, [user]);
+  useEffect(() => {
+    if (centersQ.data && centerId && !centersQ.data.some((c) => c.id === centerId)) setCenterId(null);
+  }, [centersQ.data, centerId]);
+  const pickCenter = (id: string | null) => {
+    setCenterId(id);
+    if (user) {
+      if (id) window.localStorage.setItem(`coach-center-${user.id}`, id);
+      else window.localStorage.removeItem(`coach-center-${user.id}`);
+    }
+  };
 
   // ---------- Visual example generator ----------
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -358,7 +389,7 @@ function Coach() {
     setResponse(null);
     stopAudio();
     try {
-      const result = await run({ data: { mode, prompt } });
+      const result = await run({ data: { mode, prompt, centerId: centerList.length > 1 ? centerId : null } });
       if (result.error) toast.error(result.error);
       else {
         const normalized = normalizeResp(result.response);
@@ -420,6 +451,37 @@ function Coach() {
           {MODES.find((m) => m.id === mode)?.tag}
           {mode === "compliance" && " — answers are tailored to each center's state licensing rules."}
         </p>
+
+        {centerList.length > 1 && (
+          <div className="mt-5">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+              <Building2 className="size-3.5" /> This session is about
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => pickCenter(null)}
+                className={`rounded-full px-4 py-1.5 text-sm border transition ${
+                  !centerId ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border/60 hover:border-primary/40"
+                }`}
+              >
+                All centers
+              </button>
+              {centerList.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => pickCenter(c.id)}
+                  className={`rounded-full px-4 py-1.5 text-sm border transition ${
+                    centerId === c.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border/60 hover:border-primary/40"
+                  }`}
+                >
+                  {c.name}{c.state ? ` · ${c.state}` : ""}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {mode === "revenue" && revenueProfile && (
           <RevenueScopeBar
