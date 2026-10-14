@@ -152,8 +152,17 @@ async function runCoaching({ supabase, userId }: MobileContext, data: Record<str
       : `\n\nREVENUE CONTEXT: ${JSON.stringify(revenueProfile)}`)
     : '';
 
+  // Optional, additive: older app versions don't send center_id and keep portfolio behavior.
+  const requestedCenterId = typeof data.center_id === 'string' ? data.center_id : null;
+  const focusCenter = requestedCenterId ? (centers ?? []).find((c: any) => c.id === requestedCenterId) : undefined;
+  const focusBlock = focusCenter
+    ? `\n\nFOCUS CENTER (selected by the owner for this session): ${focusCenter.name}${focusCenter.city ? `, ${focusCenter.city}` : ''}${focusCenter.state ? `, ${focusCenter.state}` : ''}. Answer ONLY for this center using its numbers and its state's rules. Use the other centers only as brief comparison if truly useful.`
+    : (centers && centers.length > 1
+      ? '\n\nFOCUS: The owner did not pick a specific center. Treat this as a portfolio-level question and say which center each step applies to.'
+      : '');
+
   const messages = [
-    { role: 'system', content: `${SYSTEM_BASE}\n\nMODE: ${MODE_PROMPTS[mode]}\n\nOWNER CONTEXT:\n${ownerLine}\n\nPORTFOLIO (${centers?.length ?? 0} center${centers?.length === 1 ? '' : 's'}):\n${centerBlock}${revenueBlock}` },
+    { role: 'system', content: `${SYSTEM_BASE}\n\nMODE: ${MODE_PROMPTS[mode]}\n\nOWNER CONTEXT:\n${ownerLine}\n\nPORTFOLIO (${centers?.length ?? 0} center${centers?.length === 1 ? '' : 's'}):\n${centerBlock}${focusBlock}${revenueBlock}` },
     { role: 'user', content: prompt },
   ];
   const tools = [{
