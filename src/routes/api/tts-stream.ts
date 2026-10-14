@@ -7,6 +7,8 @@ const RAVEN_VOICE_ID = process.env.ELEVENLABS_RAVEN_VOICE_ID || "EcNmy6NxONUCla9
 const Schema = z.object({
   text: z.string().min(1).max(5000),
   voiceId: z.string().min(1).max(100).optional(),
+  previousText: z.string().max(1000).optional(),
+  nextText: z.string().max(1000).optional(),
 });
 
 export const Route = createFileRoute("/api/tts-stream")({
@@ -41,6 +43,8 @@ export const Route = createFileRoute("/api/tts-stream")({
             body: JSON.stringify({
               text: parsed.data.text,
               model_id: "eleven_multilingual_v2",
+              ...(parsed.data.previousText ? { previous_text: parsed.data.previousText } : {}),
+              ...(parsed.data.nextText ? { next_text: parsed.data.nextText } : {}),
               voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.2, use_speaker_boost: true },
             }),
           },

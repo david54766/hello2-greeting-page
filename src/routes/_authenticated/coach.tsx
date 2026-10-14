@@ -249,12 +249,30 @@ function Coach() {
     ].filter(Boolean).map(s => s.trim().replace(/\s+/g, " "));
     const text = parts.join(" ");
 
+    // Split into small chunks so the first sentence is synthesized and playing
+    // while the rest is still being generated. First chunk is kept short.
+    const sentences = text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) ?? [text];
+    const chunks: string[] = [];
+    let buf = "";
+    for (const s of sentences) {
+      const limit = chunks.length === 0 ? 90 : 380;
+      if (buf && (buf + s).length > limit) {
+        chunks.push(buf.trim());
+        buf = "";
+      }
+      buf += s;
+      if (chunks.length === 0 && buf.trim().length >= 40) {
+        chunks.push(buf.trim());
+        buf = "";
+      }
+    }
+    if (buf.trim()) chunks.push(buf.trim());
+
     // Create the Audio element synchronously within the click gesture so
     // browsers don't block playback after the async fetch resolves.
+    // The same element is reused for every chunk, keeping playback permission.
     const audio = new Audio();
     audioRef.current = audio;
-    audio.onended = () => setSpeaking(false);
-    audio.onerror = () => setSpeaking(false);
     setSpeaking(true);
 
     try {
@@ -269,33 +287,58 @@ function Coach() {
       const abort = new AbortController();
       ttsAbortRef.current = abort;
 
-      const res = await fetch("/api/tts-stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ text }),
-        signal: abort.signal,
-      });
-      if (!res.ok || !res.body) {
-        const msg = await res.text().catch(() => "");
-        toast.error(msg.slice(0, 120) || "Voice unavailable");
-        setSpeaking(false);
-        return;
-      }
+      const fetchChunk = async (i: number): Promise<Blob> => {
+        const res = await fetch("/api/tts-stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({
+            text: chunks[i],
+            previousText: i > 0 ? chunks[i - 1].slice(-300) : undefined,
+            nextText: i < chunks.length - 1 ? chunks[i + 1].slice(0, 300) : undefined,
+          }),
+          signal: abort.signal,
+        });
+        if (!res.ok) {
+          const msg = await res.text().catch(() => "");
+          throw new Error(msg.slice(0, 120) || "Voice unavailable");
+        }
+        return res.blob();
+      };
 
-      // Buffer the MP3 then play. Most browsers can't stream raw audio/mpeg
-      // via MediaSource, so this is the reliable path.
-      const blob = await res.blob();
-      if (abort.signal.aborted) return;
-      const url = URL.createObjectURL(blob);
-      audio.src = url;
-      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
-      try {
-        await audio.play();
-      } catch (err: any) {
-        setSpeaking(false);
-        toast.error("Tap Speak again to enable audio playback");
-        return;
+      // Start the first two chunks right away; keep one chunk prefetched ahead.
+      const pending: Promise<Blob>[] = [];
+      const ensure = (i: number) => {
+        if (i < chunks.length && !pending[i]) {
+          pending[i] = fetchChunk(i);
+          pending[i].catch(() => {});
+        }
+      };
+      ensure(0);
+      ensure(1);
+
+      for (let i = 0; i < chunks.length; i++) {
+        const blob = await pending[i];
+        if (abort.signal.aborted) return;
+        ensure(i + 2);
+        const url = URL.createObjectURL(blob);
+        const ended = new Promise<void>((resolve) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => resolve();
+        });
+        audio.src = url;
+        try {
+          await audio.play();
+        } catch {
+          URL.revokeObjectURL(url);
+          setSpeaking(false);
+          toast.error("Tap Speak again to enable audio playback");
+          return;
+        }
+        await ended;
+        URL.revokeObjectURL(url);
+        if (abort.signal.aborted) return;
       }
+      setSpeaking(false);
     } catch (e: any) {
       if (e?.name === "AbortError") return;
       toast.error(e?.message ?? "Voice unavailable");
