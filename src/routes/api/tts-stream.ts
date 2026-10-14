@@ -7,6 +7,8 @@ const RAVEN_VOICE_ID = process.env.ELEVENLABS_RAVEN_VOICE_ID || "EcNmy6NxONUCla9
 const Schema = z.object({
   text: z.string().min(1).max(5000),
   voiceId: z.string().min(1).max(100).optional(),
+  previousText: z.string().max(1000).optional(),
+  nextText: z.string().max(1000).optional(),
 });
 
 export const Route = createFileRoute("/api/tts-stream")({
