@@ -79,6 +79,7 @@ You respond ONLY by calling the structured_response tool with exactly these fiel
 const Input = z.object({
   mode: z.enum(["ceo", "revenue", "marketing", "compliance", "systems"]),
   prompt: z.string().min(1).max(4000),
+  centerId: z.string().uuid().nullable().optional(),
 });
 
 export const runCoaching = createServerFn({ method: "POST" })
@@ -105,7 +106,13 @@ export const runCoaching = createServerFn({ method: "POST" })
       ? centers.map((c, i) => `Center ${i + 1}: ${c.name}${c.city ? `, ${c.city}` : ""}${c.state ? `, ${c.state}` : ""}. Enrollment ${c.enrollment_size ?? "n/a"}/${c.capacity ?? "n/a"} capacity. Tuition ${c.tuition_range ?? "n/a"}. Staff ${c.staff_count ?? "n/a"}. Ages ${c.ages_served ?? "n/a"}.${c.notes ? ` Notes: ${c.notes}` : ""}`).join("\n")
       : "No centers registered yet — guidance will be general until the owner adds centers in Settings.";
 
-    const memory = `${ownerLine}\n\nPORTFOLIO (${centers?.length ?? 0} center${centers?.length === 1 ? "" : "s"}):\n${centerBlock}`;
+    const focusCenter = data.centerId ? centers?.find((c) => c.id === data.centerId) : undefined;
+    const focusBlock = focusCenter
+      ? `\n\nFOCUS CENTER (selected by the owner for this session): ${focusCenter.name}${focusCenter.city ? `, ${focusCenter.city}` : ""}${focusCenter.state ? `, ${focusCenter.state}` : ""}. Answer ONLY for this center using its numbers and its state's rules. Use the other centers only as brief comparison if truly useful.`
+      : centers && centers.length > 1
+        ? "\n\nFOCUS: The owner did not pick a specific center — treat this as a portfolio-level question and say which center each step applies to."
+        : "";
+    const memory = `${ownerLine}\n\nPORTFOLIO (${centers?.length ?? 0} center${centers?.length === 1 ? "" : "s"}):\n${centerBlock}${focusBlock}`;
 
     let revenueBlock = "";
     if (data.mode === "revenue") {
