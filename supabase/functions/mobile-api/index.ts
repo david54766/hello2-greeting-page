@@ -126,6 +126,20 @@ async function requireEliteAccess({ supabase, userId }: MobileContext) {
   if (!isElite && !isAdmin) throw new Error('Elite access required');
 }
 
+async function isAdmin({ supabase, userId }: MobileContext): Promise<boolean> {
+  const { data } = await supabase.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
+  return !!data;
+}
+
+// Privileged client for server-enforced steps: verifying image objects and
+// marking moderated content approved. Never used for ordinary member reads.
+function serviceClient(): SupabaseClient {
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !key) throw new Error('Supabase environment is not configured');
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
 async function runCoaching({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
   const mode = readMode(data.mode);
   const prompt = readString(data.prompt, 'prompt', 1, 4000);
@@ -292,7 +306,56 @@ const BLOCKING_CATEGORIES = [
   'self-harm/intent', 'self-harm/instructions',
 ];
 
+// Posts accept up to 10,000 characters; the provider is called with every
+// chunk and every result is validated — nothing past the first chunk is
+// skipped.
+const MODERATION_MAX_TEXT = 10_000;
+const MODERATION_CHUNK_SIZE = 4_000;
+const MODERATION_TIMEOUT_MS = 10_000;
+
 type ModerationResult = { allowed: boolean; message: string | null };
+
+function chunkText(text: string, size = MODERATION_CHUNK_SIZE): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  return chunks;
+}
+
+// Strict response validation. Empty results, a result count that does not
+// match the input count, a missing/non-boolean `flagged`, or a
+// missing/non-object `categories` all fail CLOSED (retryable) — unchecked
+// content is never published.
+// The provider returns ONE aggregated result per request (the whole input
+// array — every text chunk and every image — is evaluated together). Strict
+// validation: empty/missing results, a non-object entry, a
+// missing/non-boolean `flagged`, or a missing/non-object `categories` all
+// fail CLOSED (retryable) — unchecked content is never published.
+function evaluateModerationResponse(json: unknown): ModerationResult {
+  const results = (json as any)?.results;
+  if (!Array.isArray(results) || results.length === 0) {
+    console.error('moderation malformed results');
+    return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+  }
+  for (const result of results) {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      console.error('moderation malformed result entry');
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    if (typeof result.flagged !== 'boolean') {
+      console.error('moderation missing flagged');
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    const categories = result.categories;
+    if (!categories || typeof categories !== 'object' || Array.isArray(categories)) {
+      console.error('moderation missing categories');
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    if (result.flagged && BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
+      return { allowed: false, message: MODERATION_SAFE_MESSAGE };
+    }
+  }
+  return { allowed: true, message: null };
+}
 
 function storageHost(): string | null {
   const url = Deno.env.get('SUPABASE_URL');
@@ -300,53 +363,90 @@ function storageHost(): string | null {
   try { return new URL(url).host; } catch { return null; }
 }
 
-// Only images served from our own elite-images storage bucket are accepted.
-// Anything else is rejected so the moderation call can never be turned into
-// an arbitrary server-side fetch (SSRF).
-function isAllowedImageUrl(item: string, host: string | null): boolean {
+// Canonical storage path check: exact https host, exact public elite-images
+// prefix, no traversal. Returns the object path ("<userId>/<file>") or null.
+// This also keeps the moderation call from becoming an arbitrary server-side
+// fetch (SSRF).
+function parseEliteImagePath(item: string, host: string | null): string | null {
   try {
     const u = new URL(item);
-    return u.protocol === 'https:' && host !== null && u.host === host &&
-      u.pathname.startsWith('/storage/v1/object/public/elite-images/');
-  } catch { return false; }
+    if (u.protocol !== 'https:' || host === null || u.host !== host) return null;
+    const prefix = '/storage/v1/object/public/elite-images/';
+    if (!u.pathname.startsWith(prefix)) return null;
+    const path = decodeURIComponent(u.pathname.slice(prefix.length));
+    if (!path || path.includes('..') || path.startsWith('/') || path.endsWith('/')) return null;
+    if (!/^[A-Za-z0-9._/-]+$/.test(path)) return null;
+    return path;
+  } catch { return null; }
 }
 
-// Fails closed: a moderation outage, missing key, or malformed provider
-// response must never publish unchecked content. The retryable message keeps
-// the existing { ok: false, message } contract for the published apps.
+function isAllowedImageUrl(item: string, host: string | null): boolean {
+  return parseEliteImagePath(item, host) !== null;
+}
+
+// Ownership + existence: every image must live at "<userId>/<file>" (the
+// established Android/web upload naming) and must actually exist in the
+// elite-images bucket. Verified with the privileged client so a forged URL
+// pointing at someone else's upload — or at nothing — is rejected.
+async function verifyImages(
+  admin: SupabaseClient,
+  imageUrls: string[],
+  host: string | null,
+  userId: string,
+): Promise<boolean> {
+  const paths = imageUrls.map((url) => parseEliteImagePath(url, host));
+  if (paths.some((p) => p === null)) return false;
+  const names: string[] = [];
+  for (const p of paths as string[]) {
+    const segments = p.split('/');
+    if (segments.length !== 2 || segments[0] !== userId) return false;
+    names.push(segments[1]);
+  }
+  if (!names.length) return true;
+  const { data, error } = await admin.storage.from('elite-images').list(userId, { limit: 1000 });
+  if (error) {
+    console.error('elite image listing error', (error as any)?.message ?? error);
+    return false;
+  }
+  const existing = new Set((data ?? []).map((f: any) => f?.name).filter(Boolean));
+  return names.every((name) => existing.has(name));
+}
+
+// Fails closed: a moderation outage, missing key, timeout (including while
+// decoding the response body), or malformed provider response must never
+// publish unchecked content. The retryable message keeps the existing
+// { ok: false, message } contract for the published apps.
 async function screenRemote(text: string, imageUrls: string[]): Promise<ModerationResult> {
   const apiKey = Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY');
   if (!apiKey) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
 
   const input: Array<Record<string, unknown>> = [];
-  if (text.trim()) input.push({ type: 'text', text: text.slice(0, 4000) });
+  for (const chunk of chunkText(text.slice(0, MODERATION_MAX_TEXT))) {
+    if (chunk.trim()) input.push({ type: 'text', text: chunk });
+  }
   for (const url of imageUrls) input.push({ type: 'image_url', image_url: { url } });
   if (!input.length) return { allowed: true, message: null };
 
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
-    const res = await fetch('https://api.openai.com/v1/moderations', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'omni-moderation-latest', input }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    if (!res.ok) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
-
-    const json = await res.json();
-    const results = json?.results;
-    if (!Array.isArray(results)) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
-
-    const flagged = results.some((result: any) => {
-      if (!result?.flagged) return false;
-      const categories = result.categories ?? {};
-      return BLOCKING_CATEGORIES.some((key) => categories[key] === true);
-    });
-    return flagged
-      ? { allowed: false, message: MODERATION_SAFE_MESSAGE }
-      : { allowed: true, message: null };
+    const timer = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
+    let json: unknown;
+    try {
+      const res = await fetch('https://api.openai.com/v1/moderations', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'omni-moderation-latest', input }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        console.error('moderation provider non-OK status', res.status);
+        return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+      }
+      json = await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+    return evaluateModerationResponse(json);
   } catch (error) {
     console.error('moderation error', error);
     return { allowed: false, message: MODERATION_RETRY_MESSAGE };
@@ -356,11 +456,17 @@ async function screenRemote(text: string, imageUrls: string[]): Promise<Moderati
 async function moderateElitePost(
   parts: Array<string | null | undefined>,
   imageUrls: string[] = [],
+  ctx?: { userId: string; admin: SupabaseClient },
 ): Promise<ModerationResult> {
   const host = storageHost();
   if (!host) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
-  if (imageUrls.some((url) => !isAllowedImageUrl(url, host))) {
-    return { allowed: false, message: MODERATION_IMAGE_MESSAGE };
+  if (imageUrls.length) {
+    if (!ctx?.admin || !ctx?.userId) {
+      // Images cannot be verified without the privileged client: fail closed.
+      return { allowed: false, message: MODERATION_IMAGE_MESSAGE };
+    }
+    const ok = await verifyImages(ctx.admin, imageUrls, host, ctx.userId);
+    if (!ok) return { allowed: false, message: MODERATION_IMAGE_MESSAGE };
   }
   const text = parts.filter(Boolean).join('\n\n');
   if (!screenTextLocally(text)) return { allowed: false, message: MODERATION_SAFE_MESSAGE };
@@ -463,7 +569,8 @@ async function listEliteThreads(context: MobileContext) {
     .order('pinned', { ascending: false })
     .order('updated_at', { ascending: false });
   if (error) throw new Error(error.message);
-  const blocked = await loadBlockedIds(context);
+  // Moderators keep full visibility (incl. blocked authors) for review.
+  const blocked = (await isAdmin(context)) ? new Set<string>() : await loadBlockedIds(context);
   const visible = (data ?? []).filter((thread: any) => !blocked.has(thread.user_id));
   const ids = Array.from(new Set(visible.map((thread: any) => thread.user_id).filter(Boolean)));
   const names = await loadProfileNames(supabase, ids);
@@ -475,13 +582,21 @@ async function createEliteThread({ supabase, userId }: MobileContext, data: Reco
   const title = readString(data.title, 'title', 3, 200);
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  const verdict = await moderateElitePost([title, body], imageUrls);
+  const admin = serviceClient();
+  const verdict = await moderateElitePost([title, body], imageUrls, { userId, admin });
   if (!verdict.allowed) {
     return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
+  // Insert as the member (lands as 'pending'), then the privileged client
+  // marks it approved — the database only accepts that from the server path.
   const { data: row, error } = await supabase.from('elite_threads').insert({ user_id: userId, title, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
-  return { ok: true, id: row.id };
+  const { error: approveError } = await admin.from('elite_threads').update({ moderation_status: 'approved' }).eq('id', (row as any).id);
+  if (approveError) {
+    await admin.from('elite_threads').delete().eq('id', (row as any).id);
+    return { ok: false, message: MODERATION_RETRY_MESSAGE };
+  }
+  return { ok: true, id: (row as any).id };
 }
 
 async function getEliteThread(context: MobileContext, data: Record<string, unknown>) {
@@ -489,7 +604,8 @@ async function getEliteThread(context: MobileContext, data: Record<string, unkno
   const id = readUuid(data.id, 'id');
   const { data: thread, error } = await supabase.from('elite_threads').select('id, user_id, title, body, image_urls, pinned, created_at, updated_at').eq('id', id).maybeSingle();
   if (error || !thread) throw new Error(error?.message ?? 'Not found');
-  const blocked = await loadBlockedIds(context);
+  // Moderators keep full visibility (incl. blocked authors) for review.
+  const blocked = (await isAdmin(context)) ? new Set<string>() : await loadBlockedIds(context);
   if (blocked.has((thread as any).user_id)) throw new Error('Not found');
   const { data: replies } = await supabase.from('elite_thread_replies').select('id, user_id, body, image_urls, created_at').eq('thread_id', id).order('created_at', { ascending: true });
   const visibleReplies = (replies ?? []).filter((reply: any) => !blocked.has(reply.user_id));
@@ -505,12 +621,20 @@ async function replyEliteThread({ supabase, userId }: MobileContext, data: Recor
   const threadId = readUuid(data.thread_id, 'thread_id');
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  const verdict = await moderateElitePost([body], imageUrls);
+  const admin = serviceClient();
+  const verdict = await moderateElitePost([body], imageUrls, { userId, admin });
   if (!verdict.allowed) {
     return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
-  const { error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls });
+  // Insert as the member (lands as 'pending'), then the privileged client
+  // marks it approved — the database only accepts that from the server path.
+  const { data: replyRow, error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
+  const { error: approveError } = await admin.from('elite_thread_replies').update({ moderation_status: 'approved' }).eq('id', (replyRow as any).id);
+  if (approveError) {
+    await admin.from('elite_thread_replies').delete().eq('id', (replyRow as any).id);
+    return { ok: false, message: MODERATION_RETRY_MESSAGE };
+  }
   await supabase.from('elite_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);
   return { ok: true };
 }

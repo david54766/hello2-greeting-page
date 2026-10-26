@@ -443,6 +443,7 @@ export type Database = {
           created_at: string
           id: string
           image_urls: string[]
+          moderation_status: string
           thread_id: string
           user_id: string
         }
@@ -451,6 +452,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_urls?: string[]
+          moderation_status?: string
           thread_id: string
           user_id: string
         }
@@ -459,6 +461,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_urls?: string[]
+          moderation_status?: string
           thread_id?: string
           user_id?: string
         }
@@ -478,6 +481,7 @@ export type Database = {
           created_at: string
           id: string
           image_urls: string[]
+          moderation_status: string
           pinned: boolean
           title: string
           updated_at: string
@@ -488,6 +492,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_urls?: string[]
+          moderation_status?: string
           pinned?: boolean
           title: string
           updated_at?: string
@@ -498,6 +503,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_urls?: string[]
+          moderation_status?: string
           pinned?: boolean
           title?: string
           updated_at?: string
@@ -1203,6 +1209,7 @@ export type Database = {
     Functions: {
       claim_first_admin: { Args: never; Returns: boolean }
       elite_blocked_user_ids: { Args: never; Returns: string[] }
+      elite_thread_author: { Args: { _thread_id: string }; Returns: string }
       has_any_admin: { Args: never; Returns: boolean }
       has_role: {
         Args: {
