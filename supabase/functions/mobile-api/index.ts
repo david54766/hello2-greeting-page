@@ -292,7 +292,47 @@ const BLOCKING_CATEGORIES = [
   'self-harm/intent', 'self-harm/instructions',
 ];
 
+// Posts accept up to 10,000 characters; the provider is called with every
+// chunk and every result is validated — nothing past the first chunk is
+// skipped.
+const MODERATION_MAX_TEXT = 10_000;
+const MODERATION_CHUNK_SIZE = 4_000;
+const MODERATION_TIMEOUT_MS = 10_000;
+
 type ModerationResult = { allowed: boolean; message: string | null };
+
+function chunkText(text: string, size = MODERATION_CHUNK_SIZE): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += size) chunks.push(text.slice(i, i + size));
+  return chunks;
+}
+
+// Strict response validation. Empty results, a result count that does not
+// match the input count, a missing/non-boolean `flagged`, or a
+// missing/non-object `categories` all fail CLOSED (retryable) — unchecked
+// content is never published.
+function evaluateModerationResponse(json: unknown, expectedResults: number): ModerationResult {
+  const results = (json as any)?.results;
+  if (!Array.isArray(results) || results.length === 0 || results.length !== expectedResults) {
+    return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+  }
+  for (const result of results) {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    if (typeof result.flagged !== 'boolean') {
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    const categories = result.categories;
+    if (!categories || typeof categories !== 'object' || Array.isArray(categories)) {
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    if (result.flagged && BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
+      return { allowed: false, message: MODERATION_SAFE_MESSAGE };
+    }
+  }
+  return { allowed: true, message: null };
+}
 
 function storageHost(): string | null {
   const url = Deno.env.get('SUPABASE_URL');
@@ -300,53 +340,87 @@ function storageHost(): string | null {
   try { return new URL(url).host; } catch { return null; }
 }
 
-// Only images served from our own elite-images storage bucket are accepted.
-// Anything else is rejected so the moderation call can never be turned into
-// an arbitrary server-side fetch (SSRF).
-function isAllowedImageUrl(item: string, host: string | null): boolean {
+// Canonical storage path check: exact https host, exact public elite-images
+// prefix, no traversal. Returns the object path ("<userId>/<file>") or null.
+// This also keeps the moderation call from becoming an arbitrary server-side
+// fetch (SSRF).
+function parseEliteImagePath(item: string, host: string | null): string | null {
   try {
     const u = new URL(item);
-    return u.protocol === 'https:' && host !== null && u.host === host &&
-      u.pathname.startsWith('/storage/v1/object/public/elite-images/');
-  } catch { return false; }
+    if (u.protocol !== 'https:' || host === null || u.host !== host) return null;
+    const prefix = '/storage/v1/object/public/elite-images/';
+    if (!u.pathname.startsWith(prefix)) return null;
+    const path = decodeURIComponent(u.pathname.slice(prefix.length));
+    if (!path || path.includes('..') || path.startsWith('/') || path.endsWith('/')) return null;
+    if (!/^[A-Za-z0-9._/-]+$/.test(path)) return null;
+    return path;
+  } catch { return null; }
 }
 
-// Fails closed: a moderation outage, missing key, or malformed provider
-// response must never publish unchecked content. The retryable message keeps
-// the existing { ok: false, message } contract for the published apps.
+function isAllowedImageUrl(item: string, host: string | null): boolean {
+  return parseEliteImagePath(item, host) !== null;
+}
+
+// Ownership + existence: every image must live at "<userId>/<file>" (the
+// established Android/web upload naming) and must actually exist in the
+// elite-images bucket. Verified with the privileged client so a forged URL
+// pointing at someone else's upload — or at nothing — is rejected.
+async function verifyImages(
+  admin: SupabaseClient,
+  imageUrls: string[],
+  host: string | null,
+  userId: string,
+): Promise<boolean> {
+  const paths = imageUrls.map((url) => parseEliteImagePath(url, host));
+  if (paths.some((p) => p === null)) return false;
+  const names: string[] = [];
+  for (const p of paths as string[]) {
+    const segments = p.split('/');
+    if (segments.length !== 2 || segments[0] !== userId) return false;
+    names.push(segments[1]);
+  }
+  if (!names.length) return true;
+  const { data, error } = await admin.storage.from('elite-images').list(userId, { limit: 1000 });
+  if (error) {
+    console.error('elite image listing error', (error as any)?.message ?? error);
+    return false;
+  }
+  const existing = new Set((data ?? []).map((f: any) => f?.name).filter(Boolean));
+  return names.every((name) => existing.has(name));
+}
+
+// Fails closed: a moderation outage, missing key, timeout (including while
+// decoding the response body), or malformed provider response must never
+// publish unchecked content. The retryable message keeps the existing
+// { ok: false, message } contract for the published apps.
 async function screenRemote(text: string, imageUrls: string[]): Promise<ModerationResult> {
   const apiKey = Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY');
   if (!apiKey) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
 
   const input: Array<Record<string, unknown>> = [];
-  if (text.trim()) input.push({ type: 'text', text: text.slice(0, 4000) });
+  for (const chunk of chunkText(text.slice(0, MODERATION_MAX_TEXT))) {
+    if (chunk.trim()) input.push({ type: 'text', text: chunk });
+  }
   for (const url of imageUrls) input.push({ type: 'image_url', image_url: { url } });
   if (!input.length) return { allowed: true, message: null };
 
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
-    const res = await fetch('https://api.openai.com/v1/moderations', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'omni-moderation-latest', input }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    if (!res.ok) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
-
-    const json = await res.json();
-    const results = json?.results;
-    if (!Array.isArray(results)) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
-
-    const flagged = results.some((result: any) => {
-      if (!result?.flagged) return false;
-      const categories = result.categories ?? {};
-      return BLOCKING_CATEGORIES.some((key) => categories[key] === true);
-    });
-    return flagged
-      ? { allowed: false, message: MODERATION_SAFE_MESSAGE }
-      : { allowed: true, message: null };
+    const timer = setTimeout(() => controller.abort(), MODERATION_TIMEOUT_MS);
+    let json: unknown;
+    try {
+      const res = await fetch('https://api.openai.com/v1/moderations', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'omni-moderation-latest', input }),
+        signal: controller.signal,
+      });
+      if (!res.ok) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+      json = await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+    return evaluateModerationResponse(json, input.length);
   } catch (error) {
     console.error('moderation error', error);
     return { allowed: false, message: MODERATION_RETRY_MESSAGE };
@@ -356,11 +430,17 @@ async function screenRemote(text: string, imageUrls: string[]): Promise<Moderati
 async function moderateElitePost(
   parts: Array<string | null | undefined>,
   imageUrls: string[] = [],
+  ctx?: { userId: string; admin: SupabaseClient },
 ): Promise<ModerationResult> {
   const host = storageHost();
   if (!host) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
-  if (imageUrls.some((url) => !isAllowedImageUrl(url, host))) {
-    return { allowed: false, message: MODERATION_IMAGE_MESSAGE };
+  if (imageUrls.length) {
+    if (!ctx?.admin || !ctx?.userId) {
+      // Images cannot be verified without the privileged client: fail closed.
+      return { allowed: false, message: MODERATION_IMAGE_MESSAGE };
+    }
+    const ok = await verifyImages(ctx.admin, imageUrls, host, ctx.userId);
+    if (!ok) return { allowed: false, message: MODERATION_IMAGE_MESSAGE };
   }
   const text = parts.filter(Boolean).join('\n\n');
   if (!screenTextLocally(text)) return { allowed: false, message: MODERATION_SAFE_MESSAGE };
