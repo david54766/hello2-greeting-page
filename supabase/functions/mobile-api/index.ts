@@ -429,7 +429,10 @@ async function screenRemote(text: string, imageUrls: string[]): Promise<Moderati
         body: JSON.stringify({ model: 'omni-moderation-latest', input }),
         signal: controller.signal,
       });
-      if (!res.ok) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+      if (!res.ok) {
+        console.error('moderation provider non-OK status', res.status);
+        return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+      }
       json = await res.json();
     } finally {
       clearTimeout(timer);

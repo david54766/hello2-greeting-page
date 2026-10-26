@@ -211,7 +211,7 @@ check("moderation: banned content beyond char 4000 still rejected", longRes.json
 const IOS_REPORT = "196c9081-6f13-4783-961e-a9b8e5bc74f3";
 const aReports = await (await rest(A.token, `ai_strategy_reports?id=eq.${IOS_REPORT}&select=id,platform,status`)).json();
 check("ios report: visible in moderator queue", Array.isArray(aReports) && aReports[0]?.platform === "ios" && aReports[0]?.status === "pending", JSON.stringify(aReports));
-const mReports = await (await rest(M.token, `ai_strategy_reports?id=eq.${IOS_REPORT}&select=id`)).json();
+const mReports = await (await rest(B.token, `ai_strategy_reports?id=eq.${IOS_REPORT}&select=id`)).json();
 check("ios report: hidden from other members", Array.isArray(mReports) && mReports.length === 0, JSON.stringify(mReports));
 
 // ---------- cleanup what we can with user tokens ----------
