@@ -126,6 +126,20 @@ async function requireEliteAccess({ supabase, userId }: MobileContext) {
   if (!isElite && !isAdmin) throw new Error('Elite access required');
 }
 
+async function isAdmin({ supabase, userId }: MobileContext): Promise<boolean> {
+  const { data } = await supabase.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
+  return !!data;
+}
+
+// Privileged client for server-enforced steps: verifying image objects and
+// marking moderated content approved. Never used for ordinary member reads.
+function serviceClient(): SupabaseClient {
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !key) throw new Error('Supabase environment is not configured');
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
 async function runCoaching({ supabase, userId }: MobileContext, data: Record<string, unknown>) {
   const mode = readMode(data.mode);
   const prompt = readString(data.prompt, 'prompt', 1, 4000);
@@ -543,7 +557,8 @@ async function listEliteThreads(context: MobileContext) {
     .order('pinned', { ascending: false })
     .order('updated_at', { ascending: false });
   if (error) throw new Error(error.message);
-  const blocked = await loadBlockedIds(context);
+  // Moderators keep full visibility (incl. blocked authors) for review.
+  const blocked = (await isAdmin(context)) ? new Set<string>() : await loadBlockedIds(context);
   const visible = (data ?? []).filter((thread: any) => !blocked.has(thread.user_id));
   const ids = Array.from(new Set(visible.map((thread: any) => thread.user_id).filter(Boolean)));
   const names = await loadProfileNames(supabase, ids);
@@ -555,13 +570,21 @@ async function createEliteThread({ supabase, userId }: MobileContext, data: Reco
   const title = readString(data.title, 'title', 3, 200);
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  const verdict = await moderateElitePost([title, body], imageUrls);
+  const admin = serviceClient();
+  const verdict = await moderateElitePost([title, body], imageUrls, { userId, admin });
   if (!verdict.allowed) {
     return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
+  // Insert as the member (lands as 'pending'), then the privileged client
+  // marks it approved — the database only accepts that from the server path.
   const { data: row, error } = await supabase.from('elite_threads').insert({ user_id: userId, title, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
-  return { ok: true, id: row.id };
+  const { error: approveError } = await admin.from('elite_threads').update({ moderation_status: 'approved' }).eq('id', (row as any).id);
+  if (approveError) {
+    await admin.from('elite_threads').delete().eq('id', (row as any).id);
+    return { ok: false, message: MODERATION_RETRY_MESSAGE };
+  }
+  return { ok: true, id: (row as any).id };
 }
 
 async function getEliteThread(context: MobileContext, data: Record<string, unknown>) {
