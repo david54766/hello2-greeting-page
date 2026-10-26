@@ -91,8 +91,8 @@ export const getThread = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { loadBlockedIds } = await import("./elite-moderation.server");
+    const { supabase, userId } = context;
+    const { loadBlockedIds, isAdminUser } = await import("./elite-moderation.server");
     const { data: thread, error } = await supabase
       .from("elite_threads")
       .select("id, user_id, title, body, image_urls, pinned, created_at, updated_at")
@@ -100,7 +100,9 @@ export const getThread = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error || !thread) throw new Error(error?.message ?? "Not found");
 
-    const blocked = await loadBlockedIds(supabase);
+    // Moderators keep full visibility (incl. blocked authors) for review.
+    const admin = await isAdminUser(supabase, userId);
+    const blocked = admin ? new Set<string>() : await loadBlockedIds(supabase);
     if (blocked.has(thread.user_id)) throw new Error("Not found");
 
     const { data: replies } = await supabase
@@ -133,18 +135,29 @@ export const replyToThread = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { moderateElitePost, MODERATION_SAFE_MESSAGE } = await import("./elite-moderation.server");
-    const verdict = await moderateElitePost([data.body], data.image_urls ?? []);
+    const { moderateElitePost, MODERATION_SAFE_MESSAGE, MODERATION_RETRY_MESSAGE } = await import("./elite-moderation.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const verdict = await moderateElitePost([data.body], data.image_urls ?? [], { userId, admin: supabaseAdmin });
     if (!verdict.allowed) {
       return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
     }
-    const { error } = await supabase.from("elite_thread_replies").insert({
+    // Insert as the member (lands as 'pending'), then the privileged client
+    // marks it approved — the database only accepts that from the server path.
+    const { data: replyRow, error } = await supabase.from("elite_thread_replies").insert({
       thread_id: data.thread_id,
       user_id: userId,
       body: data.body,
       image_urls: data.image_urls ?? [],
-    });
+    }).select("id").single();
     if (error) return { ok: false, message: error.message };
+    const { error: approveError } = await supabaseAdmin
+      .from("elite_thread_replies")
+      .update({ moderation_status: "approved" })
+      .eq("id", replyRow.id);
+    if (approveError) {
+      await supabaseAdmin.from("elite_thread_replies").delete().eq("id", replyRow.id);
+      return { ok: false, message: MODERATION_RETRY_MESSAGE };
+    }
     await supabase.from("elite_threads").update({ updated_at: new Date().toISOString() }).eq("id", data.thread_id);
     return { ok: true };
   });
