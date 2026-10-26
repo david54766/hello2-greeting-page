@@ -325,10 +325,15 @@ function chunkText(text: string, size = MODERATION_CHUNK_SIZE): string[] {
 // match the input count, a missing/non-boolean `flagged`, or a
 // missing/non-object `categories` all fail CLOSED (retryable) — unchecked
 // content is never published.
-function evaluateModerationResponse(json: unknown, expectedResults: number): ModerationResult {
+// The provider returns ONE aggregated result per request (the whole input
+// array — every text chunk and every image — is evaluated together). Strict
+// validation: empty/missing results, a non-object entry, a
+// missing/non-boolean `flagged`, or a missing/non-object `categories` all
+// fail CLOSED (retryable) — unchecked content is never published.
+function evaluateModerationResponse(json: unknown): ModerationResult {
   const results = (json as any)?.results;
-  if (!Array.isArray(results) || results.length === 0 || results.length !== expectedResults) {
-    console.error('moderation malformed results', JSON.stringify({ expected: expectedResults, got: Array.isArray(results) ? results.length : typeof results }));
+  if (!Array.isArray(results) || results.length === 0) {
+    console.error('moderation malformed results');
     return { allowed: false, message: MODERATION_RETRY_MESSAGE };
   }
   for (const result of results) {
@@ -337,12 +342,12 @@ function evaluateModerationResponse(json: unknown, expectedResults: number): Mod
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
     if (typeof result.flagged !== 'boolean') {
-      console.error('moderation missing flagged', JSON.stringify(Object.keys(result)));
+      console.error('moderation missing flagged');
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
     const categories = result.categories;
     if (!categories || typeof categories !== 'object' || Array.isArray(categories)) {
-      console.error('moderation missing categories', JSON.stringify(Object.keys(result)));
+      console.error('moderation missing categories');
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
     if (result.flagged && BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
