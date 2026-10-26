@@ -41,6 +41,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_strategy_reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          details: string | null
+          id: string
+          platform: string
+          prompt_snapshot: string
+          reason: string
+          reporter_id: string
+          response_snapshot: Json
+          session_id: string
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          details?: string | null
+          id: string
+          platform: string
+          prompt_snapshot: string
+          reason: string
+          reporter_id: string
+          response_snapshot: Json
+          session_id: string
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          platform?: string
+          prompt_snapshot?: string
+          reason?: string
+          reporter_id?: string
+          response_snapshot?: Json
+          session_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       centers: {
         Row: {
           ages_served: string | null
@@ -1170,6 +1212,16 @@ export type Database = {
         Returns: boolean
       }
       is_elite: { Args: { _user_id: string }; Returns: boolean }
+      report_ai_strategy: {
+        Args: {
+          p_details: string
+          p_platform: string
+          p_reason: string
+          p_report_id: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user"

@@ -281,38 +281,90 @@ function screenTextLocally(text: string): boolean {
   return !BANNED_PATTERNS.some((pattern) => pattern.test(value));
 }
 
-// Fails open: a moderation outage must never break Elite posting for the
-// published Android app.
-async function screenTextRemote(text: string): Promise<boolean> {
-  const apiKey = Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY');
-  if (!apiKey || !text.trim()) return true;
+const MODERATION_RETRY_MESSAGE =
+  'Content review is temporarily unavailable. Please try again in a moment.';
+const MODERATION_IMAGE_MESSAGE =
+  'One or more images could not be verified. Please re-upload them and try again.';
+
+const BLOCKING_CATEGORIES = [
+  'sexual', 'sexual/minors', 'hate', 'hate/threatening', 'harassment',
+  'harassment/threatening', 'violence', 'violence/graphic', 'self-harm',
+  'self-harm/intent', 'self-harm/instructions',
+];
+
+type ModerationResult = { allowed: boolean; message: string | null };
+
+function storageHost(): string | null {
+  const url = Deno.env.get('SUPABASE_URL');
+  if (!url) return null;
+  try { return new URL(url).host; } catch { return null; }
+}
+
+// Only images served from our own elite-images storage bucket are accepted.
+// Anything else is rejected so the moderation call can never be turned into
+// an arbitrary server-side fetch (SSRF).
+function isAllowedImageUrl(item: string, host: string | null): boolean {
   try {
+    const u = new URL(item);
+    return u.protocol === 'https:' && host !== null && u.host === host &&
+      u.pathname.startsWith('/storage/v1/object/public/elite-images/');
+  } catch { return false; }
+}
+
+// Fails closed: a moderation outage, missing key, or malformed provider
+// response must never publish unchecked content. The retryable message keeps
+// the existing { ok: false, message } contract for the published apps.
+async function screenRemote(text: string, imageUrls: string[]): Promise<ModerationResult> {
+  const apiKey = Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY');
+  if (!apiKey) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+
+  const input: Array<Record<string, unknown>> = [];
+  if (text.trim()) input.push({ type: 'text', text: text.slice(0, 4000) });
+  for (const url of imageUrls) input.push({ type: 'image_url', image_url: { url } });
+  if (!input.length) return { allowed: true, message: null };
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
     const res = await fetch('https://api.openai.com/v1/moderations', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'omni-moderation-latest', input: text.slice(0, 4000) }),
+      body: JSON.stringify({ model: 'omni-moderation-latest', input }),
+      signal: controller.signal,
     });
-    if (!res.ok) return true;
+    clearTimeout(timer);
+    if (!res.ok) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+
     const json = await res.json();
-    const result = json?.results?.[0];
-    if (!result?.flagged) return true;
-    const categories = result.categories ?? {};
-    const blocking = [
-      'sexual', 'sexual/minors', 'hate', 'hate/threatening', 'harassment',
-      'harassment/threatening', 'violence', 'violence/graphic', 'self-harm',
-      'self-harm/intent', 'self-harm/instructions',
-    ];
-    return !blocking.some((key) => categories[key] === true);
+    const results = json?.results;
+    if (!Array.isArray(results)) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+
+    const flagged = results.some((result: any) => {
+      if (!result?.flagged) return false;
+      const categories = result.categories ?? {};
+      return BLOCKING_CATEGORIES.some((key) => categories[key] === true);
+    });
+    return flagged
+      ? { allowed: false, message: MODERATION_SAFE_MESSAGE }
+      : { allowed: true, message: null };
   } catch (error) {
     console.error('moderation error', error);
-    return true;
+    return { allowed: false, message: MODERATION_RETRY_MESSAGE };
   }
 }
 
-async function moderateElitePost(parts: Array<string | null | undefined>): Promise<boolean> {
+async function moderateElitePost(
+  parts: Array<string | null | undefined>,
+  imageUrls: string[] = [],
+): Promise<ModerationResult> {
+  const host = storageHost();
+  if (!host) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+  if (imageUrls.some((url) => !isAllowedImageUrl(url, host))) {
+    return { allowed: false, message: MODERATION_IMAGE_MESSAGE };
+  }
   const text = parts.filter(Boolean).join('\n\n');
-  if (!screenTextLocally(text)) return false;
-  return await screenTextRemote(text);
+  if (!screenTextLocally(text)) return { allowed: false, message: MODERATION_SAFE_MESSAGE };
+  return await screenRemote(text, imageUrls);
 }
 
 // ---------- Blocking helpers ----------
@@ -423,8 +475,9 @@ async function createEliteThread({ supabase, userId }: MobileContext, data: Reco
   const title = readString(data.title, 'title', 3, 200);
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  if (!(await moderateElitePost([title, body]))) {
-    return { ok: false, message: MODERATION_SAFE_MESSAGE };
+  const verdict = await moderateElitePost([title, body], imageUrls);
+  if (!verdict.allowed) {
+    return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
   const { data: row, error } = await supabase.from('elite_threads').insert({ user_id: userId, title, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
@@ -452,8 +505,9 @@ async function replyEliteThread({ supabase, userId }: MobileContext, data: Recor
   const threadId = readUuid(data.thread_id, 'thread_id');
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  if (!(await moderateElitePost([body]))) {
-    return { ok: false, message: MODERATION_SAFE_MESSAGE };
+  const verdict = await moderateElitePost([body], imageUrls);
+  if (!verdict.allowed) {
+    return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
   const { error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls });
   if (error) return { ok: false, message: error.message };

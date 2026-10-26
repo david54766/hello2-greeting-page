@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793048925582,
+      "tag": "0000_create_ai_strategy_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793048947786,
+      "tag": "0001_elite_blocking_gating_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793049161930,
+      "tag": "0002_tighten_ai_strategy_reports_grants",
+      "breakpoints": true
+    }
+  ]
+}

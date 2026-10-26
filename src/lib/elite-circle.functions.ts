@@ -61,8 +61,9 @@ export const createThread = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { moderateElitePost, MODERATION_SAFE_MESSAGE } = await import("./elite-moderation.server");
-    if (!(await moderateElitePost([data.title, data.body]))) {
-      return { ok: false, message: MODERATION_SAFE_MESSAGE };
+    const verdict = await moderateElitePost([data.title, data.body], data.image_urls ?? []);
+    if (!verdict.allowed) {
+      return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
     }
     const { data: row, error } = await supabase
       .from("elite_threads")
@@ -120,8 +121,9 @@ export const replyToThread = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { moderateElitePost, MODERATION_SAFE_MESSAGE } = await import("./elite-moderation.server");
-    if (!(await moderateElitePost([data.body]))) {
-      return { ok: false, message: MODERATION_SAFE_MESSAGE };
+    const verdict = await moderateElitePost([data.body], data.image_urls ?? []);
+    if (!verdict.allowed) {
+      return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
     }
     const { error } = await supabase.from("elite_thread_replies").insert({
       thread_id: data.thread_id,
