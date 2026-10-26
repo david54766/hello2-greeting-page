@@ -592,7 +592,8 @@ async function getEliteThread(context: MobileContext, data: Record<string, unkno
   const id = readUuid(data.id, 'id');
   const { data: thread, error } = await supabase.from('elite_threads').select('id, user_id, title, body, image_urls, pinned, created_at, updated_at').eq('id', id).maybeSingle();
   if (error || !thread) throw new Error(error?.message ?? 'Not found');
-  const blocked = await loadBlockedIds(context);
+  // Moderators keep full visibility (incl. blocked authors) for review.
+  const blocked = (await isAdmin(context)) ? new Set<string>() : await loadBlockedIds(context);
   if (blocked.has((thread as any).user_id)) throw new Error('Not found');
   const { data: replies } = await supabase.from('elite_thread_replies').select('id, user_id, body, image_urls, created_at').eq('thread_id', id).order('created_at', { ascending: true });
   const visibleReplies = (replies ?? []).filter((reply: any) => !blocked.has(reply.user_id));
@@ -608,12 +609,20 @@ async function replyEliteThread({ supabase, userId }: MobileContext, data: Recor
   const threadId = readUuid(data.thread_id, 'thread_id');
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  const verdict = await moderateElitePost([body], imageUrls);
+  const admin = serviceClient();
+  const verdict = await moderateElitePost([body], imageUrls, { userId, admin });
   if (!verdict.allowed) {
     return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
-  const { error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls });
+  // Insert as the member (lands as 'pending'), then the privileged client
+  // marks it approved — the database only accepts that from the server path.
+  const { data: replyRow, error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
+  const { error: approveError } = await admin.from('elite_thread_replies').update({ moderation_status: 'approved' }).eq('id', (replyRow as any).id);
+  if (approveError) {
+    await admin.from('elite_thread_replies').delete().eq('id', (replyRow as any).id);
+    return { ok: false, message: MODERATION_RETRY_MESSAGE };
+  }
   await supabase.from('elite_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);
   return { ok: true };
 }
