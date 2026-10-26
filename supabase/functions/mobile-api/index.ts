@@ -328,17 +328,21 @@ function chunkText(text: string, size = MODERATION_CHUNK_SIZE): string[] {
 function evaluateModerationResponse(json: unknown, expectedResults: number): ModerationResult {
   const results = (json as any)?.results;
   if (!Array.isArray(results) || results.length === 0 || results.length !== expectedResults) {
+    console.error('moderation malformed results', JSON.stringify({ expected: expectedResults, got: Array.isArray(results) ? results.length : typeof results }));
     return { allowed: false, message: MODERATION_RETRY_MESSAGE };
   }
   for (const result of results) {
     if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      console.error('moderation malformed result entry');
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
     if (typeof result.flagged !== 'boolean') {
+      console.error('moderation missing flagged', JSON.stringify(Object.keys(result)));
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
     const categories = result.categories;
     if (!categories || typeof categories !== 'object' || Array.isArray(categories)) {
+      console.error('moderation missing categories', JSON.stringify(Object.keys(result)));
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
     if (result.flagged && BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
