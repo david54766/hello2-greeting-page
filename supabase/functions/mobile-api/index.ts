@@ -475,8 +475,9 @@ async function createEliteThread({ supabase, userId }: MobileContext, data: Reco
   const title = readString(data.title, 'title', 3, 200);
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  if (!(await moderateElitePost([title, body]))) {
-    return { ok: false, message: MODERATION_SAFE_MESSAGE };
+  const verdict = await moderateElitePost([title, body], imageUrls);
+  if (!verdict.allowed) {
+    return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
   const { data: row, error } = await supabase.from('elite_threads').insert({ user_id: userId, title, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
@@ -504,8 +505,9 @@ async function replyEliteThread({ supabase, userId }: MobileContext, data: Recor
   const threadId = readUuid(data.thread_id, 'thread_id');
   const body = readString(data.body, 'body', 1, 10000);
   const imageUrls = readImageUrls(data.image_urls);
-  if (!(await moderateElitePost([body]))) {
-    return { ok: false, message: MODERATION_SAFE_MESSAGE };
+  const verdict = await moderateElitePost([body], imageUrls);
+  if (!verdict.allowed) {
+    return { ok: false, message: verdict.message ?? MODERATION_SAFE_MESSAGE };
   }
   const { error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls });
   if (error) return { ok: false, message: error.message };
