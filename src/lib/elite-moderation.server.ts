@@ -44,13 +44,14 @@ export function chunkText(text: string, size: number = MODERATION_CHUNK_SIZE): s
   return chunks;
 }
 
-// Strict response validation. Empty results, a result count that does not
-// match the input count, a missing/non-boolean `flagged`, or a
-// missing/non-object `categories` all fail CLOSED (retryable) — unchecked
-// content is never published.
-export function evaluateModerationResponse(json: unknown, expectedResults: number): ModerationResult {
+// The provider returns ONE aggregated result per request (the whole input
+// array — every text chunk and every image — is evaluated together). Strict
+// validation: empty/missing results, a non-object entry, a
+// missing/non-boolean `flagged`, or a missing/non-object `categories` all
+// fail CLOSED (retryable) — unchecked content is never published.
+export function evaluateModerationResponse(json: unknown): ModerationResult {
   const results = (json as any)?.results;
-  if (!Array.isArray(results) || results.length === 0 || results.length !== expectedResults) {
+  if (!Array.isArray(results) || results.length === 0) {
     return { allowed: false, message: MODERATION_RETRY_MESSAGE };
   }
   for (const result of results) {
@@ -165,7 +166,7 @@ async function screenRemote(text: string, imageUrls: string[]): Promise<Moderati
     } finally {
       clearTimeout(timer);
     }
-    return evaluateModerationResponse(json, input.length);
+    return evaluateModerationResponse(json);
   } catch (error) {
     console.error("moderation error", error);
     return { allowed: false, message: MODERATION_RETRY_MESSAGE };

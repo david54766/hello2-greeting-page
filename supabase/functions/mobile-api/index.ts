@@ -446,7 +446,7 @@ async function screenRemote(text: string, imageUrls: string[]): Promise<Moderati
     } finally {
       clearTimeout(timer);
     }
-    return evaluateModerationResponse(json, input.length);
+    return evaluateModerationResponse(json);
   } catch (error) {
     console.error('moderation error', error);
     return { allowed: false, message: MODERATION_RETRY_MESSAGE };
