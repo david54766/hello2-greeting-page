@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 const env = Object.fromEntries(
   readFileSync(".env", "utf8").split("\n")
     .filter((l) => l.includes("=") && !l.startsWith("#"))
-    .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }),
+    .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, "")]; }),
 );
 const URL_ = env.VITE_SUPABASE_URL;
 const ANON = env.VITE_SUPABASE_PUBLISHABLE_KEY;
