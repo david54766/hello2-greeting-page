@@ -1,3 +1,4 @@
+// @ts-ignore -- bun's built-in test runner types are not part of the app tsconfig
 import { describe, expect, test } from "bun:test";
 import { performWebsiteSignup, ADULT_ATTESTATION_VERSION, type SignupDeps } from "./adult-attestation";
 
