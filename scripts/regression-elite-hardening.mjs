@@ -1,8 +1,18 @@
 // Live regression suite for the backend hardening follow-up (items 1-5).
-// Run: bun scripts/regression-elite-hardening.mjs
+// Run only with explicit live-QA authorization and credentials in environment variables.
 // Uses QA accounts only; records every created row in /tmp/hardening-cleanup.json
 // so cleanup can remove exactly what this script created.
 import { readFileSync, writeFileSync } from "node:fs";
+
+if (process.env.RUN_LIVE_QA !== "authorized") {
+  throw new Error("Live QA writes require RUN_LIVE_QA=authorized; no requests were sent.");
+}
+
+function requiredEnv(name) {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Missing required environment setting: ${name}`);
+  return value;
+}
 
 const env = Object.fromEntries(
   readFileSync(".env", "utf8").split("\n")
@@ -48,9 +58,9 @@ const api = async (t, action, data = {}) => {
 };
 const uuid = () => crypto.randomUUID();
 
-const M = await signIn("qa.elite@easyfill.ai", "QaAndroid#2026!");     // elite member
-const B = await signIn("qa.elite2@easyfill.ai", "QaAndroid#2026!");    // elite member (blocked author)
-const A = await signIn("david@easyfill.ai", "PrimaDonna#Admin2026");   // admin + elite (moderator)
+const M = await signIn(requiredEnv("QA_ELITE_EMAIL"), requiredEnv("QA_ELITE_PASSWORD"));
+const B = await signIn(requiredEnv("QA_SECOND_ELITE_EMAIL"), requiredEnv("QA_SECOND_ELITE_PASSWORD"));
+const A = await signIn(requiredEnv("QA_ADMIN_EMAIL"), requiredEnv("QA_ADMIN_PASSWORD"));
 console.log(`signed in: M=${M.uid} B=${B.uid} A=${A.uid}`);
 
 // ---------- Item 1: report_ai_strategy ----------
