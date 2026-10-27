@@ -1234,8 +1234,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_download_template: { Args: { _name: string }; Returns: boolean }
       claim_first_admin: { Args: never; Returns: boolean }
       elite_blocked_user_ids: { Args: never; Returns: string[] }
+      elite_image_visible: { Args: { _name: string }; Returns: boolean }
       elite_thread_author: { Args: { _thread_id: string }; Returns: string }
       has_any_admin: { Args: never; Returns: boolean }
       has_role: {
