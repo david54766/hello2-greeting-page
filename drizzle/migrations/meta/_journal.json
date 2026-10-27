@@ -50,6 +50,13 @@
       "when": 1793073304331,
       "tag": "0006_revoke_anon_adult_attestations",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793073659808,
+      "tag": "0007_storage_listing_and_legacy_lockdown",
+      "breakpoints": true
     }
   ]
 }
