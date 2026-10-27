@@ -26,7 +26,7 @@ const BLOCKING_CATEGORIES = [
 // Posts accept up to 10,000 characters; the provider is called with every
 // chunk and every result is validated — nothing past the first chunk is
 // skipped.
-export const MODERATION_MAX_TEXT = 10_000;
+export const MODERATION_MAX_TEXT = 10_202; // 200-character title, separator, 10,000-character body.
 export const MODERATION_CHUNK_SIZE = 4_000;
 const MODERATION_TIMEOUT_MS = 10_000;
 
@@ -65,7 +65,10 @@ export function evaluateModerationResponse(json: unknown): ModerationResult {
     if (!categories || typeof categories !== "object" || Array.isArray(categories)) {
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
-    if (result.flagged && BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
+    if (BLOCKING_CATEGORIES.some((key) => typeof categories[key] !== "boolean")) {
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    if (result.flagged || BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
       return { allowed: false, message: MODERATION_SAFE_MESSAGE };
     }
   }
@@ -90,9 +93,11 @@ export function parseEliteImagePath(item: string, host: string | null): string |
   try {
     const u = new URL(item);
     if (u.protocol !== "https:" || host === null || u.host !== host) return null;
+    if (u.username || u.password || u.search || u.hash || item !== `${u.origin}${u.pathname}`) return null;
     const prefix = "/storage/v1/object/public/elite-images/";
     if (!u.pathname.startsWith(prefix)) return null;
     const path = decodeURIComponent(u.pathname.slice(prefix.length));
+    if (path !== u.pathname.slice(prefix.length)) return null;
     if (!path || path.includes("..") || path.startsWith("/") || path.endsWith("/")) return null;
     if (!/^[A-Za-z0-9._/-]+$/.test(path)) return null;
     return path;
@@ -143,8 +148,9 @@ async function screenRemote(text: string, imageUrls: string[]): Promise<Moderati
   const apiKey = process.env["OPENAI_API_KEY"] ?? process.env["OPEN_API_KEY"];
   if (!apiKey) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
 
+  if (text.length > MODERATION_MAX_TEXT) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
   const input: Array<Record<string, unknown>> = [];
-  for (const chunk of chunkText(text.slice(0, MODERATION_MAX_TEXT))) {
+  for (const chunk of chunkText(text)) {
     if (chunk.trim()) input.push({ type: "text", text: chunk });
   }
   for (const url of imageUrls) input.push({ type: "image_url", image_url: { url } });

@@ -78,7 +78,7 @@ export const createThread = createServerFn({ method: "POST" })
     if (error) return { ok: false, message: error.message };
     const { error: approveError } = await supabaseAdmin
       .from("elite_threads")
-      .update({ moderation_status: "approved" })
+      .update({ title: data.title, body: data.body, image_urls: data.image_urls ?? [], moderation_status: "approved" })
       .eq("id", row.id);
     if (approveError) {
       await supabaseAdmin.from("elite_threads").delete().eq("id", row.id);
@@ -152,13 +152,13 @@ export const replyToThread = createServerFn({ method: "POST" })
     if (error) return { ok: false, message: error.message };
     const { error: approveError } = await supabaseAdmin
       .from("elite_thread_replies")
-      .update({ moderation_status: "approved" })
+      .update({ body: data.body, image_urls: data.image_urls ?? [], moderation_status: "approved" })
       .eq("id", replyRow.id);
     if (approveError) {
       await supabaseAdmin.from("elite_thread_replies").delete().eq("id", replyRow.id);
       return { ok: false, message: MODERATION_RETRY_MESSAGE };
     }
-    await supabase.from("elite_threads").update({ updated_at: new Date().toISOString() }).eq("id", data.thread_id);
+    await supabaseAdmin.from("elite_threads").update({ updated_at: new Date().toISOString() }).eq("id", data.thread_id);
     return { ok: true };
   });
 

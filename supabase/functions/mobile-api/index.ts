@@ -309,7 +309,7 @@ const BLOCKING_CATEGORIES = [
 // Posts accept up to 10,000 characters; the provider is called with every
 // chunk and every result is validated — nothing past the first chunk is
 // skipped.
-const MODERATION_MAX_TEXT = 10_000;
+const MODERATION_MAX_TEXT = 10_202; // 200-character title, separator, 10,000-character body.
 const MODERATION_CHUNK_SIZE = 4_000;
 const MODERATION_TIMEOUT_MS = 10_000;
 
@@ -321,10 +321,6 @@ function chunkText(text: string, size = MODERATION_CHUNK_SIZE): string[] {
   return chunks;
 }
 
-// Strict response validation. Empty results, a result count that does not
-// match the input count, a missing/non-boolean `flagged`, or a
-// missing/non-object `categories` all fail CLOSED (retryable) — unchecked
-// content is never published.
 // The provider returns ONE aggregated result per request (the whole input
 // array — every text chunk and every image — is evaluated together). Strict
 // validation: empty/missing results, a non-object entry, a
@@ -350,7 +346,10 @@ function evaluateModerationResponse(json: unknown): ModerationResult {
       console.error('moderation missing categories');
       return { allowed: false, message: MODERATION_RETRY_MESSAGE };
     }
-    if (result.flagged && BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
+    if (BLOCKING_CATEGORIES.some((key) => typeof categories[key] !== 'boolean')) {
+      return { allowed: false, message: MODERATION_RETRY_MESSAGE };
+    }
+    if (result.flagged || BLOCKING_CATEGORIES.some((key) => categories[key] === true)) {
       return { allowed: false, message: MODERATION_SAFE_MESSAGE };
     }
   }
@@ -371,9 +370,11 @@ function parseEliteImagePath(item: string, host: string | null): string | null {
   try {
     const u = new URL(item);
     if (u.protocol !== 'https:' || host === null || u.host !== host) return null;
+    if (u.username || u.password || u.search || u.hash || item !== `${u.origin}${u.pathname}`) return null;
     const prefix = '/storage/v1/object/public/elite-images/';
     if (!u.pathname.startsWith(prefix)) return null;
     const path = decodeURIComponent(u.pathname.slice(prefix.length));
+    if (path !== u.pathname.slice(prefix.length)) return null;
     if (!path || path.includes('..') || path.startsWith('/') || path.endsWith('/')) return null;
     if (!/^[A-Za-z0-9._/-]+$/.test(path)) return null;
     return path;
@@ -420,8 +421,9 @@ async function screenRemote(text: string, imageUrls: string[]): Promise<Moderati
   const apiKey = Deno.env.get('OPENAI_API_KEY') ?? Deno.env.get('OPEN_API_KEY');
   if (!apiKey) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
 
+  if (text.length > MODERATION_MAX_TEXT) return { allowed: false, message: MODERATION_RETRY_MESSAGE };
   const input: Array<Record<string, unknown>> = [];
-  for (const chunk of chunkText(text.slice(0, MODERATION_MAX_TEXT))) {
+  for (const chunk of chunkText(text)) {
     if (chunk.trim()) input.push({ type: 'text', text: chunk });
   }
   for (const url of imageUrls) input.push({ type: 'image_url', image_url: { url } });
@@ -591,7 +593,8 @@ async function createEliteThread({ supabase, userId }: MobileContext, data: Reco
   // marks it approved — the database only accepts that from the server path.
   const { data: row, error } = await supabase.from('elite_threads').insert({ user_id: userId, title, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
-  const { error: approveError } = await admin.from('elite_threads').update({ moderation_status: 'approved' }).eq('id', (row as any).id);
+  // Publish the screened snapshot, not any concurrent edit to the pending row.
+  const { error: approveError } = await admin.from('elite_threads').update({ title, body, image_urls: imageUrls, moderation_status: 'approved' }).eq('id', (row as any).id);
   if (approveError) {
     await admin.from('elite_threads').delete().eq('id', (row as any).id);
     return { ok: false, message: MODERATION_RETRY_MESSAGE };
@@ -630,12 +633,12 @@ async function replyEliteThread({ supabase, userId }: MobileContext, data: Recor
   // marks it approved — the database only accepts that from the server path.
   const { data: replyRow, error } = await supabase.from('elite_thread_replies').insert({ thread_id: threadId, user_id: userId, body, image_urls: imageUrls }).select('id').single();
   if (error) return { ok: false, message: error.message };
-  const { error: approveError } = await admin.from('elite_thread_replies').update({ moderation_status: 'approved' }).eq('id', (replyRow as any).id);
+  const { error: approveError } = await admin.from('elite_thread_replies').update({ body, image_urls: imageUrls, moderation_status: 'approved' }).eq('id', (replyRow as any).id);
   if (approveError) {
     await admin.from('elite_thread_replies').delete().eq('id', (replyRow as any).id);
     return { ok: false, message: MODERATION_RETRY_MESSAGE };
   }
-  await supabase.from('elite_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);
+  await admin.from('elite_threads').update({ updated_at: new Date().toISOString() }).eq('id', threadId);
   return { ok: true };
 }
 
