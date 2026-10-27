@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      adult_attestations: {
+        Row: {
+          attestation_version: string
+          attested_at: string
+          id: string
+          platform: string
+          statement: string
+          user_id: string
+        }
+        Insert: {
+          attestation_version: string
+          attested_at?: string
+          id?: string
+          platform?: string
+          statement: string
+          user_id: string
+        }
+        Update: {
+          attestation_version?: string
+          attested_at?: string
+          id?: string
+          platform?: string
+          statement?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_strategy_reports: {
         Row: {
           admin_notes: string | null
