@@ -9,6 +9,9 @@ import logoImg from "@/assets/preschool-pro-ai-logo.png";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal";
+import { useServerFn } from "@tanstack/react-start";
+import { websiteSignup } from "@/lib/website-signup.functions";
+import { ADULT_ATTESTATION_STATEMENT } from "@/lib/adult-attestation";
 
 type SelectableTier = "essentials" | "pro";
 
@@ -44,36 +47,43 @@ function Signup() {
   const [businessName, setBusinessName] = useState("");
   const [tier, setTier] = useState<SelectableTier>("essentials");
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [adultAttested, setAdultAttested] = useState(false);
+  const signupFn = useServerFn(websiteSignup);
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!legalAccepted)
       return toast.error("Accept the Terms of Use and Privacy Policy to continue.");
+    if (!adultAttested)
+      return toast.error("Confirm you are 18 or older and authorized to represent this business.");
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
+    let result: Awaited<ReturnType<typeof websiteSignup>>;
+    try {
+      result = await signupFn({
         data: {
-          full_name: fullName,
-          intended_tier: tier,
-          terms_version: TERMS_VERSION,
-          privacy_version: PRIVACY_VERSION,
+          email,
+          password,
+          fullName,
+          businessName,
+          tier,
+          termsVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+          adultAttestation: adultAttested,
+          redirectTo: new URL("/dashboard", window.location.origin).toString(),
         },
-        emailRedirectTo: new URL("/dashboard", window.location.origin).toString(),
-      },
-    });
-    if (error) {
+      });
+    } catch {
       setLoading(false);
-      return toast.error(error.message);
+      return toast.error("Signup is temporarily unavailable. Please try again.");
     }
-    if (data.user) {
-      await supabase
-        .from("profiles")
-        .update({ business_name: businessName, full_name: fullName })
-        .eq("id", data.user.id);
-      if (data.session) {
+    if (!result.ok) {
+      setLoading(false);
+      return toast.error(result.message);
+    }
+    if (result.session) {
+      const { data } = await supabase.auth.setSession(result.session);
+      if (data.user) {
         await supabase.from("legal_acceptances").insert({
           user_id: data.user.id,
           terms_version: TERMS_VERSION,
@@ -221,10 +231,20 @@ function Signup() {
               .
             </Label>
           </div>
+          <div className="flex items-start gap-3 rounded-lg border border-border p-4">
+            <Checkbox
+              id="signup-adult"
+              checked={adultAttested}
+              onCheckedChange={(value) => setAdultAttested(value === true)}
+            />
+            <Label htmlFor="signup-adult" className="cursor-pointer text-sm leading-5">
+              {ADULT_ATTESTATION_STATEMENT}
+            </Label>
+          </div>
           <Button
             type="submit"
             className="w-full rounded-full h-11"
-            disabled={loading || !legalAccepted}
+            disabled={loading || !legalAccepted || !adultAttested}
           >
             {loading
               ? "Creating your seat…"

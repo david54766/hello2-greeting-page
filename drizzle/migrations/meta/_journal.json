@@ -36,6 +36,20 @@
       "when": 1793049875342,
       "tag": "0004_elite_moderation_approval_path",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793073218026,
+      "tag": "0005_adult_account_attestations",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793073304331,
+      "tag": "0006_revoke_anon_adult_attestations",
+      "breakpoints": true
     }
   ]
 }
