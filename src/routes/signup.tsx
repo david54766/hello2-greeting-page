@@ -231,10 +231,20 @@ function Signup() {
               .
             </Label>
           </div>
+          <div className="flex items-start gap-3 rounded-lg border border-border p-4">
+            <Checkbox
+              id="signup-adult"
+              checked={adultAttested}
+              onCheckedChange={(value) => setAdultAttested(value === true)}
+            />
+            <Label htmlFor="signup-adult" className="cursor-pointer text-sm leading-5">
+              {ADULT_ATTESTATION_STATEMENT}
+            </Label>
+          </div>
           <Button
             type="submit"
             className="w-full rounded-full h-11"
-            disabled={loading || !legalAccepted}
+            disabled={loading || !legalAccepted || !adultAttested}
           >
             {loading
               ? "Creating your seat…"
